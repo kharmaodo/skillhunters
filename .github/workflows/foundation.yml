@@ -1,0 +1,21 @@
+name: Foundation contracts
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 2
+      - name: Validate L0 artifacts offline
+        run: python3 scripts/check_foundation.py
+      - name: Check whitespace
+        run: git diff --check HEAD^ HEAD

@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+node_modules/
+target/
+.venv/
+__pycache__/
+.pytest_cache/
+.DS_Store
+/storage/
+/data/
+artifacts/
+!tests/fixtures/

@@ -1,0 +1,36 @@
+# Contrat REST initial
+
+`openapi.json` est un contrat OpenAPI 3.1.0 cible, pas une preuve d'implémentation. Importable dans un éditeur OpenAPI. Il décrit les parcours centraux et sera complété avant les modules concernés.
+
+## Conventions
+
+- Préfixe `/api/v1`, JSON UTF-8, UUID et dates UTC ISO 8601.
+- Session BFF `SH_SESSION` ; contrôle CSRF sur chaque mutation. Le jeton CSRF est remis par `GET /session`, pas un jeton d'accès OIDC.
+- Rôle et vivier contrôlés par le serveur pour chaque objet. Les réponses ne divulguent pas l'existence d'un objet interdit. Le rôle ADMIN seul n'accorde pas la lecture d'un CV.
+- `If-Match` obligatoire sur les mutations versionnées : `428` absent, `412` périmé. Le client obtient la version via `ETag` sur la lecture correspondante. La validation de fiche utilise l'ETag de sa révision.
+- `Idempotency-Key` pour créations sensibles, import et envoi. Même clé + contenu différent = `409`; même contenu = résultat initial. Portée acteur/opération, durée de conservation de clé à fixer ; elle ne garantit pas l'exactly-once SMTP.
+- Pagination à curseur pour candidats, recherche et audit. Pagination des autres collections à ajouter avant volumétrie réelle.
+- Les `202` créent une tâche ou un état en cours ; ils n'annoncent pas l'achèvement du traitement. Une fiche validée peut attendre l'indexation.
+- Téléchargements avec disposition attachment, type réel et contrôle d'accès à chaque requête. Aucun bucket public.
+- Les dates partielles sont conservées sans convertir une année en jour précis. Les intervalles et compétences doivent référencer les preuves de la même révision.
+- Les sommes de poids, chronologies, unicité des alias et relations entre UUID sont des invariants métier supplémentaires aux schémas JSON.
+
+## Autorisations cibles
+
+| Famille | Permission |
+|---|---|
+| Session | Utilisateur connecté |
+| Vivier, recherche, revue | Recruteur affecté au vivier |
+| Documents, export | Lecture ou export explicitement autorisé |
+| Listes et notes | Auteur ou partage autorisé, toujours borné au vivier |
+| Contact | Permission contacter, recontrôlée lors de l'envoi |
+| Audit, droits et opposition | Conformité ou habilitation dédiée |
+| Habilitations | Administrateur |
+| Scoring | Responsable recrutement habilité |
+| Conservation | Conformité habilitée |
+
+## Limites explicites de la version L0
+
+À compléter avant implémentation : endpoints de login/callback OIDC, protocole worker interne et baux, rapprochement/réversibilité des doublons, listing/versionnement des templates et politiques, historique détaillé des contacts, points de suivi des exports/purges et workflow complet de demandes de droits. Ce contrat initial ne couvre donc pas encore toutes les opérations du backlog.
+
+Le dépôt n'expose aucun serveur ; `/api/v1` est un chemin relatif de conception.

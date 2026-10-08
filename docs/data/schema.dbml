@@ -1,0 +1,254 @@
+Project SkillHunters {
+ database_type: 'PostgreSQL'
+ Note: 'Modèle logique L0. Pas une migration exécutable.'
+}
+Table organization {
+ id uuid [pk]
+ name varchar [not null]
+}
+Table talent_pool {
+ id uuid [pk]
+ organization_id uuid [not null, ref: > organization.id]
+ name varchar [not null]
+}
+Table app_user {
+ id uuid [pk]
+ oidc_subject varchar [not null, unique]
+ display_name varchar
+}
+Table membership {
+ user_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ role varchar [not null]
+ indexes { (user_id, pool_id, role) [pk] }
+}
+Table candidate {
+ id uuid [pk]
+ organization_id uuid [not null, ref: > organization.id]
+ display_name varchar
+ professional_title varchar
+ email varchar
+ availability varchar
+ status varchar [not null]
+ expires_at timestamptz
+ deleted_at timestamptz
+ version bigint [not null]
+}
+Table candidate_pool {
+ candidate_id uuid [not null, ref: > candidate.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ indexes { (candidate_id, pool_id) [pk] }
+}
+Table document_version {
+ id uuid [pk]
+ candidate_id uuid [ref: > candidate.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ object_key varchar [not null]
+ sha256 varchar [not null]
+ media_type varchar [not null]
+ state varchar [not null]
+ created_at timestamptz [not null]
+}
+Table import_batch {
+ id uuid [pk]
+ actor_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ idempotency_key varchar [not null]
+ request_hash varchar [not null]
+ indexes { (actor_id, idempotency_key) [unique] }
+}
+Table processing_job {
+ id uuid [pk]
+ batch_id uuid [not null, ref: > import_batch.id]
+ document_id uuid [not null, ref: > document_version.id]
+ state varchar [not null]
+ attempts int [not null]
+ lease_until timestamptz
+ pipeline_version varchar [not null]
+}
+Table extraction_revision {
+ id uuid [pk]
+ document_id uuid [not null, ref: > document_version.id]
+ candidate_id uuid [not null, ref: > candidate.id]
+ parent_id uuid [ref: > extraction_revision.id]
+ state varchar [not null]
+ extractor_version varchar [not null]
+ validated_by uuid [ref: > app_user.id]
+ validated_at timestamptz
+ version bigint [not null]
+}
+Table field_evidence {
+ id uuid [pk]
+ revision_id uuid [not null, ref: > extraction_revision.id]
+ locator varchar [not null]
+ raw_value text
+ normalized_value jsonb
+ origin varchar [not null]
+ confidence decimal
+}
+Table skill {
+ id uuid [pk]
+ canonical_name varchar [not null, unique]
+ version bigint [not null]
+}
+Table skill_alias {
+ normalized_alias varchar [pk]
+ original_alias varchar [not null]
+ skill_id uuid [not null, ref: > skill.id]
+}
+Table experience {
+ id uuid [pk]
+ revision_id uuid [not null, ref: > extraction_revision.id]
+ kind varchar [not null]
+ title varchar
+ organization varchar
+ start_value varchar
+ end_value varchar
+ date_precision varchar [not null]
+ ongoing boolean [not null]
+}
+Table experience_skill {
+ experience_id uuid [not null, ref: > experience.id]
+ skill_id uuid [not null, ref: > skill.id]
+ evidence_id uuid [not null, ref: > field_evidence.id]
+ indexes { (experience_id, skill_id, evidence_id) [pk] }
+}
+Table skill_assertion {
+ id uuid [pk]
+ revision_id uuid [not null, ref: > extraction_revision.id]
+ skill_id uuid [not null, ref: > skill.id]
+ evidence_id uuid [not null, ref: > field_evidence.id]
+ declared_level decimal
+ validated boolean [not null]
+}
+Table professional_chunk {
+ id uuid [pk]
+ revision_id uuid [not null, ref: > extraction_revision.id]
+ evidence_id uuid [not null, ref: > field_evidence.id]
+ professional_text text [not null]
+ embedding_payload bytea
+ embedding_model varchar
+ embedding_dimension int
+ generation_id uuid [not null]
+}
+Table score_policy {
+ id uuid [pk]
+ version bigint [not null]
+ weights jsonb [not null]
+ reason varchar [not null]
+}
+Table search {
+ id uuid [pk]
+ actor_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ score_policy_id uuid [not null, ref: > score_policy.id]
+ criteria jsonb [not null]
+ date_reference date [not null]
+ algorithm_version varchar [not null]
+}
+Table search_result {
+ search_id uuid [not null, ref: > search.id]
+ candidate_id uuid [not null, ref: > candidate.id]
+ revision_id uuid [not null, ref: > extraction_revision.id]
+ contributions jsonb [not null]
+ documented_score decimal [not null]
+ upper_bound decimal [not null]
+ indexes { (search_id, candidate_id) [pk] }
+}
+Table shortlist {
+ id uuid [pk]
+ owner_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ name varchar [not null]
+}
+Table shortlist_entry {
+ shortlist_id uuid [not null, ref: > shortlist.id]
+ candidate_id uuid [not null, ref: > candidate.id]
+ indexes { (shortlist_id, candidate_id) [pk] }
+}
+Table candidate_note {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate.id]
+ author_id uuid [not null, ref: > app_user.id]
+ body text [not null]
+ tags jsonb
+}
+Table email_template {
+ id uuid [pk]
+ name varchar [not null]
+ subject varchar [not null]
+ body text [not null]
+ version bigint [not null]
+}
+Table contact_draft {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate.id]
+ template_id uuid [not null, ref: > email_template.id]
+ recipient varchar [not null]
+ subject varchar [not null]
+ body text [not null]
+ content_hash varchar [not null]
+ approved_hash varchar
+ approved_by uuid [ref: > app_user.id]
+ state varchar [not null]
+ version bigint [not null]
+}
+Table contact_event {
+ id uuid [pk]
+ draft_id uuid [not null, ref: > contact_draft.id]
+ state varchar [not null]
+ provider_id varchar
+ occurred_at timestamptz [not null]
+}
+Table retention_policy {
+ id uuid [pk]
+ purpose varchar [not null]
+ duration_months int [not null]
+ trigger varchar [not null]
+ reason varchar [not null]
+}
+Table processing_basis {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate.id]
+ retention_policy_id uuid [not null, ref: > retention_policy.id]
+ source varchar [not null]
+ purpose varchar [not null]
+ basis_code varchar [not null]
+ notice_version varchar
+}
+Table objection {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate.id]
+ purpose varchar [not null]
+ recorded_at timestamptz [not null]
+}
+Table rights_request {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate.id]
+ kind varchar [not null]
+ status varchar [not null]
+ identity_verified boolean [not null]
+ version bigint [not null]
+}
+Table deletion_tombstone {
+ candidate_token varchar [pk]
+ created_at timestamptz [not null]
+ purge_state varchar [not null]
+ Note: 'Identifiant minimisé, sans FK bloquant la suppression du candidat.'
+}
+Table audit_event {
+ id uuid [pk]
+ actor_token varchar [not null]
+ object_token varchar [not null]
+ action varchar [not null]
+ occurred_at timestamptz [not null]
+ correlation_id varchar [not null]
+}
+Table outbox_event {
+ id uuid [pk]
+ aggregate_id uuid [not null]
+ type varchar [not null]
+ payload jsonb [not null]
+ created_at timestamptz [not null]
+ processed_at timestamptz
+}
