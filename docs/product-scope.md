@@ -2,7 +2,7 @@
 
 ## Décisions validées
 
-Le 8 octobre 2026, le propriétaire a validé la maquette des écrans et parcours MVP, puis React/TypeScript, Java 21/Spring Boot, worker Python et PostgreSQL/pgvector. Le dépôt désigné est `kharmaodo/skillhunters`.
+Le 8 octobre 2026, le propriétaire a validé la maquette des écrans et parcours MVP, puis React/TypeScript, Java 21/Spring Boot, worker Python et PostgreSQL/pgvector. Le dépôt désigné est `[kharmaodo/skillhunters](https://github.com/kharmaodo/skillhunters)`.
 
 La validation de l'interface ne signifie pas que ses données fictives, scores, contrôles d'accès ou simulations sont du code de production. Le frontend final reproduira les parcours validés avec des contrats métier réels.
 
