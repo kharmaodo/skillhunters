@@ -15,6 +15,9 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 
 ## Documents de référence
 
+- [Consignes de contribution](AGENTS.md)
+- [Dossier de conception et backlog](Skill-Hunter-Dossier-Conception.md)
+
 - [Périmètre et décisions](docs/product-scope.md)
 - [Architecture et frontières](docs/architecture.md)
 - [Décision de stack](docs/adr/0001-stack-and-boundaries.md)
@@ -51,6 +54,6 @@ Les dossiers applicatifs sont des emplacements documentés, sans squelette de fr
 
 ## Workflow de contribution
 
-Branche de travail depuis `main`, PR relue avant fusion. Pas de push direct sur `main`, pas de fusion automatique. Aucune branche `develop` n'existait à l'ouverture du dépôt ; son adoption reste une décision de workflow distincte.
+Créer une branche `feature/…`, `fix/…` ou `docs/…` depuis `origin/develop` à jour, puis ouvrir une PR vers `develop`. La fusion reste soumise à revue. Pas de push direct sur `main` ni de fusion automatique. Voir `AGENTS.md` pour les consignes détaillées.
 
 Les documents privés et les CV réels ne doivent pas être ajoutés à ce dépôt public. Les exemples utilisent exclusivement des données synthétiques. Aucune licence d'application n'est déduite du caractère public du dépôt : une décision de licence reste nécessaire.
