@@ -13,3 +13,6 @@ __pycache__/
 /data/
 artifacts/
 !tests/fixtures/
+/infrastructure/generated/
+/apps/web/dist/
+/services/api/src/main/resources/static/

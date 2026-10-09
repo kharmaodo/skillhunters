@@ -4,7 +4,9 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 
 ## État du projet
 
-**Lot L0 en cours : fondations et contrats.** La maquette MVP et la stack ont été validées le 8 octobre 2026. Ce dépôt ne contient pas encore une application exécutable. Aucun service OCR, modèle IA, mécanisme d'authentification ou envoi SMTP n'est implémenté ici.
+**Premier incrément exécutable de SH-01 / SH-02 : identité et habilitations.** La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient désormais une API Java et une interface React pour la connexion OIDC et les accès aux viviers. L’import, l’OCR, la recherche et SMTP restent à développer.
+
+[Démarrer en local ou avec Docker](docs/development.md) · [Périmètre et recette de cet incrément](docs/validation/sh-01-sh-02.md)
 
 - Frontend : React, TypeScript, Vite.
 - Métier et API : Java 21, Spring Boot, Spring Security.
@@ -50,7 +52,7 @@ schemas via docs/data/     modèle logique avant migrations
 schemas et corpus tests/   données synthétiques de validation
 ```
 
-Les dossiers applicatifs sont des emplacements documentés, sans squelette de framework trompeur. Versions, images et modèles seront épinglés après leurs vérifications au lot L0/L1.
+Les dossiers API et frontend contiennent le premier incrément. Le worker demeure un emplacement documenté : aucun moteur OCR ou modèle IA n’est encore choisi.
 
 ## Workflow de contribution
 

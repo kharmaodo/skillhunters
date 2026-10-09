@@ -1,0 +1,69 @@
+name: MVP identity and pools
+on:
+  push:
+    branches: [develop, 'feature/**', 'fix/**']
+  pull_request:
+    branches: [develop, main]
+permissions:
+  contents: read
+concurrency:
+  group: identity-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.6
+        env:
+          POSTGRES_DB: skillhunters_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: local-test-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U test -d skillhunters_test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false, fetch-depth: 2}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21', cache: maven}
+      - uses: actions/setup-node@v4
+        with: {node-version: '24', cache: npm, cache-dependency-path: apps/web/package-lock.json}
+      - name: L0 consistency and whitespace
+        run: |
+          python3 scripts/check_foundation.py
+          git diff --check HEAD^ HEAD
+      - name: Build frontend
+        working-directory: apps/web
+        run: npm ci --no-audit --no-fund && npm run build
+      - name: Test API with PostgreSQL migrations
+        working-directory: services/api
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/skillhunters_test
+          TEST_DB_USER: test
+          TEST_DB_PASSWORD: local-test-only
+        run: mvn -B -ntp verify
+  compose-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Generate local-only configuration
+        run: python3 scripts/init_local.py
+      - name: Build and start the local stack
+        run: |
+          docker compose --env-file .env -f infrastructure/compose.yml --profile app up -d --build postgres keycloak api
+          docker compose --env-file .env -f infrastructure/compose.yml --profile app up --wait --wait-timeout 240 postgres keycloak api
+          docker compose --env-file .env -f infrastructure/compose.yml --profile app run --rm seed
+      - name: Check real OIDC flow and access revocation
+        run: |
+          set -a
+          . ./.env
+          set +a
+          python3 scripts/smoke_oidc.py
+      - name: Stop stack
+        if: always()
+        run: docker compose --env-file .env -f infrastructure/compose.yml --profile app down -v
