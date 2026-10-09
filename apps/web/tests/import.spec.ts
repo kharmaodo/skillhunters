@@ -27,3 +27,51 @@ for (const width of [1280, 320]) {
     await page.screenshot({ path: `test-results/import-${width}.png`, fullPage: true });
   });
 }
+
+for (const width of [1280, 320]) {
+  test(`batch partial success survives interruption and reload at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Se connecter avec le compte professionnel' }).click();
+    await page.locator('#username').fill('alice');
+    await page.locator('#password').fill(process.env.DEMO_PASSWORD!);
+    await page.locator('#kc-login').click();
+    await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
+    await page.getByRole('button', { name: 'Importer un lot', exact: true }).click();
+    await page.getByLabel('Provenance des documents').fill('Lot synthétique de recette navigateur');
+    const suffix = `${width}-${Date.now()}`;
+    const files = [
+      { name: `accepted-${suffix}.md`, mimeType: 'text/markdown', buffer: Buffer.from('# Synthetic profile') },
+      { name: `invalid-${suffix}.pdf`, mimeType: 'application/pdf', buffer: Buffer.from('This is not a PDF') },
+      { name: `resume-${suffix}.md`, mimeType: 'text/markdown', buffer: Buffer.from('# Resume synthetic profile') }
+    ];
+    // Let the first two independent uploads finish, then interrupt the third before it reaches the server.
+    let uploads = 0;
+    await page.route('**/api/v1/import-batches/*/items/*/content', async route => {
+      uploads++;
+      if (uploads === 3) await route.abort('failed'); else await route.continue();
+    });
+    await page.getByLabel('Documents du lot', { exact: true }).setInputFiles(files);
+    await page.getByRole('button', { name: 'Envoyer le lot', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: '2 / 3 fichiers terminés' })).toBeVisible();
+    await expect(page.getByText('Format refusé', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nouveau lot', exact: true })).toBeEnabled();
+    await page.unroute('**/api/v1/import-batches/*/items/*/content');
+    await page.reload();
+    await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
+    await page.getByRole('button', { name: 'Importer un lot', exact: true }).click();
+    await page.getByRole('button', { name: 'Ouvrir le lot', exact: true }).first().click();
+    await page.getByLabel('Documents du lot', { exact: true }).setInputFiles(files);
+    let resumed = 0;
+    page.on('request', req => { if (req.method() === 'PUT' && req.url().includes('/items/')) resumed++; });
+    await page.getByRole('button', { name: 'Reprendre les fichiers sélectionnés', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: '3 / 3 fichiers terminés' })).toBeVisible();
+    expect(resumed).toBe(1);
+    await expect(page.getByText('En quarantaine', { exact: true })).toHaveCount(2);
+    if (width === 320) {
+      await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+    }
+    await page.screenshot({ path: `test-results/batch-${width}.png`, fullPage: true });
+  });
+}

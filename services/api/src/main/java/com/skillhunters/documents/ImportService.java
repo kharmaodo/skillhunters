@@ -30,9 +30,10 @@ public class ImportService {
     private final IdentityStore identity;
     private final TransactionTemplate tx;
     private final QuarantineStorage storage;
+    private final ImportQuota quota;
 
-    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage) {
-        this.db = db; this.identity = identity; this.tx = tx; this.storage = storage;
+    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota) {
+        this.quota = quota; this.db = db; this.identity = identity; this.tx = tx; this.storage = storage;
     }
 
     public List<Policy> policies(UUID actor, UUID pool) {
@@ -42,13 +43,24 @@ public class ImportService {
     }
 
     /** Lock shares the same actor row as membership replacement: no revocation/write race. */
-    private void lockActor(UUID actor, UUID pool) {
+    void lockActor(UUID actor, UUID pool) {
         var enabled = db.sql("SELECT enabled FROM app_user WHERE id=:id FOR UPDATE").param("id", actor).query(Boolean.class).optional();
         if (!enabled.orElse(false)) throw new Rejected(HttpStatus.FORBIDDEN, "ACCOUNT_DISABLED");
         identity.pool(actor, pool);
     }
 
     public Receipt create(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file) {
+        if (key != null && key.startsWith("batch-")) throw new Rejected(HttpStatus.BAD_REQUEST, "RESERVED_IDEMPOTENCY_KEY");
+        return create(actor, pool, key, basis, file, null, null);
+    }
+
+    Receipt createForBatch(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file,
+            Policy policy, OffsetDateTime expiresAt) {
+        return create(actor, pool, key, basis, file, policy, expiresAt);
+    }
+
+    private Receipt create(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file,
+            Policy frozenPolicy, OffsetDateTime batchExpiry) {
         if (key == null || !key.matches("[A-Za-z0-9_-]{8,128}")) throw new Rejected(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY");
         // Length-prefixed fields avoid ambiguity; actor/pool form the DB uniqueness scope.
         String[] fields = {file.sha256(), file.name(), file.mediaType(), basis.source(), basis.purpose(),
@@ -65,14 +77,12 @@ public class ImportService {
                     return rs.getObject("id", UUID.class);
                 }).optional();
             if (existing.isPresent()) return existing.get();
-            var policy = policies(actor, pool).stream().filter(p -> p.id().equals(basis.retentionPolicyId())).findFirst()
+            var policy = frozenPolicy != null ? frozenPolicy : policies(actor, pool).stream().filter(p -> p.id().equals(basis.retentionPolicyId())).findFirst()
                 .orElseThrow(() -> new Rejected(HttpStatus.BAD_REQUEST, "IMPORT_POLICY_UNAVAILABLE"));
             if (!policy.purpose().equals(basis.purpose()) || !policy.basisCode().equals(basis.basisCode())) {
                 throw new Rejected(HttpStatus.BAD_REQUEST, "IMPORT_POLICY_MISMATCH");
             }
-            long count = db.sql("SELECT COUNT(*) FROM document_import WHERE actor_id=:actor").param("actor", actor).query(Long.class).single();
-            long bytes = db.sql("SELECT COALESCE(SUM(byte_size),0) FROM document_import WHERE actor_id=:actor").param("actor", actor).query(Long.class).single();
-            if (count >= 100 || bytes + file.size() > 300L * 1024 * 1024) throw new Rejected(HttpStatus.TOO_MANY_REQUESTS, "IMPORT_QUOTA_REACHED");
+            if (frozenPolicy == null) quota.check(actor, 1, file.size());
             UUID created = UUID.randomUUID();
             OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
             db.sql("""
@@ -87,7 +97,7 @@ public class ImportService {
                 .param("type", file.mediaType()).param("size", file.size()).param("sha", file.sha256())
                 .param("source", basis.source()).param("purpose", policy.purpose()).param("basis", policy.basisCode())
                 .param("notice", basis.noticeVersion()).param("policy", policy.id()).param("days", policy.retentionDays())
-                .param("now", now).param("expires", now.plusDays(policy.retentionDays())).param("version", ReceptionValidator.VERSION).update();
+                .param("now", now).param("expires", batchExpiry != null ? batchExpiry : now.plusDays(policy.retentionDays())).param("version", ReceptionValidator.VERSION).update();
             audit(created, actor, "RECEPTION_RESERVED");
             return created;
         });
@@ -106,6 +116,21 @@ public class ImportService {
             return get(actor, id);
         });
     }
+    public Receipt resume(UUID actor, UUID id, ReceptionValidator.Received file) {
+        get(actor, id); // Same 404 for absent and inaccessible objects.
+        var saved = db.sql("SELECT * FROM document_import WHERE id=:id AND actor_id=:actor").param("id",id).param("actor",actor)
+            .query((rs,n) -> new Resume(rs.getObject("pool_id",UUID.class),rs.getString("idempotency_key"),
+                rs.getString("file_name"),rs.getString("sha256"),rs.getLong("byte_size"),rs.getString("media_type"),
+                new Basis(rs.getString("source"),rs.getString("purpose"),rs.getString("basis_code"),rs.getString("notice_version"),rs.getObject("policy_id",UUID.class))))
+            .optional().orElseThrow(() -> new Rejected(HttpStatus.FORBIDDEN,"BATCH_OWNER_REQUIRED"));
+        if(saved.key().startsWith("batch-")) throw new Rejected(HttpStatus.CONFLICT,"BATCH_RESUME_REQUIRED");
+        if(!saved.name().equals(file.name()) || !saved.sha().equals(file.sha256()) || saved.size()!=file.size() || !saved.type().equals(file.mediaType())) {
+            throw new Rejected(HttpStatus.CONFLICT,"FILE_FINGERPRINT_MISMATCH");
+        }
+        return create(actor,saved.pool(),saved.key(),saved.basis(),file);
+    }
+    private record Resume(UUID pool,String key,String name,String sha,long size,String type,Basis basis) {}
+
     private record Stored(String objectKey, String state, OffsetDateTime expiresAt) {}
 
     private void audit(UUID id, UUID actor, String action) {

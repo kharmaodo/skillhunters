@@ -4,7 +4,7 @@
 
 Lire `README.md`, `Skill-Hunter-Dossier-Conception.md`, `docs/product-scope.md`, `docs/architecture.md` et les consignes du sous-dossier concerné avant modification. Les instructions explicites du propriétaire priment ; ne pas modifier les consignes pour contourner une restriction.
 
-La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient les fondations L0 et un premier incrément exécutable de SH-01/SH-02 (identité et viviers). La réception individuelle en quarantaine est également implémentée. Consulter `docs/validation/sh-01-sh-02.md` et `docs/validation/sh-03.md` pour les limites ; antivirus, pages et contenu complet restent à qualifier avant toute sortie de quarantaine. Ne pas présenter un endpoint décrit, une simulation ou un objectif de performance comme une fonctionnalité réalisée. Les hypothèses juridiques, licences, modèles et benchmarks restent à qualifier.
+La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient les fondations L0 et un premier incrément exécutable de SH-01/SH-02 (identité et viviers). Les réceptions individuelle et en lot avec reprise sont également implémentées. Consulter `docs/validation/sh-01-sh-02.md` ainsi que `docs/validation/sh-03.md` et `docs/validation/sh-04.md` pour les limites ; antivirus, pages et contenu complet restent à qualifier avant toute sortie de quarantaine. Ne pas présenter un endpoint décrit, une simulation ou un objectif de performance comme une fonctionnalité réalisée. Les hypothèses juridiques, licences, modèles et benchmarks restent à qualifier.
 
 ## Branches et livraison
 

@@ -59,6 +59,9 @@ management:
         readiness:
           include: readinessState,db
 app:
+  imports:
+    max-files-per-user: ${IMPORT_MAX_FILES_PER_USER:1000}
+    max-bytes-per-user: ${IMPORT_MAX_BYTES_PER_USER:3145728000}
   storage:
     create-bucket: ${S3_CREATE_BUCKET:false}
     endpoint: ${S3_ENDPOINT:http://localhost:9000}
