@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -213,7 +213,7 @@
           }
         },
         "x-implementation-status": "implemented",
-        "description": "Limite 15 Mio, un fichier. Idempotence par acteur/vivier/clé ; conflit si empreinte ou métadonnées diffèrent. Aucun parsing métier. Quotas initiaux : 100 réceptions et 300 Mio par acteur ; quatre réceptions actives par instance. DOC/PDF nécessitent encore qualification isolée, antivirus et limite de pages."
+        "description": "Limite 15 Mio, un fichier. Idempotence par acteur/vivier/clé ; conflit si empreinte ou métadonnées diffèrent. Aucun parsing métier. Quotas initiaux : 1 000 fichiers et 3 000 Mio par acteur, réservations de lots incluses ; quatre réceptions actives par instance. DOC/PDF nécessitent encore qualification isolée, antivirus et limite de pages. Le préfixe de clé batch- est réservé au service de lots. Pour plusieurs fichiers utiliser /import-batches."
       }
     },
     "/imports/{id}": {
@@ -2855,6 +2855,392 @@
           }
         }
       }
+    },
+    "/import-batches": {
+      "post": {
+        "operationId": "createImportBatch",
+        "summary": "Réserver un manifeste de 1 à 100 fichiers",
+        "tags": [
+          "Documents"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "État durable de la réception, filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchManifest"
+              }
+            }
+          }
+        },
+        "description": "300 Mio par lot. Idempotence acteur/vivier/clé/empreinte du manifeste ordonné. Politique figée. Un rejet individuel est conservé sans annuler le lot. Les quotas incluent les réservations."
+      }
+    },
+    "/import-batches/{id}": {
+      "get": {
+        "operationId": "getImportBatch",
+        "summary": "Consulter progression, tentatives et résultats du lot",
+        "tags": [
+          "Documents"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État durable de la réception, filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/pools/{poolId}/import-batches": {
+      "get": {
+        "operationId": "listImportBatches",
+        "summary": "Historique paginé des lots du vivier",
+        "tags": [
+          "Documents"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État durable de la réception, filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBatchPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/import-batches/{batchId}/items/{itemId}/content": {
+      "put": {
+        "operationId": "uploadBatchItem",
+        "summary": "Envoyer ou reprendre un fichier réservé",
+        "tags": [
+          "Documents"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "batchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État durable de la réception, filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "description": "Auteur habilité uniquement. Identifiant de fichier stable ; nom/taille/SHA-256 vérifiés. Cinq tentatives, bail deux minutes, deux transferts actifs par auteur. Un résultat métier de rejet ou de panne reprenable est dans items[].state/errorCode avec HTTP 200 ; 200 ne signifie pas que le fichier est accepté."
+      }
+    },
+    "/imports/{id}/content": {
+      "put": {
+        "operationId": "resumeIndividualImport",
+        "summary": "Reprendre une ancienne réception individuelle avec son original",
+        "tags": [
+          "Documents"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État durable de la réception, filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportBatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "415": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3028,10 +3414,13 @@
             "maxLength": 200
           },
           "basisCode": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
           },
           "noticeVersion": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 80
           },
           "retentionPolicyId": {
             "type": "string",
@@ -4814,6 +5203,220 @@
               "$ref": "#/components/schemas/ImportBatch"
             },
             "maxItems": 20
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "BatchFileSpec": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "fileName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 314572800
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "fileName",
+          "byteSize",
+          "sha256"
+        ]
+      },
+      "BatchManifest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "basis": {
+            "$ref": "#/components/schemas/ProcessingBasis"
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/BatchFileSpec"
+            }
+          }
+        },
+        "required": [
+          "poolId",
+          "basis",
+          "files"
+        ]
+      },
+      "BatchUploadItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "WAITING_UPLOAD",
+              "UPLOADING",
+              "QUARANTINED",
+              "REJECTED_FORMAT",
+              "RETRYABLE_FAILURE",
+              "FAILED"
+            ]
+          },
+          "errorCode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          },
+          "retryAfter": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "importId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "fileName",
+          "byteSize",
+          "sha256",
+          "state",
+          "errorCode",
+          "attempts",
+          "retryAfter",
+          "importId"
+        ]
+      },
+      "UploadBatch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "canUpload": {
+            "type": "boolean"
+          },
+          "completedFiles": {
+            "type": "integer"
+          },
+          "totalFiles": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/BatchUploadItem"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "poolId",
+          "createdAt",
+          "expiresAt",
+          "canUpload",
+          "completedFiles",
+          "totalFiles",
+          "items"
+        ]
+      },
+      "UploadBatchSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedFiles": {
+            "type": "integer"
+          },
+          "totalFiles": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "completedFiles",
+          "totalFiles"
+        ]
+      },
+      "UploadBatchPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/UploadBatchSummary"
+            }
           },
           "nextCursor": {
             "type": [

@@ -108,6 +108,26 @@ if __name__ == '__main__':
     assert upload(alice, session, A, key, b'Different contents')[0] == 409
     assert upload(alice, session, B, str(uuid.uuid4()))[0] == 404
     assert request(admin, '/imports/'+receipt['id'])[0] == 404
+    import hashlib
+    batch_file = b'# Synthetic batch profile'
+    batch_request = {'poolId':A,'basis':{'source':'Synthetic batch smoke','purpose':'Recette technique sur données synthétiques',
+                     'basisCode':'TEST_ONLY','retentionPolicyId':'30000000-0000-0000-0000-000000000001'},
+                     'files':[{'fileName':'batch.md','byteSize':len(batch_file),'sha256':hashlib.sha256(batch_file).hexdigest()}]}
+    # JSON manifest calls below keep their stable key across retries.
+    manifest_key = str(uuid.uuid4())
+    req = Request(ORIGIN+'/api/v1/import-batches', data=json.dumps(batch_request).encode(),
+                  headers={'Content-Type':'application/json','X-CSRF-Token':session['csrfToken'],'Idempotency-Key':manifest_key})
+    with alice.open(req,timeout=15) as response:
+        assert response.status == 202; batch = json.load(response)
+    with alice.open(req,timeout=15) as response: assert json.load(response)['id'] == batch['id']
+    assert request(admin, '/import-batches/'+batch['id'])[0] == 404
+    boundary='batch-smoke-boundary'
+    content=(f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="batch.md"\r\nContent-Type: text/markdown\r\n\r\n').encode()+batch_file+f'\r\n--{boundary}--\r\n'.encode()
+    req=Request(ORIGIN+'/api/v1/import-batches/'+batch['id']+'/items/'+batch['items'][0]['id']+'/content',data=content,method='PUT',
+                headers={'Content-Type':f'multipart/form-data; boundary={boundary}','X-CSRF-Token':session['csrfToken']})
+    with alice.open(req,timeout=60) as response:
+        completed=json.load(response);assert completed['items'][0]['state']=='QUARANTINED'
+    with alice.open(req,timeout=60) as response: assert json.load(response)['items'][0]['attempts']==1
     # Guessing the opaque object key cannot bypass the private bucket.
     try:
         build_opener().open('http://localhost:9000/skillhunters-quarantine/quarantine/'+A+'/'+receipt['id'], timeout=15)
@@ -119,6 +139,7 @@ if __name__ == '__main__':
         assert request(admin, '/admin/memberships', 'PUT', revoke, admin_session['csrfToken'])[0] == 204
         assert request(alice, '/pools/'+A)[0] == 404, 'Existing session retained revoked access'
         assert request(alice, '/imports/'+receipt['id'])[0] == 404
+        assert request(alice, '/import-batches/'+batch['id'])[0] == 404
     finally:
         revoke['roles'] = ['RECRUITER']
         assert request(admin, '/admin/memberships', 'PUT', revoke, admin_session['csrfToken'])[0] == 204

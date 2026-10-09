@@ -29,3 +29,7 @@ Le DBML ne constitue pas encore un schéma complet de production : index de perf
 ## Schéma physique SH-03
 
 La migration V2 ajoute `import_policy`, `document_import` et `document_audit`. Chaque réception appartient à un vivier et un acteur ; contrainte unique acteur/vivier/clé d'idempotence, clé S3 opaque unique, empreinte, taille, origine, politique et échéance figées. Les états physiques sont pour l'instant `RECEIVING` et `QUARANTINED`. Le modèle logique du cycle complet n'est pas intégralement matérialisé. Aucun candidat ou job métier n'est créé avant antivirus.
+
+## Schéma physique SH-04
+
+V3 ajoute `import_batch` (portée, idempotence et politique figée), `import_batch_item` (ordre, empreinte, état, tentative/bail) et `import_batch_event` (audit minimisé). Les réceptions `document_import` sont rapprochées par leur clé interne `batch-{itemId}` et leur portée acteur/vivier. Une réception durable acceptée prime sur une projection interrompue. Le calcul de quota cumule réservations et dépôts individuels, sans compter deux fois les documents du lot.

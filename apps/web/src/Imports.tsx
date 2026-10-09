@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { BatchImports } from './BatchImports';
 import { api, message, type Pool, type Session } from './api';
 
 type Policy = { id: string; label: string; purpose: string; basisCode: string; retentionDays: number };
@@ -6,6 +7,8 @@ type Receipt = { id: string; createdAt: string; expiresAt: string; items: { file
 type Page = { items: Receipt[]; nextCursor: string | null };
 
 export function Imports({ pool, session, failed }: { pool: Pool; session: Session; failed: (error: unknown) => void }) {
+  const [batchMode, setBatchMode] = useState(false);
+  const [resumeFiles, setResumeFiles] = useState<Record<string, File>>({});
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [policyId, setPolicyId] = useState('');
   const [source, setSource] = useState('');
@@ -61,7 +64,19 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
     finally { setPaging(false); }
   }
 
+  async function resume(id: string) {
+    const file = resumeFiles[id]; if (!file || busy) return;
+    setBusy(true); setError('');
+    try {
+      const body = new FormData(); body.append('file', file);
+      const receipt = await api<Receipt>(`/imports/${id}/content`, { method: 'PUT', body }, session.csrfToken);
+      setRows(previous => previous.map(row => row.id === id ? receipt : row));
+      setNotice('Réception reprise : document placé en quarantaine.');
+    } catch (e) { setError(message(e)); failed(e); } finally { setBusy(false); }
+  }
+  if (batchMode) return <BatchImports pool={pool} session={session} failed={failed} back={() => setBatchMode(false)}/>;
   return <div className="import-section">
+    <button className="button" disabled={busy} onClick={() => setBatchMode(true)}>Importer un lot</button>
     <h3>Déposer un CV</h3>
     <p className="muted">Un fichier à la fois, de 15 Mio maximum. PDF, DOCX, DOC ou Markdown. Le document reste privé et bloqué en quarantaine jusqu’aux contrôles antivirus et documentaires.</p>
     {loading ? <p role="status">Chargement des possibilités d’import…</p> : !policies.length ? <p className="alert">Aucune politique d’import n’est configurée. Contactez votre administrateur.</p> :
@@ -86,6 +101,11 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
       <span className="badge">{receipt.items[0].state === 'QUARANTINED' ? 'En quarantaine · analyse en attente' : 'Réception incomplète · à reprendre'}</span>
       <span className="fine">{new Date(receipt.createdAt).toLocaleString('fr-FR')} · {Math.ceil(receipt.items[0].byteSize / 1024)} Kio</span>
       <span className="fine">Référence : {receipt.id}</span>
+      {receipt.items[0].state === 'RECEIVING' && <div className="import-form">
+        <label htmlFor={`resume-${receipt.id}`}>Resélectionner le document original pour reprendre</label>
+        <input id={`resume-${receipt.id}`} type="file" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) setResumeFiles(previous => ({ ...previous, [receipt.id]: file })); }}/>
+        <button className="button" disabled={busy || !resumeFiles[receipt.id]} onClick={() => void resume(receipt.id)}>Reprendre ce dépôt</button>
+      </div>}
     </li>)}</ul>
     {cursor && <button className="button" disabled={paging} onClick={() => void loadMore()}>{paging ? 'Chargement…' : 'Voir les dépôts précédents'}</button>}
   </div>;

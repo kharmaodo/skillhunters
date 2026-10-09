@@ -64,6 +64,15 @@ class ImportSecurityTest extends IdentityTestSupport {
         storage.fail = false; accept();
         assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(1);
     }
+    @Test void resumeSingleReceiptWithoutOldBrowserKey() throws Exception {
+        storage.fail=true;
+        mvc.perform(upload(poolA,"old-browser-key","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isServiceUnavailable());
+        UUID id=db.queryForObject("SELECT id FROM document_import",UUID.class); storage.fail=false;
+        mvc.perform(multipart(org.springframework.http.HttpMethod.PUT,"/api/v1/imports/"+id+"/content")
+            .file(new MockMultipartFile("file","fixture.md","text/markdown","# Synthetic CV".getBytes())).with(as("alice")).with(csrf()))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items[0].state").value("QUARANTINED"));
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(1);
+    }
     @Test void disabledPolicyAndChangedPolicyCannotBeInventedByClient() throws Exception {
         db.update("UPDATE import_policy SET enabled=FALSE");
         mvc.perform(upload(poolA,"policy-key","test").with(as("alice")).with(csrf())).andExpect(status().isBadRequest());

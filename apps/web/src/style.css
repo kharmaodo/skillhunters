@@ -9,3 +9,5 @@
 .import-list strong, .import-list span, .success, .alert { max-width: 100%; overflow-wrap: anywhere; }
 .import-section .row { flex-wrap: wrap; }
 .import-section .badge { white-space: normal; }
+
+.import-section progress { width: 100%; max-width: 42rem; accent-color: #6545cc; }

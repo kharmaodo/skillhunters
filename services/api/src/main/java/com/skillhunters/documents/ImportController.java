@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +21,9 @@ public class ImportController {
     private final IdentityStore identity;
     private final ImportService imports;
     private final ReceptionValidator validator;
-    private final Semaphore capacity = new Semaphore(4);
-    public ImportController(CurrentAccount accounts, IdentityStore identity, ImportService imports, ReceptionValidator validator) {
-        this.accounts = accounts; this.identity = identity; this.imports = imports; this.validator = validator;
+    private final ImportCapacity capacity;
+    public ImportController(CurrentAccount accounts, IdentityStore identity, ImportService imports, ReceptionValidator validator, ImportCapacity capacity) {
+        this.capacity = capacity; this.accounts = accounts; this.identity = identity; this.imports = imports; this.validator = validator;
     }
 
     @PostMapping(value="/imports", consumes="multipart/form-data")
@@ -34,11 +33,18 @@ public class ImportController {
         UUID actor = accounts.require(authentication).id();
         identity.pool(actor, poolId);
         if (files.size() != 1) throw new Rejected(HttpStatus.BAD_REQUEST, "SINGLE_FILE_REQUIRED");
-        if (!capacity.tryAcquire()) throw new Rejected(HttpStatus.TOO_MANY_REQUESTS, "IMPORT_BUSY");
+        capacity.acquire();
         try (var file = validator.receive(files.getFirst())) {
             var receipt = imports.create(actor, poolId, key, basis, file);
             return ResponseEntity.accepted().location(URI.create("/api/v1/imports/" + receipt.id())).body(receipt);
         } finally { capacity.release(); }
+    }
+
+    @PutMapping(value="/imports/{id}/content", consumes="multipart/form-data")
+    public ImportService.Receipt resume(Authentication auth,@PathVariable UUID id,@RequestPart("file") MultipartFile file) throws IOException {
+        UUID actor=accounts.require(auth).id();imports.get(actor,id);capacity.acquire();
+        try(var received=validator.receive(file)) { return imports.resume(actor,id,received); }
+        finally { capacity.release(); }
     }
 
     @GetMapping("/imports/{id}")

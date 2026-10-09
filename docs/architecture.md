@@ -42,3 +42,7 @@ Un premier incrément exécutable livre identité, session et habilitations : vo
 ## Réception SH-03
 
 Le module `documents` sépare contrôleur HTTP, service transactionnel, contrôle d'enveloppe borné et port `QuarantineStorage` avec adaptateur S3. Une intention durable précède l'écriture objet ; le commit final signifie uniquement réception en quarantaine. Aucun parseur documentaire ni worker n'est lancé. Voir `validation/sh-03.md` pour les contrôles différés.
+
+## Lots SH-04
+
+Le manifeste du lot est réservé avant les contenus. Chaque fichier possède une empreinte et un emplacement immuable, puis réutilise le service de réception individuelle. Les métadonnées de tentative ont un bail et un jeton de génération ; la réception S3/SQL durable fait autorité en cas de projection de lot interrompue. Pas de nouveau service ou broker. Les envois se font par fichier et restent synchrones, avec admission bornée ; aucun worker documentaire n'est implicitement activé.

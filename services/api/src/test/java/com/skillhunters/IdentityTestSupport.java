@@ -30,7 +30,7 @@ abstract class IdentityTestSupport {
     final String issuer = "http://localhost:8081/realms/skillhunters";
 
     @BeforeEach void seed() {
-        for (var table : List.of("document_audit", "document_import", "import_policy", "identity_audit", "membership", "global_role", "talent_pool", "app_user")) db.update("DELETE FROM " + table);
+        for (var table : List.of("import_batch_event", "import_batch_item", "import_batch", "document_audit", "document_import", "import_policy", "identity_audit", "membership", "global_role", "talent_pool", "app_user")) db.update("DELETE FROM " + table);
         db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", alice, issuer, "alice", "Alice Exemple");
         db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", admin, issuer, "admin", "Admin Exemple");
         db.update("INSERT INTO talent_pool(id,name) VALUES (?,?)", poolA, "Vivier A");

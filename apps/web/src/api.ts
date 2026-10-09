@@ -25,6 +25,9 @@ export function message(error: unknown): string {
     if (error.status === 404) return 'Cet élément n’est pas disponible dans votre périmètre.';
     if (error.status === 413) return 'Le fichier dépasse la limite de 15 Mio.';
     if (error.status === 415) return 'Ce document est vide, son format est invalide ou son archive dépasse les limites de sécurité. Utilisez un PDF, DOCX, DOC ou Markdown valide.';
+    if (error.code === 'FILE_FINGERPRINT_MISMATCH') return 'Le fichier ne correspond pas au document d’origine. Resélectionnez le même nom et le même contenu.';
+    if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
+    if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
     if (error.status === 409) return 'La clé de reprise correspond à un autre dépôt ou ce dépôt a expiré. Actualisez puis recommencez.';
     if (error.status === 429) return 'La capacité ou le quota d’import est atteint. Réessayez plus tard ou contactez votre administrateur.';
     if (error.code === 'QUARANTINE_UNAVAILABLE') return 'Le stockage est indisponible. Conservez ce formulaire et réessayez : le dépôt sera repris sans doublon.';

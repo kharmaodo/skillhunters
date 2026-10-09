@@ -99,7 +99,7 @@ Ouvrir le vivier IT avec Alice, choisir le cadre « Recette : documents synthét
 
 L'API utilise `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` (défaut `skillhunters-quarantine`) et `S3_REGION` (défaut `us-east-1`). `S3_CREATE_BUCKET=true` est réservé à la recette ; ailleurs, le bucket privé et les droits minimaux sont provisionnés par l'exploitation. Aucune URL publique n'est générée. Le Compose utilise des identifiants S3 racine uniquement pour sa recette isolée.
 
-Le formulaire garde la clé de reprise tant que fichier et métadonnées ne changent pas. Un échec de stockage peut être repris avec le même bouton. Après fermeture/rechargement, la clé en mémoire est perdue : la réservation incomplète reste visible, mais la reprise depuis cet historique appartient à SH-04. L'API permet la reprise avec la clé initiale.
+Le formulaire garde la clé de reprise tant que fichier et métadonnées ne changent pas. Un échec de stockage peut être repris avec le même bouton. Après fermeture/rechargement, SH-04 permet désormais de resélectionner l'original depuis l'historique sans connaître la clé initiale.
 
 La date de conservation est enregistrée, pas encore purgée automatiquement. Réserver cette version aux données synthétiques jusqu'à la livraison antivirus et gouvernance. Voir [limites SH-03](validation/sh-03.md) et [dépendances](dependencies-sh-03.md).
 
@@ -118,3 +118,15 @@ npm run test:browser
 ```
 
 Deux scénarios vérifient le dépôt et son historique à 1 280 et 320 px, avec texte agrandi à 200 %. Captures synthétiques dans `apps/web/test-results/`, ignorées par Git.
+
+## Lots SH-04
+
+Les migrations V1/V2 sont conservées ; V3 est appliquée au redémarrage de l'API. Aucun nouveau secret ni service n'est requis. Reconstruire l'API/frontend avec les commandes Compose précédentes.
+
+Dans un vivier, choisir **Importer un lot**, renseigner le cadre et la provenance puis sélectionner jusqu'à 100 documents synthétiques. L'interface réserve le lot et envoie deux fichiers à la fois. Pour tester une reprise, suspendre l'envoi ou fermer l'onglet, puis rouvrir le vivier → Importer un lot → Ouvrir le lot. Resélectionner les originaux ; seuls les fichiers encore attendus sont transmis. Un transfert interrompu après arrivée au serveur peut nécessiter l'expiration de son bail de deux minutes.
+
+Configuration facultative : `IMPORT_MAX_FILES_PER_USER` (1 000) et `IMPORT_MAX_BYTES_PER_USER` (3 145 728 000, soit 3 000 Mio). Ces quotas cumulent fichiers individuels et réservations de lots, y compris rejets et réceptions incomplètes ; l'absence de purge automatique reste une limite explicite. Limites de lot : 100 fichiers/300 Mio, 15 Mio par fichier.
+
+Le test Java de référence envoie 100 fichiers dont un faux PDF et exige 99 réceptions persistées ainsi qu'un rejet identifié. La recette Playwright comporte désormais quatre scénarios : deux individuels et deux lots avec succès partiel, interruption puis reprise après rechargement, desktop et mobile.
+
+Voir [SH-04 et limites](validation/sh-04.md). Les données restent synthétiques jusqu'à la livraison des contrôles documentaires et de gouvernance.
