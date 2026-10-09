@@ -1,13 +1,14 @@
-# Développement et recette de SH 01 et SH 02
+# Développement et recette — identité et import individuel
 
-Cet incrément implémente les sessions OIDC et les habilitations par vivier. Il ne livre pas encore l'import de CV, les candidats, l'OCR, la recherche ni les contacts. La maquette reste la référence de ces écrans ultérieurs.
+Cet incrément implémente les sessions OIDC et les habilitations par vivier. Il ajoute la réception individuelle en quarantaine, sans antivirus, candidats, OCR, recherche ni contacts. La maquette reste la référence de ces écrans ultérieurs.
 
 ## Tout Docker en local
 
-Prérequis : Docker Engine avec Compose v2 récent, ports 5432, 8080 et 8081 libres. Depuis la racine :
+Prérequis : Docker Engine avec Compose v2 récent, ports 5432, 8080, 8081 et 9000 libres. Depuis la racine :
 
 ```sh
 python3 scripts/init_local.py
+# Installation existante : utiliser plutôt python3 scripts/init_local.py --upgrade-storage
 docker compose --env-file .env -f infrastructure/compose.yml --profile app up -d --build postgres keycloak api
 docker compose --env-file .env -f infrastructure/compose.yml --profile app up --wait --wait-timeout 240 postgres keycloak api
 docker compose --env-file .env -f infrastructure/compose.yml --profile app run --rm seed
@@ -48,7 +49,7 @@ Prérequis supplémentaires : Java 21, Maven 3.9+, Node 22.12+ et npm.
 
 ```sh
 python3 scripts/init_local.py # seulement si .env absent
-docker compose --env-file .env -f infrastructure/compose.yml up -d --wait postgres keycloak
+docker compose --env-file .env -f infrastructure/compose.yml up -d --build --wait postgres keycloak s3
 set -a
 . ./.env
 set +a
@@ -89,3 +90,31 @@ Aucun auto-enrôlement : un sujet OIDC inconnu est refusé. Un opérateur habili
 ## Limites connues
 
 Sessions en mémoire serveur, mono-instance : redémarrer l'API impose une reconnexion. Pas de haute disponibilité annoncée. Listes administratives limitées à 100 utilisateurs/viviers ; pagination à ajouter avant montée en charge. Audit d'identité stocké dans PostgreSQL et transactionnel avec les changements ; durcissement du rôle SQL d'audit append-only à venir avec SH-30. Le schéma physique livré ne couvre que l'identité et les viviers ; le DBML L0 décrit un périmètre plus large.
+
+## Réception individuelle SH-03
+
+Après mise à jour d'une installation existante : `python3 scripts/init_local.py --upgrade-storage`, puis relancer Compose avec `--build` et réappliquer le seed local. Les secrets OIDC/DB existants sont conservés. Le premier build S3 compile MinIO depuis sa release source et demande plusieurs minutes. Le volume `quarantine-data` persiste avec les données PostgreSQL.
+
+Ouvrir le vivier IT avec Alice, choisir le cadre « Recette : documents synthétiques uniquement », renseigner la provenance et déposer un `.md`, `.pdf`, `.docx` ou `.doc` synthétique. Le fichier doit rester « En quarantaine · analyse en attente ». Recharger la page et ouvrir le même vivier pour retrouver le dépôt. Benoît et admin-demo n'ont pas accès à ce dépôt.
+
+L'API utilise `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` (défaut `skillhunters-quarantine`) et `S3_REGION` (défaut `us-east-1`). `S3_CREATE_BUCKET=true` est réservé à la recette ; ailleurs, le bucket privé et les droits minimaux sont provisionnés par l'exploitation. Aucune URL publique n'est générée. Le Compose utilise des identifiants S3 racine uniquement pour sa recette isolée.
+
+Le formulaire garde la clé de reprise tant que fichier et métadonnées ne changent pas. Un échec de stockage peut être repris avec le même bouton. Après fermeture/rechargement, la clé en mémoire est perdue : la réservation incomplète reste visible, mais la reprise depuis cet historique appartient à SH-04. L'API permet la reprise avec la clé initiale.
+
+La date de conservation est enregistrée, pas encore purgée automatiquement. Réserver cette version aux données synthétiques jusqu'à la livraison antivirus et gouvernance. Voir [limites SH-03](validation/sh-03.md) et [dépendances](dependencies-sh-03.md).
+
+### Tests navigateur
+
+Sur la stack locale synthétique démarrée et seedée :
+
+```sh
+set -a
+. ./.env
+set +a
+cd apps/web
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
+
+Deux scénarios vérifient le dépôt et son historique à 1 280 et 320 px, avec texte agrandi à 200 %. Captures synthétiques dans `apps/web/test-results/`, ignorées par Git.
