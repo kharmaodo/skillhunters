@@ -5,7 +5,7 @@ import json
 import os
 from html.parser import HTMLParser
 from urllib.error import HTTPError
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlsplit
 from urllib.request import build_opener, HTTPCookieProcessor, Request
 
 ORIGIN = 'http://localhost:8080'
@@ -47,7 +47,19 @@ def login(username):
     assert parser.action, 'Expected Keycloak login form'
     before = [c.value for c in jar if c.name == 'SH_SESSION']
     parser.values.update(username=username, password=os.environ['DEMO_PASSWORD'])
-    response = browser.open(Request(parser.action, data=urlencode(parser.values).encode(), headers={'Content-Type':'application/x-www-form-urlencoded'}), timeout=20)
+    try:
+        response = browser.open(Request(parser.action, data=urlencode(parser.values).encode(), headers={'Content-Type':'application/x-www-form-urlencoded'}), timeout=20)
+    except HTTPError as error:
+        # Only render visible error text; never log URLs with authorization codes or cookies.
+        class ErrorText(HTMLParser):
+            def __init__(self): super().__init__(); self.capture = False; self.messages = []
+            def handle_starttag(self, tag, attrs):
+                if tag == 'title' or 'kc-feedback-text' in dict(attrs).get('class', ''): self.capture = True
+            def handle_endtag(self, tag): self.capture = False
+            def handle_data(self, data):
+                if self.capture: self.messages.append(data.strip())
+        details = ErrorText(); details.feed(error.read().decode())
+        raise AssertionError(f'OIDC HTTP {error.code} at {urlsplit(error.url).path}: {details.messages}') from None
     assert response.geturl() == ORIGIN + '/', 'Login did not return to the application'
     after = [c.value for c in jar if c.name == 'SH_SESSION']
     assert before and after and before != after, 'Session id must rotate on login'
