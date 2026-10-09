@@ -1,9 +1,9 @@
 name: Foundation contracts
 on:
   push:
-    branches: [main, 'feature/**']
+    branches: [main, develop, 'feature/**', 'fix/**', 'docs/**']
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 permissions:
   contents: read
 jobs:

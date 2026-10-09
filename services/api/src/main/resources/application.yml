@@ -1,0 +1,57 @@
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: none
+  servlet:
+    session:
+      timeout: 30m
+      cookie:
+        name: SH_SESSION
+        http-only: true
+        secure: ${COOKIE_SECURE:true}
+        same-site: lax
+spring:
+  application:
+    name: skillhunters-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/skillhunters}
+    username: ${DB_USER:skillhunters}
+    password: ${DB_PASSWORD}
+  flyway:
+    enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+  security:
+    oauth2:
+      client:
+        registration:
+          skillhunters:
+            provider: skillhunters
+            client-id: skillhunters-web
+            client-secret: ${OIDC_CLIENT_SECRET}
+            authorization-grant-type: authorization_code
+            scope: openid,profile
+            redirect-uri: ${APP_ORIGIN:http://localhost:8080}/login/oauth2/code/skillhunters
+        provider:
+          skillhunters:
+            issuer-uri: ${OIDC_ISSUER:http://localhost:8081/realms/skillhunters}
+            authorization-uri: ${OIDC_ISSUER:http://localhost:8081/realms/skillhunters}/protocol/openid-connect/auth
+            token-uri: ${OIDC_BACKCHANNEL:http://localhost:8081/realms/skillhunters}/protocol/openid-connect/token
+            jwk-set-uri: ${OIDC_BACKCHANNEL:http://localhost:8081/realms/skillhunters}/protocol/openid-connect/certs
+            user-info-uri: ${OIDC_BACKCHANNEL:http://localhost:8081/realms/skillhunters}/protocol/openid-connect/userinfo
+            user-name-attribute: sub
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState,db
+app:
+  origin: ${APP_ORIGIN:http://localhost:8080}

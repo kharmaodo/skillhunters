@@ -4,7 +4,7 @@
 
 Lire `README.md`, `Skill-Hunter-Dossier-Conception.md`, `docs/product-scope.md`, `docs/architecture.md` et les consignes du sous-dossier concerné avant modification. Les instructions explicites du propriétaire priment ; ne pas modifier les consignes pour contourner une restriction.
 
-La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt est au lot L0 : contrats et fondations, sans application exécutable. Ne pas présenter un endpoint décrit, une simulation ou un objectif de performance comme une fonctionnalité réalisée. Les hypothèses juridiques, licences, modèles et benchmarks restent à qualifier.
+La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient les fondations L0 et un premier incrément exécutable de SH-01/SH-02 (identité et viviers). Consulter `docs/validation/sh-01-sh-02.md` pour les limites. Ne pas présenter un endpoint décrit, une simulation ou un objectif de performance comme une fonctionnalité réalisée. Les hypothèses juridiques, licences, modèles et benchmarks restent à qualifier.
 
 ## Branches et livraison
 
@@ -45,14 +45,17 @@ La similarité vectorielle sert à retrouver des profils, pas à démontrer une 
 
 ## Vérifications
 
-Commande actuellement disponible, depuis la racine :
+Commandes disponibles, depuis la racine (Java 21/Maven et Node/npm requis pour les composants applicatifs) :
 
 ```sh
 python3 scripts/check_foundation.py
+mvn -f services/api/pom.xml test
+npm --prefix apps/web ci
+npm --prefix apps/web run build
 git diff --check
 ```
 
-Ces contrôles vérifient les artefacts L0, pas le backend, l'OCR ou les autorisations réelles. À mesure que l'implémentation arrive, documenter les commandes exactes et exécuter les tests ciblés : domaines Java, intégration PostgreSQL/objets/jobs, worker, frontend et parcours navigateur. Ne pas inventer de commandes Maven/npm absentes du dépôt.
+Le script Python vérifie les artefacts L0. Les tests Java couvrent les sessions et permissions, avec des principals simulés ; la CI ajoute PostgreSQL et le vrai parcours OIDC. Ils ne vérifient pas l’OCR. À mesure que l'implémentation arrive, documenter les commandes exactes et exécuter les tests ciblés : domaines Java, intégration PostgreSQL/objets/jobs, worker, frontend et parcours navigateur. Ne pas inventer de commandes Maven/npm absentes du dépôt.
 
 Tester les risques : accès croisé vivier, fichiers hostiles, chevauchements, dates inconnues, doublons, idempotence, suppression pendant extraction et message modifié après approbation. Les changements Word doivent être rendus et inspectés ; aucun résidu d'exemple dans les exports. Vérifier responsive à 320 px, texte à 200 %, clavier, focus et erreurs accessibles.
 

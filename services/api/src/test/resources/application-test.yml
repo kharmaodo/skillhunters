@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:h2:mem:identity;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}
+    username: ${TEST_DB_USER:sa}
+    password: ${TEST_DB_PASSWORD:}
+  security:
+    oauth2:
+      client:
+        registration:
+          skillhunters:
+            client-secret: test-only-not-a-real-secret
+app:
+  origin: http://localhost:8080

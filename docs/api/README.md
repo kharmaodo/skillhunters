@@ -1,6 +1,6 @@
 # Contrat REST initial
 
-`openapi.json` est un contrat OpenAPI 3.1.0 cible, pas une preuve d'implémentation. Importable dans un éditeur OpenAPI. Il décrit les parcours centraux et sera complété avant les modules concernés.
+`openapi.json` est un contrat OpenAPI 3.1.0. Le champ `x-implementation-status` distingue les opérations implémentées de celles encore planifiées. Seuls session, viviers et habilitations sont actuellement livrés.
 
 ## Conventions
 
@@ -33,4 +33,6 @@
 
 À compléter avant implémentation : endpoints de login/callback OIDC, protocole worker interne et baux, rapprochement/réversibilité des doublons, listing/versionnement des templates et politiques, historique détaillé des contacts, points de suivi des exports/purges et workflow complet de demandes de droits. Ce contrat initial ne couvre donc pas encore toutes les opérations du backlog.
 
-Le dépôt n'expose aucun serveur ; `/api/v1` est un chemin relatif de conception.
+Le serveur expose les opérations identité/viviers sous `/api/v1`. La connexion démarre par `GET /oauth2/authorization/skillhunters` ; le callback `GET /login/oauth2/code/skillhunters` est géré par Spring Security avec contrôle state, nonce, PKCE et signature OIDC. Ces routes de protocole ne sont pas des API métier JSON. Voir `docs/development.md` pour leur configuration.
+
+`PUT /admin/memberships` est naturellement idempotent : il remplace les rôles du couple utilisateur/vivier et répond 204. Il exige CSRF et ADMIN, sans clé d’idempotence ni attribution de rôle global. `GET /session` sépare rôles globaux et `memberships`. La session servlet est en mémoire pour cet incrément mono-instance.

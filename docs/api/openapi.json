@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.1.0",
-    "description": "Contrat cible partiel du MVP, non implémenté. Les routes sont sous /api/v1. Les flux OIDC et worker interne seront spécifiés séparément."
+    "version": "0.2.0",
+    "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
     {
@@ -53,7 +53,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       },
       "delete": {
         "operationId": "logout",
@@ -91,7 +92,8 @@
           "409": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/pools": {
@@ -134,7 +136,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/imports": {
@@ -200,7 +203,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/imports/{id}": {
@@ -250,7 +254,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/jobs/{id}": {
@@ -300,7 +305,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/jobs/{id}/retry": {
@@ -359,7 +365,8 @@
           "409": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates": {
@@ -417,7 +424,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates/{id}": {
@@ -475,7 +483,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "patch": {
         "operationId": "updateCandidate",
@@ -556,7 +565,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates/{id}/deletion": {
@@ -625,7 +635,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates/{id}/revisions/{revisionId}": {
@@ -692,7 +703,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "patch": {
         "operationId": "updateRevision",
@@ -782,7 +794,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates/{id}/validate": {
@@ -860,7 +873,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/candidates/{id}/notes": {
@@ -929,7 +943,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/documents/{id}/download": {
@@ -980,7 +995,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/skills": {
@@ -1023,7 +1039,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "post": {
         "operationId": "createSkill",
@@ -1081,7 +1098,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/searches/interpret": {
@@ -1138,7 +1156,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/searches": {
@@ -1198,7 +1217,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/searches/{id}": {
@@ -1265,7 +1285,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/shortlists": {
@@ -1308,7 +1329,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "post": {
         "operationId": "createShortlist",
@@ -1366,7 +1388,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/shortlists/{id}/entries": {
@@ -1435,7 +1458,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/shortlists/{id}/entries/{candidateId}": {
@@ -1493,7 +1517,8 @@
           "409": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/email-templates": {
@@ -1536,7 +1561,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/contact-drafts": {
@@ -1604,7 +1630,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/contact-drafts/{id}": {
@@ -1662,7 +1689,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "patch": {
         "operationId": "updateDraft",
@@ -1743,7 +1771,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/contact-drafts/{id}/approve": {
@@ -1826,7 +1855,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/contact-drafts/{id}/send": {
@@ -1912,7 +1942,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/audit-events": {
@@ -1970,7 +2001,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/rights-requests": {
@@ -2030,7 +2062,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/rights-requests/{id}": {
@@ -2105,7 +2138,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       },
       "get": {
         "operationId": "getRightsRequest",
@@ -2161,7 +2195,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/objections": {
@@ -2221,7 +2256,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/exports": {
@@ -2281,7 +2317,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/exports/{id}/download": {
@@ -2332,7 +2369,8 @@
           "500": {
             "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/admin/score-policies": {
@@ -2392,7 +2430,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/admin/retention-policies": {
@@ -2452,7 +2491,8 @@
               }
             }
           }
-        }
+        },
+        "x-implementation-status": "planned"
       }
     },
     "/admin/memberships": {
@@ -2465,18 +2505,72 @@
         "parameters": [
           {
             "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
           },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "204": {
+            "description": "Habilitation remplacée et événement avant/après enregistré ; aucun rôle global ne peut être attribué ici."
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MembershipInput"
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/pools/{id}": {
+      "get": {
+        "operationId": "getPool",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Lire un vivier auquel le membre est affecté",
+        "parameters": [
           {
-            "$ref": "#/components/parameters/IdempotencyKey"
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Succès",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationResult"
+                  "$ref": "#/components/schemas/Pool"
                 }
               }
             }
@@ -2498,21 +2592,151 @@
           },
           "500": {
             "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/admin/users": {
+      "get": {
+        "operationId": "listIdentityUsers",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Lister au maximum 100 utilisateurs provisionnés (ADMIN)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountSummary"
+                  }
+                }
+              }
+            }
           },
-          "409": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
             "$ref": "#/components/responses/Problem"
           }
         },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/MembershipInput"
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/admin/pools": {
+      "get": {
+        "operationId": "listAdministrationPools",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Lister au maximum 100 viviers pour affectation (ADMIN)",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Pool"
+                  }
+                }
               }
             }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
           }
-        }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/admin/users/{id}/memberships": {
+      "get": {
+        "operationId": "listUserMemberships",
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Lire les affectations d’un utilisateur (ADMIN)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Membership"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
       }
     }
   },
@@ -2620,12 +2844,11 @@
             "items": {
               "type": "string",
               "enum": [
-                "RECRUITER",
-                "RECRUITMENT_LEAD",
                 "ADMIN",
                 "COMPLIANCE"
               ]
-            }
+            },
+            "description": "Rôles globaux seulement. Les rôles de vivier sont dans memberships."
           },
           "poolIds": {
             "type": "array",
@@ -2636,6 +2859,12 @@
           },
           "csrfToken": {
             "type": "string"
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Membership"
+            }
           }
         },
         "required": [
@@ -2643,7 +2872,8 @@
           "displayName",
           "roles",
           "poolIds",
-          "csrfToken"
+          "csrfToken",
+          "memberships"
         ]
       },
       "Pool": {
@@ -4261,11 +4491,11 @@
               "type": "string",
               "enum": [
                 "RECRUITER",
-                "RECRUITMENT_LEAD",
-                "ADMIN",
-                "COMPLIANCE"
+                "RECRUITMENT_LEAD"
               ]
-            }
+            },
+            "maxItems": 2,
+            "description": "Remplace les rôles de ce vivier ; liste vide = retrait. Opération naturellement idempotente."
           }
         },
         "required": [
@@ -4352,6 +4582,53 @@
           "trigger",
           "reason"
         ]
+      },
+      "Membership": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "userId",
+          "poolId",
+          "role"
+        ],
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "RECRUITER",
+              "RECRUITMENT_LEAD"
+            ]
+          }
+        }
+      },
+      "AccountSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "displayName",
+          "enabled"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
       }
     }
   }

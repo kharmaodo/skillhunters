@@ -37,4 +37,4 @@ DRAFT → APPROVED → SENDING → ACCEPTED, FAILED ou UNKNOWN. Toute modificati
 
 Deux modes à livrer au L1 : processus applicatifs locaux avec dépendances conteneurisées ; puis ensemble Docker Compose. PostgreSQL, stockage privé, OIDC, antivirus et Mailpit sont internes. Le réseau des parseurs et modèles interdit les sorties arbitraires. Pas de Kubernetes ni Redis imposé.
 
-Au L0, il n'existe pas encore de commande de démarrage applicatif. Les contrats proposés ne sont pas des endpoints déjà actifs.
+Un premier incrément exécutable livre identité, session et habilitations : voir `development.md`. Les opérations restantes du contrat sont marquées comme planifiées. Les sessions sont actuellement en mémoire serveur, sans promesse de haute disponibilité.
