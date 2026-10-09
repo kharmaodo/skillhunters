@@ -17,33 +17,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.assertj.core.api.Assertions.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class IdentitySecurityTest {
-    @Autowired MockMvc mvc;
-    @Autowired JdbcTemplate db;
-    final UUID alice = UUID.fromString("10000000-0000-0000-0000-000000000001");
-    final UUID admin = UUID.fromString("10000000-0000-0000-0000-000000000002");
-    final UUID poolA = UUID.fromString("20000000-0000-0000-0000-000000000001");
-    final UUID poolB = UUID.fromString("20000000-0000-0000-0000-000000000002");
-    final String issuer = "http://localhost:8081/realms/skillhunters";
-
-    @BeforeEach void seed() {
-        for (var table : List.of("identity_audit", "membership", "global_role", "talent_pool", "app_user")) db.update("DELETE FROM " + table);
-        db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", alice, issuer, "alice", "Alice Exemple");
-        db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", admin, issuer, "admin", "Admin Exemple");
-        db.update("INSERT INTO talent_pool(id,name) VALUES (?,?)", poolA, "Vivier A");
-        db.update("INSERT INTO talent_pool(id,name) VALUES (?,?)", poolB, "Vivier B");
-        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')", alice, poolA);
-        db.update("INSERT INTO global_role(user_id,role) VALUES (?,'ADMIN')", admin);
-    }
-    SecurityMockMvcRequestPostProcessors.OidcLoginRequestPostProcessor as(String subject) {
-        return oidcLogin().idToken(t -> t.subject(subject).issuer(issuer));
-    }
-    String replacement(String roles) {
-        return "{\"userId\":\"" + alice + "\",\"poolId\":\"" + poolA + "\",\"roles\":" + roles + "}";
-    }
+class IdentitySecurityTest extends IdentityTestSupport {
     @Test void anonymousApiIs401WithoutRedirect() throws Exception {
         mvc.perform(get("/api/v1/session")).andExpect(status().isUnauthorized()).andExpect(jsonPath("$.code").value("SESSION_REQUIRED"));
     }

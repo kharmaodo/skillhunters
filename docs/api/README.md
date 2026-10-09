@@ -36,3 +36,5 @@
 Le serveur expose les opérations identité/viviers sous `/api/v1`. La connexion démarre par `GET /oauth2/authorization/skillhunters` ; le callback `GET /login/oauth2/code/skillhunters` est géré par Spring Security avec contrôle state, nonce, PKCE et signature OIDC. Ces routes de protocole ne sont pas des API métier JSON. Voir `docs/development.md` pour leur configuration.
 
 `PUT /admin/memberships` est naturellement idempotent : il remplace les rôles du couple utilisateur/vivier et répond 204. Il exige CSRF et ADMIN, sans clé d’idempotence ni attribution de rôle global. `GET /session` sépare rôles globaux et `memberships`. La session servlet est en mémoire pour cet incrément mono-instance.
+
+SH-03 implémente `POST /imports` (un fichier), `GET /imports/{id}`, `GET /pools/{poolId}/imports` et `GET /pools/{poolId}/import-policies`. Envoyer `poolId` en champ texte, `basis` en partie JSON et `files` en partie fichier. Le succès 202 signifie quarantaine, jamais analyse réussie ; `RECEIVING` représente une réception incomplète reprenable avec sa clé initiale.

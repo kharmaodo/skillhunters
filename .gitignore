@@ -16,3 +16,6 @@ artifacts/
 /infrastructure/generated/
 /apps/web/dist/
 /services/api/src/main/resources/static/
+
+apps/web/test-results/
+apps/web/playwright-report/

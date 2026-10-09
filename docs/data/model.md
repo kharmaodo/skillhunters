@@ -25,3 +25,7 @@
 - Les journalisations et snapshots suivent des durées définies ; l'historique ne justifie pas la conservation éternelle d'un CV.
 
 Le DBML ne constitue pas encore un schéma complet de production : index de performances, politiques RLS éventuelles, chiffrement, transactions et cascades feront l'objet des migrations et tests d'intégration de L1/L2.
+
+## Schéma physique SH-03
+
+La migration V2 ajoute `import_policy`, `document_import` et `document_audit`. Chaque réception appartient à un vivier et un acteur ; contrainte unique acteur/vivier/clé d'idempotence, clé S3 opaque unique, empreinte, taille, origine, politique et échéance figées. Les états physiques sont pour l'instant `RECEIVING` et `QUARANTINED`. Le modèle logique du cycle complet n'est pas intégralement matérialisé. Aucun candidat ou job métier n'est créé avant antivirus.

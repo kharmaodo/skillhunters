@@ -38,3 +38,7 @@ DRAFT → APPROVED → SENDING → ACCEPTED, FAILED ou UNKNOWN. Toute modificati
 Deux modes à livrer au L1 : processus applicatifs locaux avec dépendances conteneurisées ; puis ensemble Docker Compose. PostgreSQL, stockage privé, OIDC, antivirus et Mailpit sont internes. Le réseau des parseurs et modèles interdit les sorties arbitraires. Pas de Kubernetes ni Redis imposé.
 
 Un premier incrément exécutable livre identité, session et habilitations : voir `development.md`. Les opérations restantes du contrat sont marquées comme planifiées. Les sessions sont actuellement en mémoire serveur, sans promesse de haute disponibilité.
+
+## Réception SH-03
+
+Le module `documents` sépare contrôleur HTTP, service transactionnel, contrôle d'enveloppe borné et port `QuarantineStorage` avec adaptateur S3. Une intention durable précède l'écriture objet ; le commit final signifie uniquement réception en quarantaine. Aucun parseur documentaire ni worker n'est lancé. Voir `validation/sh-03.md` pour les contrôles différés.

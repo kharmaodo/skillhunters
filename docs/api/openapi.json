@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -146,7 +146,7 @@
         "tags": [
           "Documents"
         ],
-        "summary": "Déposer un lot privé",
+        "summary": "Déposer un document en quarantaine privée",
         "parameters": [
           {
             "$ref": "#/components/parameters/CsrfToken"
@@ -157,7 +157,7 @@
         ],
         "responses": {
           "202": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Réception persistée, accessible uniquement aux membres du vivier.",
             "content": {
               "application/json": {
                 "schema": {
@@ -192,6 +192,9 @@
           },
           "415": {
             "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
           }
         },
         "requestBody": {
@@ -200,11 +203,17 @@
             "multipart/form-data": {
               "schema": {
                 "$ref": "#/components/schemas/ImportRequest"
+              },
+              "encoding": {
+                "basis": {
+                  "contentType": "application/json"
+                }
               }
             }
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented",
+        "description": "Limite 15 Mio, un fichier. Idempotence par acteur/vivier/clé ; conflit si empreinte ou métadonnées diffèrent. Aucun parsing métier. Quotas initiaux : 100 réceptions et 300 Mio par acteur ; quatre réceptions actives par instance. DOC/PDF nécessitent encore qualification isolée, antivirus et limite de pages."
       }
     },
     "/imports/{id}": {
@@ -227,7 +236,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Réception persistée, accessible uniquement aux membres du vivier.",
             "content": {
               "application/json": {
                 "schema": {
@@ -255,7 +264,7 @@
             "$ref": "#/components/responses/Problem"
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented"
       }
     },
     "/jobs/{id}": {
@@ -2738,6 +2747,114 @@
         },
         "x-implementation-status": "implemented"
       }
+    },
+    "/pools/{poolId}/imports": {
+      "get": {
+        "operationId": "listPoolImports",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lister les réceptions autorisées par curseur",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Curseur nextCursor de la page précédente ; ordre date/id décroissant."
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Résultat filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/pools/{poolId}/import-policies": {
+      "get": {
+        "operationId": "listImportPolicies",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lister les cadres de dépôt configurés",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Résultat filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportPolicy"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2774,7 +2891,8 @@
         "schema": {
           "type": "string",
           "minLength": 8,
-          "maxLength": 128
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]{8,128}$"
         }
       }
     },
@@ -2941,7 +3059,7 @@
           "files": {
             "type": "array",
             "minItems": 1,
-            "maxItems": 100,
+            "maxItems": 1,
             "items": {
               "type": "string",
               "format": "binary"
@@ -2952,7 +3070,8 @@
           "poolId",
           "basis",
           "files"
-        ]
+        ],
+        "description": "SH-03 : un seul fichier par requête ; le lot SH-04 reste planifié. Partie basis de type application/json."
       },
       "ImportItem": {
         "type": "object",
@@ -2970,6 +3089,7 @@
           "state": {
             "type": "string",
             "enum": [
+              "RECEIVING",
               "QUARANTINED",
               "SCANNING",
               "EXTRACTING",
@@ -2993,6 +3113,18 @@
           "documentVersionId": {
             "type": "string",
             "format": "uuid"
+          },
+          "mediaType": {
+            "type": "string"
+          },
+          "byteSize": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 15728640
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
           }
         },
         "required": [
@@ -3018,13 +3150,25 @@
             "items": {
               "$ref": "#/components/schemas/ImportItem"
             }
+          },
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "validationVersion": {
+            "type": "string"
           }
         },
         "required": [
           "id",
           "createdAt",
           "items"
-        ]
+        ],
+        "description": "Réception individuelle SH-03. Aucun objet S3 ni URL de téléchargement exposé. QUARANTINED signifie réception réussie, pas antivirus réussi."
       },
       "Job": {
         "type": "object",
@@ -4629,6 +4773,59 @@
             "type": "boolean"
           }
         }
+      },
+      "ImportPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "label": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "basisCode": {
+            "type": "string"
+          },
+          "retentionDays": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "purpose",
+          "basisCode",
+          "retentionDays"
+        ]
+      },
+      "ImportPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportBatch"
+            },
+            "maxItems": 20
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
       }
     }
   }

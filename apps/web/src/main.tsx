@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { api, ApiError, message, type Account, type Membership, type Pool, type Session } from './api';
 import './style.css';
+import { Imports } from './Imports';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -44,14 +45,14 @@ function App() {
       <div className="side-foot"><strong>{session.displayName}</strong><span>{admin ? 'Administrateur' : 'Membre de l’équipe'}</span><button className="nav" onClick={() => void logout()} disabled={busy}>{busy ? 'Déconnexion…' : 'Se déconnecter'}</button></div>
     </aside>
     {menu && <button className="backdrop" aria-label="Fermer le menu" onClick={() => setMenu(false)}/>}
-    <main className="main"><header><button className="mobile" aria-label="Ouvrir le menu" onClick={() => setMenu(true)}>☰</button><span>Espace Talent <span className="muted">/ {page === 'access' ? 'Habilitations' : 'Mes viviers'}</span></span><span className="badge">MVP · Identité & accès</span></header>
+    <main className="main"><header><button className="mobile" aria-label="Ouvrir le menu" onClick={() => setMenu(true)}>☰</button><span>Espace Talent <span className="muted">/ {page === 'access' ? 'Habilitations' : 'Mes viviers'}</span></span><span className="badge">MVP · Import sécurisé</span></header>
       <div className="content">{error && <div className="alert" role="alert">{error}<button className="text-button" onClick={() => setError('')}>Fermer</button></div>}
-      {page === 'access' && admin ? <Access session={session} failed={failed}/> : <Pools failed={failed}/>}
+      {page === 'access' && admin ? <Access session={session} failed={failed}/> : <Pools session={session} failed={failed}/>}
       </div>
     </main>
   </div>;
 }
-function Pools({ failed }: { failed: (e: unknown) => void }) {
+function Pools({ session, failed }: { session: Session; failed: (e: unknown) => void }) {
   const [pools, setPools] = useState<Pool[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Pool | null>(null);
@@ -59,8 +60,8 @@ function Pools({ failed }: { failed: (e: unknown) => void }) {
   async function open(id: string) { try { setSelected(await api<Pool>(`/pools/${id}`)); } catch (e) { setSelected(null); failed(e); } }
   return <><p className="eyebrow">Votre espace de travail</p><h1>Mes viviers</h1><p className="muted">Choisissez un vivier pour consulter votre périmètre de recrutement.</p>
     {loading ? <p role="status">Chargement des viviers…</p> : pools.length ? <div className="grid">{pools.map(pool => <article className="card" key={pool.id}><div className="pool-icon">▤</div><h2>{pool.name}</h2><p className="muted">Accès attribué par votre organisation.</p><button className="button" onClick={() => void open(pool.id)}>Ouvrir le vivier</button></article>)}</div> : <section className="card empty"><h2>Aucun vivier attribué</h2><p className="muted">Demandez à votre administrateur de vous affecter à un vivier. Un rôle d’administration ne donne pas automatiquement accès aux CV.</p></section>}
-    {selected && <section className="card" aria-live="polite"><div className="row"><h2>{selected.name}</h2><button className="text-button" onClick={() => setSelected(null)}>Fermer</button></div><span className="badge green">Accès vérifié</span><p className="muted">Votre habilitation est active. L’import et la gestion des candidatures seront disponibles dans le prochain incrément.</p></section>}
-    <section className="milestone"><strong>Première étape du MVP</strong><p>La connexion et les habilitations sont opérationnelles dans cet incrément. Les parcours d’import, de recherche et de contact restent à développer.</p></section></>;
+    {selected && <section className="card" aria-live="polite"><div className="row"><h2>{selected.name}</h2><button className="text-button" onClick={() => setSelected(null)}>Fermer</button></div><span className="badge green">Accès vérifié</span><Imports key={selected.id} pool={selected} session={session} failed={failed}/></section>}
+    <section className="milestone"><strong>Import individuel disponible</strong><p>Déposez un document dans un vivier autorisé. Les analyses antivirus, l’extraction, la recherche et le contact restent à développer.</p></section></>;
 }
 function Access({ session, failed }: { session: Session; failed: (e: unknown) => void }) {
   const [users, setUsers] = useState<Account[]>([]); const [pools, setPools] = useState<Pool[]>([]);
