@@ -25,8 +25,17 @@ class LoginForm(HTMLParser):
     def handle_endtag(self, tag):
         if tag == 'form': self.inside = False
 
+class LocalhostCookiePolicy(http.cookiejar.DefaultCookiePolicy):
+    def return_ok_secure(self, cookie, request):
+        # Keycloak marks localhost cookies Secure, as browsers treat localhost as
+        # trustworthy. urllib does not implement that browser exception.
+        url = urlsplit(request.full_url)
+        if url.scheme == 'http' and url.hostname == 'localhost' and url.port == 8081:
+            return True
+        return super().return_ok_secure(cookie, request)
+
 def client():
-    jar = http.cookiejar.CookieJar()
+    jar = http.cookiejar.CookieJar(policy=LocalhostCookiePolicy())
     return build_opener(HTTPCookieProcessor(jar)), jar
 
 def request(browser, path, method='GET', body=None, csrf=None):
@@ -54,7 +63,7 @@ def login(username):
         class ErrorText(HTMLParser):
             def __init__(self): super().__init__(); self.capture = False; self.messages = []
             def handle_starttag(self, tag, attrs):
-                if tag == 'title' or 'kc-feedback-text' in dict(attrs).get('class', ''): self.capture = True
+                if tag in ('title', 'p') or 'kc-feedback-text' in dict(attrs).get('class', ''): self.capture = True
             def handle_endtag(self, tag): self.capture = False
             def handle_data(self, data):
                 if self.capture: self.messages.append(data.strip())
