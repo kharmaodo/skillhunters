@@ -33,3 +33,7 @@ La migration V2 ajoute `import_policy`, `document_import` et `document_audit`. C
 ## Schéma physique SH-04
 
 V3 ajoute `import_batch` (portée, idempotence et politique figée), `import_batch_item` (ordre, empreinte, état, tentative/bail) et `import_batch_event` (audit minimisé). Les réceptions `document_import` sont rapprochées par leur clé interne `batch-{itemId}` et leur portée acteur/vivier. Une réception durable acceptée prime sur une projection interrompue. Le calcul de quota cumule réservations et dépôts individuels, sans compter deux fois les documents du lot.
+
+## SH-05 : comparaison documentaire
+
+V4 ajoute un index `document_import(pool_id, sha256, byte_size, created_at DESC, id DESC)`. Aucun hash global ni lien inter-viviers n'est exposé. La comparaison est calculée à la lecture sur les réceptions QUARANTINED non expirées ; elle ne modifie ni original, ni provenance, ni échéance. Aucun modèle candidat/version active n'est encore implémenté.

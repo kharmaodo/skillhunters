@@ -47,6 +47,11 @@ public class ImportController {
         finally { capacity.release(); }
     }
 
+    @GetMapping("/imports/{id}/duplicates")
+    public ImportService.Page duplicates(Authentication auth, @PathVariable UUID id, @RequestParam(required=false) String cursor) {
+        return imports.duplicates(accounts.require(auth).id(), id, cursor);
+    }
+
     @GetMapping("/imports/{id}")
     public ImportService.Receipt get(Authentication auth, @PathVariable UUID id) { return imports.get(accounts.require(auth).id(), id); }
 

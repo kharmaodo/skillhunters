@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { DocumentDuplicates } from './DocumentDuplicates';
 import { BatchImports } from './BatchImports';
 import { api, message, type Pool, type Session } from './api';
 
@@ -101,6 +102,7 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
       <span className="badge">{receipt.items[0].state === 'QUARANTINED' ? 'En quarantaine · analyse en attente' : 'Réception incomplète · à reprendre'}</span>
       <span className="fine">{new Date(receipt.createdAt).toLocaleString('fr-FR')} · {Math.ceil(receipt.items[0].byteSize / 1024)} Kio</span>
       <span className="fine">Référence : {receipt.id}</span>
+      {receipt.items[0].state === 'QUARANTINED' && <DocumentDuplicates id={receipt.id} failed={failed}/>}
       {receipt.items[0].state === 'RECEIVING' && <div className="import-form">
         <label htmlFor={`resume-${receipt.id}`}>Resélectionner le document original pour reprendre</label>
         <input id={`resume-${receipt.id}`} type="file" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) setResumeFiles(previous => ({ ...previous, [receipt.id]: file })); }}/>
