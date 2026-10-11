@@ -37,3 +37,7 @@ V3 ajoute `import_batch` (portée, idempotence et politique figée), `import_bat
 ## SH-05 : comparaison documentaire
 
 V4 ajoute un index `document_import(pool_id, sha256, byte_size, created_at DESC, id DESC)`. Aucun hash global ni lien inter-viviers n'est exposé. La comparaison est calculée à la lecture sur les réceptions QUARANTINED non expirées ; elle ne modifie ni original, ni provenance, ni échéance. Aucun modèle candidat/version active n'est encore implémenté.
+
+## Schéma physique SH-07
+
+V5 ajoute `document_analysis` (une tâche par import, demandeur, état, tentatives, bail/token, échéance de reprise, versions antivirus/parseur et JSON de preuves) et `document_analysis_event` (transitions sans texte CV). Les clés étrangères suppriment les dérivés lorsque la source est effacée. La rétention complète et sa tâche de purge restent SH-32 ; les résultats expirés sont déjà inaccessibles et les workers ne peuvent pas les republier. Les accès au résultat et relances humaines sont tracés dans `document_audit`.

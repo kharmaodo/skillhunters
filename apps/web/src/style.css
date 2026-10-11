@@ -11,3 +11,5 @@
 .import-section .badge { white-space: normal; }
 
 .import-section progress { width: 100%; max-width: 42rem; accent-color: #6545cc; }
+.extracted-text { white-space: pre-wrap; overflow-wrap: anywhere; max-inline-size: 100%; }
+.import-list details { min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }

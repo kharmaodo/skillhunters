@@ -53,5 +53,15 @@ public class S3QuarantineStorage implements QuarantineStorage, AutoCloseable {
         }
     }
 
+    @Override public byte[] read(String key) {
+        try (var input = s3.getObject(b -> b.bucket(bucket).key(key))) {
+            byte[] bytes = input.readNBytes(15728641);
+            if (bytes.length > 15728640) throw new IllegalStateException("OBJECT_LIMIT");
+            return bytes;
+        } catch (Exception unavailable) {
+            throw new Rejected(HttpStatus.SERVICE_UNAVAILABLE, "QUARANTINE_UNAVAILABLE");
+        }
+    }
+
     @Override public void close() { s3.close(); }
 }

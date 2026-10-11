@@ -35,6 +35,13 @@ jobs:
         run: |
           python3 scripts/check_foundation.py
           git diff --check HEAD^ HEAD
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - name: Test sandboxed document worker
+        run: |
+          sudo apt-get update && sudo apt-get install -y antiword libseccomp2
+          python -m pip install -r services/document-worker/requirements.txt
+          python -m unittest discover -s services/document-worker/tests -v
       - name: Build frontend
         working-directory: apps/web
         run: npm ci --no-audit --no-fund && npm run build
@@ -64,6 +71,17 @@ jobs:
           . ./.env
           set +a
           python3 scripts/smoke_oidc.py
+      - name: Wait for current antivirus signatures and test real document analysis
+        run: |
+          for attempt in $(seq 1 90); do
+            if docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import av_version; av_version()' >/dev/null 2>&1; then break; fi
+            if [ "$attempt" = 90 ]; then echo "Antivirus unavailable or signatures stale"; exit 1; fi
+            sleep 5
+          done
+          set -a
+          . ./.env
+          set +a
+          python3 scripts/smoke_analysis.py
       - uses: actions/setup-node@v4
         with: {node-version: '24', cache: npm, cache-dependency-path: apps/web/package-lock.json}
       - name: Browser import and responsive checks

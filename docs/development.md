@@ -130,3 +130,29 @@ Configuration facultative : `IMPORT_MAX_FILES_PER_USER` (1 000) et `IMPORT_MAX_B
 Le test Java de référence envoie 100 fichiers dont un faux PDF et exige 99 réceptions persistées ainsi qu'un rejet identifié. La recette Playwright comporte désormais quatre scénarios : deux individuels et deux lots avec succès partiel, interruption puis reprise après rechargement, desktop et mobile.
 
 Voir [SH-04 et limites](validation/sh-04.md). Les données restent synthétiques jusqu'à la livraison des contrôles documentaires et de gouvernance.
+
+## Antivirus et extraction SH-07
+
+Pour une installation existante, ajouter la configuration sans remplacer les secrets :
+
+```sh
+python3 scripts/init_local.py --upgrade-analysis
+```
+
+Les nouvelles configurations générées sans option contiennent déjà ces variables. Pour la stack complète, utiliser la commande Compose habituelle avec `--profile app` ; l'API démarre ses dépendances `document-worker` et `clamav`. Pour une API Java locale, démarrer aussi ces deux services :
+
+```sh
+docker compose --env-file .env -f infrastructure/compose.yml up -d --build postgres keycloak s3 document-worker
+```
+
+Le worker est accessible seulement sur loopback `8090`, avec `WORKER_TOKEN` obligatoire. Dans Compose, l'API utilise son adresse interne. Le worker est sur un réseau interne ; seul ClamAV dispose d'un réseau de mise à jour des signatures. Aucun CV n'est envoyé au service de mise à jour. La première installation télécharge les signatures ; prévoir réseau et environ 2 Gio pour ClamAV, plus 768 Mio pour le worker. Sans signatures récentes (72 heures), aucun document n'est extrait. Un fonctionnement totalement hors ligne nécessite un processus opérationnel d'approvisionnement régulier des signatures, pas une désactivation du contrôle.
+
+`ANALYSIS_ENABLED=true` active l'ordonnanceur API ; `false` conserve les tâches en attente. Une défaillance persistante s'arrête après trois tentatives. Après rétablissement du service, utiliser « Relancer l’analyse » dans l'historique du dépôt. Un rejet de sécurité demande un nouveau fichier corrigé. Les imports plus anciens non expirés sont mis en attente par V5.
+
+Recette synthétique avec la pile démarrée et les variables `.env` chargées :
+
+```sh
+python3 scripts/smoke_analysis.py
+```
+
+Ne pas confondre ce contrôle EICAR et texte avec un benchmark OCR ou une qualification complète du corpus DOC. Voir `validation/sh-07.md`.

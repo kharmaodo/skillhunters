@@ -31,6 +31,13 @@ for (const width of [1280, 320]) {
     await expect(copy.getByText(filename, { exact: true })).toBeVisible();
     await expect(copy.getByText('Signal documentaire uniquement.', { exact: false })).toBeVisible();
     await expect(copy.locator('ul > li')).toHaveCount(1);
+    await copy.getByRole('button', { name: 'Consulter l’analyse', exact: true }).click();
+    await expect(async () => {
+      await copy.getByRole('button', { name: 'Actualiser l’analyse', exact: true }).click();
+      await expect(copy.getByText('Texte extrait · non validé', { exact: true })).toBeVisible();
+    }).toPass({ timeout: 90000, intervals: [2000] });
+    await copy.getByText('Voir le texte brut et ses sources', { exact: true }).click();
+    await expect(copy.locator('.extracted-text')).toContainText('Compétence : Java');
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
