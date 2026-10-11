@@ -101,6 +101,52 @@ class ImportSecurityTest extends IdentityTestSupport {
         assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(1);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM document_audit WHERE action='QUARANTINE_ACCEPTED'",Integer.class)).isEqualTo(1);
     }
+    @Test void duplicatesStayWithinPoolAndNeverUseNamesOrChangeReceipts() throws Exception {
+        String source = accept();
+        mvc.perform(upload(poolA,"duplicate-key","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        mvc.perform(upload(poolA,"different-key","# Other CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",alice,poolB);
+        mvc.perform(upload(poolB,"hidden-duplicate","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        // Even membership in both pools must not broaden this comparison's scope.
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(1))
+            .andExpect(jsonPath("$.items[0].poolId").value(poolA.toString()))
+            .andExpect(jsonPath("$.items[0].items[0].state").value("QUARANTINED"));
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(4);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_audit",Integer.class)).isEqualTo(8);
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("admin"))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/imports/"+UUID.randomUUID()+"/duplicates").with(as("admin"))).andExpect(status().isNotFound());
+        db.update("DELETE FROM membership WHERE user_id=? AND pool_id=?",alice,poolA);
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("alice"))).andExpect(status().isNotFound());
+    }
+    @Test void duplicatesExcludeIncompleteAndExpiredFilesAndRejectIneligibleSource() throws Exception {
+        String source = accept();
+        mvc.perform(upload(poolA,"expired-duplicate","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        db.update("UPDATE document_import SET expires_at=created_at WHERE idempotency_key='expired-duplicate'");
+        storage.fail=true;
+        mvc.perform(upload(poolA,"incomplete-duplicate","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isServiceUnavailable());
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(0));
+        UUID incomplete=db.queryForObject("SELECT id FROM document_import WHERE idempotency_key='incomplete-duplicate'",UUID.class);
+        mvc.perform(get("/api/v1/imports/"+incomplete+"/duplicates").with(as("alice"))).andExpect(status().isConflict());
+        db.update("UPDATE document_import SET expires_at=created_at WHERE id=?",UUID.fromString(source));
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("alice"))).andExpect(status().isConflict());
+    }
+    @Test void duplicatePagesAreBoundedWithoutRepeatingSourceOrTiedRows() throws Exception {
+        String source=accept();
+        for(int i=0;i<22;i++) mvc.perform(upload(poolA,"duplicate-page-"+i,"# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        db.update("UPDATE document_import SET created_at='2026-01-01T00:00:00Z'");
+        var mapper=new com.fasterxml.jackson.databind.ObjectMapper();
+        var first=mapper.readTree(mvc.perform(get("/api/v1/imports/"+source+"/duplicates").with(as("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(20)).andReturn().getResponse().getContentAsString());
+        var second=mapper.readTree(mvc.perform(get("/api/v1/imports/"+source+"/duplicates").param("cursor",first.get("nextCursor").asText()).with(as("alice")))
+            .andExpect(status().isOk()).andExpect(jsonPath("$.items.length()").value(2)).andReturn().getResponse().getContentAsString());
+        var ids=new java.util.HashSet<String>();
+        first.get("items").forEach(item -> assertThat(ids.add(item.get("id").asText())).isTrue());
+        second.get("items").forEach(item -> assertThat(ids.add(item.get("id").asText())).isTrue());
+        assertThat(ids).doesNotContain(source).hasSize(22);
+        mvc.perform(get("/api/v1/imports/"+source+"/duplicates").param("cursor","bad|cursor|extra").with(as("alice"))).andExpect(status().isBadRequest());
+    }
     @Test void manyFilesAndInvalidKeyAreRejected() throws Exception {
         mvc.perform(upload(poolA,"valid-key","test").file(new MockMultipartFile("files","second.md","text/markdown",new byte[]{65})).with(as("alice")).with(csrf()))
             .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("SINGLE_FILE_REQUIRED"));

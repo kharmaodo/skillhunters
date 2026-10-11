@@ -12,13 +12,25 @@ for (const width of [1280, 320]) {
     await expect(page.getByRole('heading', { name: 'Mes viviers', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
     await page.getByLabel('Provenance du document').fill('Recette navigateur synthétique');
-    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from('# Profil synthétique\nCompétence : Java\n') });
+    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java\n`) });
     await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
     await page.reload();
     await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
+    const copyName = `copy-${filename}`;
+    await page.getByLabel('Provenance du document').fill('Copie synthétique pour contrôle des doublons');
+    await page.getByLabel('Document à déposer').setInputFiles({ name: copyName, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java\n`) });
+    await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
+    await page.reload();
+    await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
+    const copy = page.locator('.import-list > li').filter({ has: page.getByText(copyName, { exact: true }) });
+    await copy.getByRole('button', { name: 'Vérifier les fichiers identiques' }).click();
+    await expect(copy.getByText(filename, { exact: true })).toBeVisible();
+    await expect(copy.getByText('Signal documentaire uniquement.', { exact: false })).toBeVisible();
+    await expect(copy.locator('ul > li')).toHaveCount(1);
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

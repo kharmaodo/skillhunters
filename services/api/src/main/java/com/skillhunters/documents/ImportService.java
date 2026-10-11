@@ -150,6 +150,40 @@ public class ImportService {
             """).param("id", id).param("actor", actor).query(ImportService::map).optional()
             .orElseThrow(() -> new Rejected(HttpStatus.NOT_FOUND, "IMPORT_NOT_FOUND"));
     }
+    /** Metadata-only comparison; never interprets a CV or associates candidates. */
+    public Page duplicates(UUID actor, UUID sourceId, String cursor) {
+        return tx.execute(status -> {
+            Receipt source = get(actor, sourceId);
+            lockActor(actor, source.poolId());
+            OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+            if (!source.expiresAt().isAfter(now) || !source.items().getFirst().state().equals("QUARANTINED")) {
+                throw new Rejected(HttpStatus.CONFLICT, "IMPORT_NOT_COMPARABLE");
+            }
+            OffsetDateTime date = OffsetDateTime.parse("9999-01-01T00:00:00Z");
+            UUID id = new UUID(-1L, -1L);
+            if (cursor != null) {
+                try {
+                    String[] parts = cursor.split("\\|", -1);
+                    if (parts.length != 2) throw new IllegalArgumentException();
+                    date = OffsetDateTime.parse(parts[0]); id = UUID.fromString(parts[1]);
+                } catch (RuntimeException invalid) { throw new Rejected(HttpStatus.BAD_REQUEST, "INVALID_CURSOR"); }
+            }
+            var rows = db.sql("""
+                SELECT d.* FROM document_import d WHERE d.pool_id=:pool AND d.sha256=:sha
+                AND d.byte_size=:size AND d.id<>:source AND d.state='QUARANTINED' AND d.expires_at>:now
+                AND EXISTS (SELECT 1 FROM membership m WHERE m.pool_id=d.pool_id AND m.user_id=:actor)
+                AND (d.created_at<:date OR (d.created_at=:date AND d.id<:id))
+                ORDER BY d.created_at DESC,d.id DESC LIMIT 21
+                """).param("pool", source.poolId()).param("sha", source.items().getFirst().sha256())
+                .param("size", source.items().getFirst().byteSize()).param("source", sourceId)
+                .param("now", now).param("actor", actor).param("date", date).param("id", id)
+                .query(ImportService::map).list();
+            var items = rows.stream().limit(20).toList();
+            var last = items.isEmpty() ? null : items.getLast();
+            return new Page(items, rows.size() > 20 ? last.createdAt() + "|" + last.id() : null);
+        });
+    }
+
     public Page list(UUID actor, UUID pool, String cursor) {
         identity.pool(actor, pool);
         OffsetDateTime date = OffsetDateTime.parse("9999-01-01T00:00:00Z");

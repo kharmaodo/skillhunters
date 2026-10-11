@@ -46,3 +46,7 @@ Le module `documents` sépare contrôleur HTTP, service transactionnel, contrôl
 ## Lots SH-04
 
 Le manifeste du lot est réservé avant les contenus. Chaque fichier possède une empreinte et un emplacement immuable, puis réutilise le service de réception individuelle. Les métadonnées de tentative ont un bail et un jeton de génération ; la réception S3/SQL durable fait autorité en cas de projection de lot interrompue. Pas de nouveau service ou broker. Les envois se font par fichier et restent synchrones, avec admission bornée ; aucun worker documentaire n'est implicitement activé.
+
+## Doublons documentaires SH-05
+
+Lecture des métadonnées SHA-256 et taille, sans accès S3 ni parsing. Le périmètre est toujours le vivier de la source, même si le lecteur possède plusieurs viviers. La transaction partage le verrou utilisateur avec la révocation des habilitations. Pagination de 20 correspondances, sans compteur inter-viviers. Les imports individuels et les fichiers de lots utilisent la même table de réception. La comparaison n'est pas une validation sanitaire ni un rapprochement de candidats.

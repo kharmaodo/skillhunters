@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -3240,6 +3240,67 @@
             }
           }
         }
+      }
+    },
+    "/imports/{id}/duplicates": {
+      "get": {
+        "operationId": "listDocumentDuplicates",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Signaler les fichiers identiques conservés dans le même vivier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Curseur nextCursor de la page précédente ; ordre date/id décroissant."
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Résultat filtré par habilitation au vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "description": "Comparaison SHA-256 et taille, indépendante du nom et du type déclaré. Source et résultats reçus en quarantaine, non expirés. Exclut la source. Aucun rapprochement candidat, aucune fusion ni sortie de quarantaine. Page de 20, ordre date/id décroissant ; lecture dynamique, sans snapshot. 404 identique pour une source absente ou interdite ; 409 IMPORT_NOT_COMPARABLE pour une source incomplète ou expirée."
       }
     }
   },
