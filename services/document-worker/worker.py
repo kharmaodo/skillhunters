@@ -1,4 +1,5 @@
 """Private synchronous worker. PostgreSQL jobs and leases are owned by the API."""
+import ctypes
 import datetime as dt
 import hashlib
 import hmac
@@ -131,4 +132,7 @@ class Handler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     if len(os.environ.get('WORKER_TOKEN', '')) < 32:
         sys.exit('WORKER_TOKEN must contain at least 32 characters')
+    # Same-UID parser children must not read the supervisor's token via /proc.
+    if ctypes.CDLL(None).prctl(4, 0, 0, 0, 0) != 0:  # PR_SET_DUMPABLE
+        sys.exit('Supervisor isolation unavailable')
     HTTPServer(('0.0.0.0', 8090), Handler).serve_forever()

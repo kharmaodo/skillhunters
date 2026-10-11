@@ -40,6 +40,7 @@ def sandbox():
     try:
         for name in ('socket', 'socketpair', 'connect', 'bind', 'listen', 'accept', 'accept4',
                      'sendto', 'sendmsg', 'sendmmsg', 'recvfrom', 'recvmsg', 'recvmmsg',
+                     'kill', 'tkill', 'tgkill', 'pidfd_send_signal',
                      'ptrace', 'process_vm_readv', 'process_vm_writev', 'io_uring_setup'):
             number = lib.seccomp_syscall_resolve_name(name.encode())
             if number >= 0 and lib.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, number, 0) != 0:
