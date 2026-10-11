@@ -59,6 +59,10 @@ management:
         readiness:
           include: readinessState,db
 app:
+  analysis:
+    enabled: ${ANALYSIS_ENABLED:false}
+    endpoint: ${WORKER_ENDPOINT:http://localhost:8090/analyze}
+    token: ${WORKER_TOKEN:}
   imports:
     max-files-per-user: ${IMPORT_MAX_FILES_PER_USER:1000}
     max-bytes-per-user: ${IMPORT_MAX_BYTES_PER_USER:3145728000}

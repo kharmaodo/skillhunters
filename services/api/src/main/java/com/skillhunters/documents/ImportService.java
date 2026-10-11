@@ -112,6 +112,8 @@ public class ImportService {
                 storage.put(row.objectKey(), file.path());
                 db.sql("UPDATE document_import SET state='QUARANTINED' WHERE id=:id").param("id", id).update();
                 audit(id, actor, "QUARANTINE_ACCEPTED");
+                db.sql("INSERT INTO document_analysis(import_id,requested_by,state) VALUES (:id,:actor,'PENDING')")
+                    .param("id", id).param("actor", actor).update();
             }
             return get(actor, id);
         });

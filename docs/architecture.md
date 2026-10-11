@@ -50,3 +50,7 @@ Le manifeste du lot est réservé avant les contenus. Chaque fichier possède un
 ## Doublons documentaires SH-05
 
 Lecture des métadonnées SHA-256 et taille, sans accès S3 ni parsing. Le périmètre est toujours le vivier de la source, même si le lecteur possède plusieurs viviers. La transaction partage le verrou utilisateur avec la révocation des habilitations. Pagination de 20 correspondances, sans compteur inter-viviers. Les imports individuels et les fichiers de lots utilisent la même table de réception. La comparaison n'est pas une validation sanitaire ni un rapprochement de candidats.
+
+## Analyse SH-07
+
+`document_analysis` est la file transactionnelle PostgreSQL : créée à l'acceptation de la réception, elle porte un bail avec token de génération et trois tentatives maximum. L'API lit l'objet privé borné, vérifie son empreinte et appelle un worker HTTP interne authentifié. Le worker n'a aucun accès S3/SQL ; ClamAV précède tout parsing. Le parseur enfant utilise seccomp sans sockets et des limites CPU/mémoire/temps. La publication recontrôle bail, existence, échéance et habilitation du demandeur. Le texte reste un dérivé non validé, accessible uniquement dans son vivier, jamais automatiquement indexé. Voir `validation/sh-07.md` pour les limites DOC, PDF et OCR.

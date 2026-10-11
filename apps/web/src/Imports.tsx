@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { DocumentAnalysis } from './DocumentAnalysis';
 import { DocumentDuplicates } from './DocumentDuplicates';
 import { BatchImports } from './BatchImports';
 import { api, message, type Pool, type Session } from './api';
@@ -51,7 +52,7 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
       setRows(previous => [receipt, ...previous.filter(item => item.id !== receipt.id)]);
       setFile(null); if (input.current) input.current.value = '';
       key.current = crypto.randomUUID();
-      setNotice(`Dépôt reçu en quarantaine. Référence : ${receipt.id}. L’analyse antivirus n’est pas encore disponible.`);
+      setNotice(`Dépôt reçu en quarantaine. Référence : ${receipt.id}. Consultez l’analyse pour suivre le traitement.`);
     } catch (e) { setError(message(e)); failed(e); }
     finally { setBusy(false); }
   }
@@ -99,10 +100,10 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
     {!loading && !rows.length && <p className="muted">Aucun document déposé.</p>}
     <ul className="import-list">{rows.map(receipt => <li key={receipt.id}>
       <strong>{receipt.items[0].fileName}</strong>
-      <span className="badge">{receipt.items[0].state === 'QUARANTINED' ? 'En quarantaine · analyse en attente' : 'Réception incomplète · à reprendre'}</span>
+      <span className="badge">{receipt.items[0].state === 'QUARANTINED' ? 'Original conservé en quarantaine' : 'Réception incomplète · à reprendre'}</span>
       <span className="fine">{new Date(receipt.createdAt).toLocaleString('fr-FR')} · {Math.ceil(receipt.items[0].byteSize / 1024)} Kio</span>
       <span className="fine">Référence : {receipt.id}</span>
-      {receipt.items[0].state === 'QUARANTINED' && <DocumentDuplicates id={receipt.id} failed={failed}/>}
+      {receipt.items[0].state === 'QUARANTINED' && <><DocumentDuplicates id={receipt.id} failed={failed}/><DocumentAnalysis id={receipt.id} session={session} failed={failed}/></>}
       {receipt.items[0].state === 'RECEIVING' && <div className="import-form">
         <label htmlFor={`resume-${receipt.id}`}>Resélectionner le document original pour reprendre</label>
         <input id={`resume-${receipt.id}`} type="file" disabled={busy} onChange={e => { const file = e.target.files?.[0]; if (file) setResumeFiles(previous => ({ ...previous, [receipt.id]: file })); }}/>

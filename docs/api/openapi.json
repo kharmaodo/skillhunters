@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -3302,6 +3302,107 @@
         },
         "description": "Comparaison SHA-256 et taille, indépendante du nom et du type déclaré. Source et résultats reçus en quarantaine, non expirés. Exclut la source. Aucun rapprochement candidat, aucune fusion ni sortie de quarantaine. Page de 20, ordre date/id décroissant ; lecture dynamique, sans snapshot. 404 identique pour une source absente ou interdite ; 409 IMPORT_NOT_COMPARABLE pour une source incomplète ou expirée."
       }
+    },
+    "/imports/{id}/analysis": {
+      "get": {
+        "operationId": "getDocumentAnalysis",
+        "summary": "Consulter le statut et le texte brut sourcé non validé",
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Statut de traitement ; accès borné au vivier, document non expiré. Texte non indexé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatus"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Trois tentatives automatiques maximum. Une relance humaine ne contourne jamais un rejet de sécurité. Les originaux restent privés en quarantaine ; EXTRACTED ne signifie ni candidat validé ni indexation."
+      }
+    },
+    "/imports/{id}/analysis/retry": {
+      "post": {
+        "operationId": "retryDocumentAnalysis",
+        "summary": "Relancer un échec technique après contrôle des droits",
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Statut de traitement ; accès borné au vivier, document non expiré. Texte non indexé.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisStatus"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Trois tentatives automatiques maximum. Une relance humaine ne contourne jamais un rejet de sécurité. Les originaux restent privés en quarantaine ; EXTRACTED ne signifie ni candidat validé ni indexation."
+      }
     }
   },
   "components": {
@@ -5490,6 +5591,120 @@
           "items",
           "nextCursor"
         ]
+      },
+      "AnalysisBlock": {
+        "type": "object",
+        "required": [
+          "source",
+          "text"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "text": {
+            "type": "string",
+            "maxLength": 500000
+          }
+        }
+      },
+      "AnalysisResult": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parserVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "blocks": {
+            "type": "array",
+            "maxItems": 5000,
+            "items": {
+              "$ref": "#/components/schemas/AnalysisBlock"
+            }
+          },
+          "ocrPages": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        }
+      },
+      "AnalysisStatus": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "RUNNING",
+              "RETRY",
+              "EXTRACTED",
+              "OCR_REQUIRED",
+              "REJECTED",
+              "FAILED",
+              "CANCELLED"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parserVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
       }
     }
   }
