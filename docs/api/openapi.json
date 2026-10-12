@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -5648,6 +5648,17 @@
               "minimum": 1,
               "maximum": 100
             }
+          },
+          "ocr": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/OcrPage"
+            },
+            "description": "Pages réellement traitées par OCR ; absent/null dans les résultats SH-07 historiques."
           }
         }
       },
@@ -5703,6 +5714,68 @@
                 "type": "null"
               }
             ]
+          }
+        }
+      },
+      "OcrPage": {
+        "type": "object",
+        "required": [
+          "page",
+          "confidence",
+          "reviewRequired",
+          "durationMs",
+          "engineVersion",
+          "rendererVersion",
+          "modelVersion",
+          "warnings"
+        ],
+        "properties": {
+          "page": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "confidence": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Indice technique pondéré par longueur des mots ; pas une probabilité ni un score candidat."
+          },
+          "reviewRequired": {
+            "type": "boolean"
+          },
+          "durationMs": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 120000
+          },
+          "engineVersion": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "rendererVersion": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "modelVersion": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Empreintes SHA-256 des modèles fra et eng."
+          },
+          "warnings": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "enum": [
+                "OCR_NO_TEXT",
+                "OCR_LOW_CONFIDENCE",
+                "OCR_SPARSE_TEXT"
+              ]
+            }
           }
         }
       }

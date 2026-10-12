@@ -47,7 +47,9 @@ class WorkerTest(unittest.TestCase):
         pdf=PdfWriter();pdf.add_blank_page(width=100,height=100)
         data=io.BytesIO();pdf.write(data)
         result=self.extract(data.getvalue(),'application/pdf')
-        self.assertEqual(result['ocrPages'],[1]);self.assertEqual(result['state'],'OCR_REQUIRED')
+        self.assertEqual(result['ocrPages'],[]);self.assertEqual(result['state'],'EXTRACTED')
+        self.assertEqual(result['ocr'][0]['page'],1);self.assertTrue(result['ocr'][0]['reviewRequired'])
+        self.assertIn('OCR_NO_TEXT',result['ocr'][0]['warnings'])
         pdf.encrypt('synthetic'); data=io.BytesIO();pdf.write(data)
         with self.assertRaisesRegex(parser.Refused,'ENCRYPTED'): self.extract(data.getvalue(),'application/pdf')
     def test_pdf_active_content_is_rejected(self):

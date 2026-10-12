@@ -11,4 +11,4 @@ Sources éditeurs consultées le 11 octobre 2026 :
 - https://docs.clamav.net/manual/Usage/ClamdProtocol.html
 - https://www.clamav.net/downloads
 
-L'OCR et l'extraction de compétences ne sont pas implémentés ici. Un résultat EXTRACTED ne permet pas une indexation automatique ni une décision de recrutement.
+SH-08 ajoute Tesseract FR/EN et Poppler pour les pages PDF sans texte ; voir [validation OCR](../../docs/validation/sh-08.md). L’extraction de compétences n’est pas implémentée ici. Un résultat EXTRACTED ne permet pas une indexation automatique ni une décision de recrutement.

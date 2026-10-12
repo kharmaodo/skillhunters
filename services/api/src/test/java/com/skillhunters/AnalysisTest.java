@@ -84,4 +84,41 @@ class AnalysisTest extends IdentityTestSupport {
         db.update("DELETE FROM membership WHERE user_id=?",alice);analysis.runOnce();verifyNoInteractions(analyzer);
         assertThat(db.queryForObject("SELECT state FROM document_analysis",String.class)).isEqualTo("CANCELLED");
     }
+    @Test void ocrEvidenceAndReviewFlagRoundTripWithoutChangingCandidateData() throws Exception {
+        var page=new DocumentAnalyzer.OcrPage(1,42.0,true,1200,"tesseract 5.3.0","pdftoppm 22.12.0","fra=hash;eng=hash",List.of("OCR_LOW_CONFIDENCE"));
+        when(analyzer.analyze(any(),any(),any())).thenReturn(new DocumentAnalyzer.Result("EXTRACTED",null,
+            List.of(new DocumentAnalyzer.Block("ocr:page:1","Java declared level 2.5")),List.of(),"sh08-1","ClamAV test",List.of(page)));
+        analysis.runOnce();
+        mvc.perform(get("/api/v1/imports/"+id+"/analysis").with(as("alice"))).andExpect(status().isOk())
+            .andExpect(jsonPath("$.result.ocr[0].reviewRequired").value(true))
+            .andExpect(jsonPath("$.result.ocr[0].confidence").value(42.0))
+            .andExpect(jsonPath("$.result.blocks[0].source").value("ocr:page:1"));
+    }
+    @Test void lowConfidenceCannotBePublishedWithoutReviewFlag() throws Exception {
+        var page=new DocumentAnalyzer.OcrPage(1,42.0,false,1200,"tesseract 5.3.0","pdftoppm 22.12.0","fra=hash;eng=hash",List.of());
+        when(analyzer.analyze(any(),any(),any())).thenReturn(new DocumentAnalyzer.Result("EXTRACTED",null,
+            List.of(new DocumentAnalyzer.Block("ocr:page:1","Java")),List.of(),"sh08-1","ClamAV test",List.of(page)));
+        analysis.runOnce();assertThat(analysis.get(alice,id).code()).isEqualTo("INVALID_WORKER_RESULT");
+    }
+    @Test void ocrTextRequiresPageProvenance() throws Exception {
+        when(analyzer.analyze(any(),any(),any())).thenReturn(new DocumentAnalyzer.Result("EXTRACTED",null,
+            List.of(new DocumentAnalyzer.Block("ocr:page:1","Java")),List.of(),"sh08-1","ClamAV test",List.of()));
+        analysis.runOnce();assertThat(analysis.get(alice,id).result()).isNull();
+        assertThat(analysis.get(alice,id).state()).isEqualTo("RETRY");
+    }
+    @Test void upgradeRequeuesOnlyPendingOcrWithLiveSource() {
+        var migration=new org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(
+            new org.springframework.core.io.ClassPathResource("db/migration/V6__schedule_pending_ocr.sql"));
+        db.update("UPDATE document_analysis SET state='OCR_REQUIRED',attempts=1,result_json='legacy-result'");
+        migration.execute(db.getDataSource());
+        assertThat(db.queryForObject("SELECT state FROM document_analysis",String.class)).isEqualTo("PENDING");
+        assertThat(db.queryForObject("SELECT result_json FROM document_analysis",String.class)).isNull();
+        db.update("UPDATE document_analysis SET state='EXTRACTED',result_json='retained-result'");
+        migration.execute(db.getDataSource());
+        assertThat(db.queryForObject("SELECT result_json FROM document_analysis",String.class)).isEqualTo("retained-result");
+        db.update("UPDATE document_analysis SET state='OCR_REQUIRED'");
+        db.update("UPDATE document_import SET expires_at=created_at");
+        migration.execute(db.getDataSource());
+        assertThat(db.queryForObject("SELECT state FROM document_analysis",String.class)).isEqualTo("OCR_REQUIRED");
+    }
 }

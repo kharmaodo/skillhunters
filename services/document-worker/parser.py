@@ -12,6 +12,7 @@ import zipfile
 from defusedxml import ElementTree as ET
 from pypdf import PdfReader
 import olefile
+import ocr as local_ocr
 
 MAX_TEXT = 500_000
 MAX_PART = 8 * 1024 * 1024
@@ -22,8 +23,8 @@ class Refused(Exception):
 
 def sandbox():
     resource.setrlimit(resource.RLIMIT_AS, (512 * 1024**2, 512 * 1024**2))
-    resource.setrlimit(resource.RLIMIT_CPU, (20, 20))
-    resource.setrlimit(resource.RLIMIT_FSIZE, (4 * 1024**2, 4 * 1024**2))
+    resource.setrlimit(resource.RLIMIT_CPU, (90, 90))
+    resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024**2, 16 * 1024**2))
     resource.setrlimit(resource.RLIMIT_NOFILE, (32, 32))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     # Fail closed if seccomp is absent; inherited by antiword and any descendants.
@@ -63,6 +64,7 @@ def extract(path, kind):
         if text:
             blocks.append({'source': source, 'text': text})
     ocr = []
+    ocr_details = []
     if kind == 'text/markdown':
         add('document', Path(path).read_text(encoding='utf-8-sig'))
     elif kind == 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
@@ -132,11 +134,19 @@ def extract(path, kind):
                 for item in value:
                     inspect(item, depth+1)
         inspect(reader.trailer)
-        for index, page in enumerate(reader.pages, 1):
-            text = page.extract_text() or ''
-            add(f'page:{index}', text)
-            if not text.strip():
-                ocr.append(index)
+        page_texts = [(index, page.extract_text() or '') for index, page in enumerate(reader.pages, 1)]
+        ocr = [index for index, text in page_texts if not text.strip()]
+        if len(ocr) > local_ocr.MAX_PAGES:
+            raise Refused('OCR_PAGE_LIMIT')
+        provenance = local_ocr.versions() if ocr else None
+        for index, text in page_texts:
+            if index in ocr:
+                text, detail = local_ocr.page(path, index, provenance)
+                ocr_details.append(detail)
+                add(f'ocr:page:{index}', text)
+            else:
+                add(f'page:{index}', text)
+        ocr = []
     elif kind == 'application/msword':
         with olefile.OleFileIO(path) as doc:
             names = ['/'.join(parts).lower() for parts in doc.listdir()]
@@ -158,7 +168,7 @@ def extract(path, kind):
         add('legacy-document', converted.stdout.decode('utf-8'))
     else:
         raise Refused('UNSUPPORTED_FORMAT')
-    return {'state': 'OCR_REQUIRED' if ocr else 'EXTRACTED', 'blocks': blocks, 'ocrPages': ocr}
+    return {'state': 'OCR_REQUIRED' if ocr else 'EXTRACTED', 'blocks': blocks, 'ocrPages': ocr, 'ocr': ocr_details}
 
 if __name__ == '__main__':
     try:
@@ -176,6 +186,10 @@ if __name__ == '__main__':
                 sys.exit(0)
             sys.exit(1)
         result = extract(sys.argv[1], sys.argv[2])
+    except local_ocr.OcrUnavailable:
+        result = {'state': 'RETRY', 'code': 'OCR_UNAVAILABLE', 'blocks': [], 'ocrPages': []}
+    except local_ocr.OcrLimit:
+        result = {'state': 'REJECTED', 'code': 'OCR_OUTPUT_LIMIT', 'blocks': [], 'ocrPages': []}
     except Refused as error:
         result = {'state': 'REJECTED', 'code': str(error), 'blocks': [], 'ocrPages': []}
     except Exception:

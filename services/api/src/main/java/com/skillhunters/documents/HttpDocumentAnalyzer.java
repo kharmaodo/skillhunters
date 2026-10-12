@@ -23,7 +23,7 @@ public class HttpDocumentAnalyzer implements DocumentAnalyzer {
     }
     public Result analyze(byte[] data, String mediaType, String sha256) throws Exception {
         if(token.length()<32) throw new IllegalStateException("WORKER_UNCONFIGURED");
-        var request=HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(110))
+        var request=HttpRequest.newBuilder(endpoint).timeout(Duration.ofSeconds(210))
             .header("Authorization","Bearer "+token).header("Content-Type",mediaType)
             .header("X-Content-SHA256",sha256).POST(HttpRequest.BodyPublishers.ofByteArray(data)).build();
         var response=client.send(request, ignored -> new BoundedBody());

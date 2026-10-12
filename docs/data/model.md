@@ -41,3 +41,7 @@ V4 ajoute un index `document_import(pool_id, sha256, byte_size, created_at DESC,
 ## Schéma physique SH-07
 
 V5 ajoute `document_analysis` (une tâche par import, demandeur, état, tentatives, bail/token, échéance de reprise, versions antivirus/parseur et JSON de preuves) et `document_analysis_event` (transitions sans texte CV). Les clés étrangères suppriment les dérivés lorsque la source est effacée. La rétention complète et sa tâche de purge restent SH-32 ; les résultats expirés sont déjà inaccessibles et les workers ne peuvent pas les republier. Les accès au résultat et relances humaines sont tracés dans `document_audit`.
+
+## SH-08 : provenance OCR
+
+Le JSON d'analyse accepte `ocr[]` : page, confiance technique nullable, revue requise, durée et versions moteur/renderer/modèles. Les blocs OCR portent `ocr:page:N`. Les anciens JSON restent lisibles sans `ocr`. V6 reprogramme exclusivement les résultats OCR_REQUIRED non expirés ; aucune nouvelle table candidat ni donnée structurée n'est créée.

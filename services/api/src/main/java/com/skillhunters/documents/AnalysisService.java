@@ -92,7 +92,7 @@ public class AnalysisService {
             if((int)r[1]>=3) { terminal(id,"FAILED","ATTEMPTS_EXHAUSTED"); return null; }
             UUID token=UUID.randomUUID();
             db.sql("UPDATE document_analysis SET state='RUNNING',attempts=attempts+1,lease_token=:token,lease_until=:lease,updated_at=:now,code=NULL WHERE import_id=:id")
-                .param("token",token).param("lease",now().plusMinutes(4)).param("now",now()).param("id",id).update();
+                .param("token",token).param("lease",now().plusMinutes(6)).param("now",now()).param("id",id).update();
             event(id,"RUNNING",null);
             return new Job(id,context.get()[0],context.get()[1],token,(String)document[0],(String)document[1],(String)document[2],(long)document[3]);
         });
@@ -141,10 +141,31 @@ public class AnalysisService {
             event(job.id(),state,result.code());
         });
     }
+    private boolean validOcr(DocumentAnalyzer.Result r) {
+        var pages=r.ocr()==null ? List.<DocumentAnalyzer.OcrPage>of() : r.ocr();
+        if(pages.size()>20 || (!pages.isEmpty() && !r.state().equals("EXTRACTED"))) return false;
+        var seen=new HashSet<Integer>();
+        for(var page:pages) {
+            if(page==null || page.page()<1 || page.page()>100 || !seen.add(page.page()) || page.durationMs()<0 || page.durationMs()>120000) return false;
+            if(page.confidence()!=null && (!Double.isFinite(page.confidence()) || page.confidence()<0 || page.confidence()>100)) return false;
+            if(page.warnings()==null || page.warnings().size()>3 || page.warnings().stream().anyMatch(w->!Set.of("OCR_NO_TEXT","OCR_LOW_CONFIDENCE","OCR_SPARSE_TEXT").contains(Objects.toString(w,"")))) return false;
+            if((page.confidence()==null || page.confidence()<70 || !page.warnings().isEmpty()) && !page.reviewRequired()) return false;
+            for(var version:new String[]{page.engineVersion(),page.rendererVersion(),page.modelVersion()})
+                if(version==null || version.isBlank() || version.length()>200) return false;
+        }
+        for(var block:r.blocks()) {
+            if(block!=null && block.source()!=null && block.source().startsWith("ocr:page:")) {
+                try { if(!seen.contains(Integer.parseInt(block.source().substring(9)))) return false; }
+                catch(NumberFormatException invalid) { return false; }
+            }
+        }
+        return true;
+    }
     private boolean valid(DocumentAnalyzer.Result r) {
         if(r==null || !Set.of("EXTRACTED","OCR_REQUIRED","REJECTED","RETRY").contains(Objects.toString(r.state(),"")) || r.blocks()==null || r.ocrPages()==null) return false;
         if(r.code()!=null && !r.code().matches("[A-Z_]{1,60}")) return false;
         if(r.parserVersion()!=null && r.parserVersion().length()>200 || r.avVersion()!=null && r.avVersion().length()>200) return false;
+        if(!validOcr(r)) return false;
         if(r.blocks().size()>5000 || r.ocrPages().size()>100 || r.ocrPages().stream().anyMatch(p->p==null || p<1 || p>100)) return false;
         if(r.blocks().stream().anyMatch(b->b==null || b.source()==null || b.source().length()>500 || b.text()==null || b.text().indexOf(0)>=0)) return false;
         if(r.blocks().stream().mapToLong(b->b.text().length()).sum()>500000) return false;

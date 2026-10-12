@@ -54,3 +54,7 @@ Lecture des métadonnées SHA-256 et taille, sans accès S3 ni parsing. Le péri
 ## Analyse SH-07
 
 `document_analysis` est la file transactionnelle PostgreSQL : créée à l'acceptation de la réception, elle porte un bail avec token de génération et trois tentatives maximum. L'API lit l'objet privé borné, vérifie son empreinte et appelle un worker HTTP interne authentifié. Le worker n'a aucun accès S3/SQL ; ClamAV précède tout parsing. Le parseur enfant utilise seccomp sans sockets et des limites CPU/mémoire/temps. La publication recontrôle bail, existence, échéance et habilitation du demandeur. Le texte reste un dérivé non validé, accessible uniquement dans son vivier, jamais automatiquement indexé. Voir `validation/sh-07.md` pour les limites DOC, PDF et OCR.
+
+## OCR SH-08
+
+Le parseur antivirus-gaté délègue les pages PDF sans texte à Poppler puis Tesseract FR/EN, dans le même sandbox sans réseau. Les preuves OCR sont enregistrées dans le résultat JSON de la tâche avec indices techniques et drapeaux de revue ; elles ne sont ni indexées ni transformées en compétences. V6 reprogramme les anciens résultats OCR_REQUIRED non expirés. Le détail des limites est dans `validation/sh-08.md`.

@@ -156,3 +156,7 @@ python3 scripts/smoke_analysis.py
 ```
 
 Ne pas confondre ce contrôle EICAR et texte avec un benchmark OCR ou une qualification complète du corpus DOC. Voir `validation/sh-07.md`.
+
+## Mise à niveau OCR SH-08
+
+Aucun nouveau secret ni service. Reconstruire le worker et l'API avec la commande Compose habituelle `--profile app up -d --build`, puis appliquer les migrations au démarrage. Tesseract FR/EN et Poppler sont installés dans l'image. V6 remet automatiquement en attente les anciens PDF `OCR_REQUIRED` non expirés. Prévoir jusqu'à 120 secondes de parsing/OCR par document et 20 pages OCR maximum ; la confiance du texte est visible et indépendante de toute évaluation professionnelle.
