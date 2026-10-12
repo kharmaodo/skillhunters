@@ -12,7 +12,7 @@ for (const width of [1280, 320]) {
     await expect(page.getByRole('heading', { name: 'Mes viviers', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
     await page.getByLabel('Provenance du document').fill('Recette navigateur synthétique');
-    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java\n`) });
+    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\n`) });
     await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
@@ -21,7 +21,7 @@ for (const width of [1280, 320]) {
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
     const copyName = `copy-${filename}`;
     await page.getByLabel('Provenance du document').fill('Copie synthétique pour contrôle des doublons');
-    await page.getByLabel('Document à déposer').setInputFiles({ name: copyName, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java\n`) });
+    await page.getByLabel('Document à déposer').setInputFiles({ name: copyName, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\n`) });
     await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
     await page.reload();
@@ -38,6 +38,17 @@ for (const width of [1280, 320]) {
     }).toPass({ timeout: 90000, intervals: [2000] });
     await copy.getByText('Voir le texte brut et ses sources', { exact: true }).click();
     await expect(copy.locator('.extracted-text')).toContainText('Compétence : Java');
+    await copy.getByRole('button', { name: 'Préparer les propositions', exact: true }).click();
+    const proposals = copy.locator('.extraction-proposals');
+    await expect(proposals.getByRole('heading', { name: 'Propositions structurées · à vérifier' })).toBeVisible();
+    await expect(proposals.getByText('Niveau déclaré (1)', { exact: true }).locator('..')).toContainText('2.5');
+    await expect(proposals.getByText('Disponibilité', { exact: true }).locator('..')).toContainText('Inconnue');
+    await proposals.getByText('Preuves de la proposition 2', { exact: true }).click();
+    await expect(proposals.locator('details[open] blockquote')).toContainText('Compétence : Java 2,5');
+    const firstRevision = await proposals.getByText('Traçabilité des propositions').locator('..').textContent();
+    await proposals.getByRole('button', { name: 'Actualiser les propositions', exact: true }).click();
+    await expect(proposals.getByRole('button', { name: 'Actualiser les propositions', exact: true })).toBeEnabled();
+    expect(await proposals.getByText('Traçabilité des propositions').locator('..').textContent()).toBe(firstRevision);
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

@@ -58,3 +58,7 @@ Lecture des métadonnées SHA-256 et taille, sans accès S3 ni parsing. Le péri
 ## OCR SH-08
 
 Le parseur antivirus-gaté délègue les pages PDF sans texte à Poppler puis Tesseract FR/EN, dans le même sandbox sans réseau. Les preuves OCR sont enregistrées dans le résultat JSON de la tâche avec indices techniques et drapeaux de revue ; elles ne sont ni indexées ni transformées en compétences. V6 reprogramme les anciens résultats OCR_REQUIRED non expirés. Le détail des limites est dans `validation/sh-08.md`.
+
+## Propositions SH-09
+
+Un adaptateur déterministe Java sans I/O interprète les libellés du texte déjà extrait et contrôlé par le worker. Il ne parse aucun fichier et n'appelle aucun modèle. Le service transactionnel conserve une révision immuable et son snapshot exact, contrôle preuves, droits et expiration, puis renvoie des propositions non validées. Cette première voie bornée évite de qualifier implicitement un modèle local ; un futur adaptateur de modèle restera dans le worker isolé. Voir `validation/sh-09.md` pour la couverture et les limites.
