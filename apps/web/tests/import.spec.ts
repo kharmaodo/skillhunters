@@ -94,3 +94,37 @@ for (const width of [1280, 320]) {
     await page.screenshot({ path: `test-results/batch-${width}.png`, fullPage: true });
   });
 }
+
+for (const width of [1280, 320]) {
+  test(`scanned PDF OCR remains unvalidated at ${width}px`, async ({ page }) => {
+    test.setTimeout(150000);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto('/');
+    await page.getByRole('link', { name: 'Se connecter avec le compte professionnel' }).click();
+    await page.locator('#username').fill('alice');
+    await page.locator('#password').fill(process.env.DEMO_PASSWORD!);
+    await page.locator('#kc-login').click();
+    await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
+    await page.getByLabel('Provenance du document').fill('PDF image synthétique de recette OCR');
+    await page.getByLabel('Document à déposer').setInputFiles('../../services/document-worker/tests/scanned.pdf');
+    await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
+    const receipt = page.locator('.import-list > li').first();
+    await receipt.getByRole('button', { name: 'Consulter l’analyse', exact: true }).click();
+    await expect(async () => {
+      await receipt.getByRole('button', { name: 'Actualiser l’analyse', exact: true }).click();
+      await expect(receipt.getByText('Texte extrait · non validé', { exact: true })).toBeVisible();
+    }).toPass({ timeout: 110000, intervals: [2000] });
+    await expect(receipt.getByRole('heading', { name: 'Pages traitées par OCR' })).toBeVisible();
+    await expect(receipt.getByText('Page 1', { exact: true })).toBeVisible();
+    await receipt.getByText('Voir le texte brut et ses sources', { exact: true }).click();
+    await expect(receipt.locator('.extracted-text')).toContainText('Java');
+    await expect(receipt.getByText('ocr:page:1', { exact: true })).toBeVisible();
+    await receipt.getByText('Traçabilité OCR de la page 1', { exact: true }).click();
+    if (width === 320) {
+      await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();
+    }
+    await page.screenshot({ path: `test-results/ocr-${width}.png`, fullPage: true });
+  });
+}

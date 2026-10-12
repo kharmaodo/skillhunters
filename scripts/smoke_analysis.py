@@ -21,7 +21,7 @@ status,receipt=upload(alice,session,A,str(uuid.uuid4()),b'# Synthetic analysis p
 assert status==202
 id=receipt['id'];analysis=wait_for(id,'EXTRACTED')
 assert analysis['avVersion'].startswith('ClamAV ')
-assert analysis['parserVersion'].startswith('sh07-1;')
+assert analysis['parserVersion'].startswith('sh08-1;')
 assert 'Java : 2.5' in analysis['result']['blocks'][0]['text']
 assert request(admin,'/imports/'+id+'/analysis')[0]==404
 assert request(alice,'/imports/'+id+'/analysis/retry','POST')[0]==403

@@ -4,7 +4,7 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 
 ## État du projet
 
-**Identité, habilitations et réceptions individuelle et en lot, avec reprise (SH-01/02/04 et incrément SH-03).** La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient désormais une API Java et une interface React pour la connexion OIDC et les accès aux viviers. Les dépôts individuel et en lot, leur suivi et leur reprise sont disponibles ; un premier incrément SH-05 permet de vérifier les fichiers identiques dans un vivier. SH-07 ajoute antivirus et extraction texte sourcée via un worker isolé. OCR, fiches et versions candidates, recherche et SMTP restent à développer.
+**Identité, habilitations et réceptions individuelle et en lot, avec reprise (SH-01/02/04 et incrément SH-03).** La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient désormais une API Java et une interface React pour la connexion OIDC et les accès aux viviers. Les dépôts individuel et en lot, leur suivi et leur reprise sont disponibles ; un premier incrément SH-05 permet de vérifier les fichiers identiques dans un vivier. SH-07 ajoute antivirus et extraction texte sourcée via un worker isolé. SH-08 ajoute l’OCR local des pages PDF sans texte. Fiches et versions candidates, recherche et SMTP restent à développer.
 
 [Démarrer en local ou avec Docker](docs/development.md) · [Identité et accès](docs/validation/sh-01-sh-02.md) · [Import et limites SH-03](docs/validation/sh-03.md) · [Lots et reprise SH-04](docs/validation/sh-04.md) · [Doublons documentaires SH-05](docs/validation/sh-05.md)
 
@@ -16,6 +16,8 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 - Recette : application locale avec infrastructure Docker, puis stack Docker Compose complète.
 
 [Antivirus et extraction : périmètre, limites et tests](docs/validation/sh-07.md)
+
+[Ordre de réalisation et statut de SH-06](docs/delivery-order.md) · [OCR : périmètre et limites](docs/validation/sh-08.md)
 
 ## Documents de référence
 
@@ -54,7 +56,7 @@ schemas via docs/data/     modèle logique avant migrations
 schemas et corpus tests/   données synthétiques de validation
 ```
 
-Les dossiers API et frontend contiennent le premier incrément. Le worker documentaire SH-07 est exécutable ; aucun moteur OCR ou modèle IA n’est encore choisi.
+Les dossiers API et frontend contiennent le premier incrément. Le worker documentaire SH-07 est exécutable ; Tesseract FR/EN assure l’OCR PDF ; aucun modèle d’extraction structurée n’est encore choisi.
 
 ## Workflow de contribution
 

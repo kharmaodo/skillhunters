@@ -39,7 +39,7 @@ jobs:
         with: {python-version: '3.12'}
       - name: Test sandboxed document worker
         run: |
-          sudo apt-get update && sudo apt-get install -y antiword libseccomp2
+          sudo apt-get update && sudo apt-get install -y antiword libseccomp2 tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng poppler-utils
           python -m pip install -r services/document-worker/requirements.txt
           python -m unittest discover -s services/document-worker/tests -v
       - name: Build frontend

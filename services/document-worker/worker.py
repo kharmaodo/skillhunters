@@ -15,7 +15,7 @@ import sys
 import tempfile
 
 MAX_FILE = 15 * 1024**2
-VERSION = 'sh07-1;pypdf-6.19.0;olefile-0.47;defusedxml-0.7.1;antiword-0.37'
+VERSION = 'sh08-1;pypdf-6.19.0;olefile-0.47;defusedxml-0.7.1;antiword-0.37'
 
 class Unavailable(Exception):
     pass
@@ -82,9 +82,9 @@ def analyze(data, kind, expected_hash):
         with output.open('wb') as out:
             process = subprocess.Popen([sys.executable, str(Path(__file__).with_name('parser.py')), str(path), kind],
                 stdout=out, stderr=subprocess.DEVNULL, cwd=directory,
-                env={'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'HOME': directory}, start_new_session=True)
+                env={'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', 'HOME': directory, 'OMP_THREAD_LIMIT': '1'}, start_new_session=True)
             try:
-                process.wait(timeout=25)
+                process.wait(timeout=120)
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
                 process.wait()
