@@ -1,3 +1,4 @@
+import { HumanReview } from './HumanReview';
 import { useState } from 'react';
 import { api, ApiError, message, type Session } from './api';
 export type Candidate = { id: string; poolId: string; importId: string; revisionId: string; version: number;
@@ -46,7 +47,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
   }
   return <section className="candidate-profile" aria-label="Fiche candidat">
     <h4>Fiche candidat · version {saved.version}</h4>
-    <p>Les propositions restent à vérifier. Enregistrer la fiche ne valide pas les compétences et ne lance aucune indexation.</p>
+    <p>Les propositions restent à vérifier. Enregistrer ce formulaire ne valide pas les compétences. Utilisez la revue humaine ci-dessous pour publier les propositions vérifiées.</p>
     {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
     {conflict && <button className="button" disabled={busy} onClick={() => void reload()}>Recharger et remplacer ma saisie</button>}
     <form onSubmit={e => void save(e)}>
@@ -79,6 +80,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
       <p>Version {edit.version} · {new Date(edit.occurredAt).toLocaleString('fr-FR')}</p><p>Champs : {edit.fields.join(', ') || 'Modification de coordonnées masquée'}</p>
       <p>{edit.provenance === 'CONTACT_REDACTED' ? 'Provenance masquée avec les coordonnées' : edit.provenance}</p><p className="fine">Auteur : {edit.actorId}</p>
     </li>)}</ul>{history.nextCursor && <button className="button" disabled={busy} onClick={() => void audit(history.nextCursor!)}>Modifications précédentes</button>}</>}
+    <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
   </section>;
 }
 export function Candidates({ poolId, session, failed }: { poolId: string; session: Session; failed: (e: unknown) => void }) {

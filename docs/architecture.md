@@ -62,3 +62,7 @@ Le parseur antivirus-gaté délègue les pages PDF sans texte à Poppler puis Te
 ## Propositions SH-09
 
 Un adaptateur déterministe Java sans I/O interprète les libellés du texte déjà extrait et contrôlé par le worker. Il ne parse aucun fichier et n'appelle aucun modèle. Le service transactionnel conserve une révision immuable et son snapshot exact, contrôle preuves, droits et expiration, puis renvoie des propositions non validées. Cette première voie bornée évite de qualifier implicitement un modèle local ; un futur adaptateur de modèle restera dans le worker isolé. Voir `validation/sh-09.md` pour la couverture et les limites.
+
+## Revue SH-10
+
+Le module Talent conserve les révisions humaines immuables de la source SH-09 attachée à la fiche. Il publie de façon synchrone, sous verrous acteur/fiche et If-Match, une révision et sa projection d’assertions dans une même transaction PostgreSQL. Aucun nouveau worker, modèle ni service d’indexation n’est nécessaire pour cette projection structurée bornée. La publication exclut identité, contacts et narratif brut ; elle ne remplace pas la recherche hybride à venir. Un brouillon ou une extraction ultérieure n’écrase jamais la publication/correction précédente. Voir `validation/sh-10.md`.

@@ -12,7 +12,7 @@ for (const width of [1280, 320]) {
     await expect(page.getByRole('heading', { name: 'Mes viviers', exact: true })).toBeVisible();
     await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
     await page.getByLabel('Provenance du document').fill('Recette navigateur synthétique');
-    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\n`) });
+    await page.getByLabel('Document à déposer').setInputFiles({ name: filename, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\nExpérience : Projet synthétique 2024/25\n`) });
     await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
@@ -21,7 +21,7 @@ for (const width of [1280, 320]) {
     await expect(page.getByText(filename, { exact: true })).toBeVisible();
     const copyName = `copy-${filename}`;
     await page.getByLabel('Provenance du document').fill('Copie synthétique pour contrôle des doublons');
-    await page.getByLabel('Document à déposer').setInputFiles({ name: copyName, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\n`) });
+    await page.getByLabel('Document à déposer').setInputFiles({ name: copyName, mimeType: 'text/markdown', buffer: Buffer.from(`# Profil synthétique ${filename}\nCompétence : Java 2,5\nExpérience : Projet synthétique 2024/25\n`) });
     await page.getByRole('button', { name: 'Déposer en quarantaine', exact: true }).click();
     await expect(page.getByRole('status').filter({ hasText: 'Dépôt reçu en quarantaine' })).toBeVisible();
     await page.reload();
@@ -65,6 +65,30 @@ for (const width of [1280, 320]) {
     await page.getByRole('button', { name: `Nom inconnu · Développeur synthétique ${width}`, exact: true }).last().click();
     await expect(page.getByLabel('Titre professionnel (inconnu si vide)')).toHaveValue(`Développeur synthétique ${width}`);
     await expect(page.getByLabel('Disponibilité', { exact: true })).toHaveValue('UNKNOWN');
+    const review = page.getByRole('region', { name: 'Revue humaine', exact: true });
+    await review.getByRole('button', { name: 'Ouvrir la revue humaine' }).click();
+    await expect(review.locator('.review-item')).toHaveCount(9);
+    for (const i of [0, 1, 2]) {
+      await review.locator('.review-item').nth(i).locator('summary').click();
+      await review.getByLabel(`Décision pour la proposition ${i + 1}`, { exact: true }).selectOption('VALIDATED');
+      await review.getByLabel(`Justification de la proposition ${i + 1}`, { exact: true }).fill('Vérification du document synthétique');
+    }
+    await review.getByLabel('Précision de la période 3', { exact: true }).selectOption('MONTH');
+    await review.getByLabel('Début de période 3', { exact: true }).fill('2024-01');
+    await review.getByLabel('Fin de période 3', { exact: true }).fill('2025-06');
+    await review.getByLabel('Type de période 3', { exact: true }).selectOption('ACADEMIC');
+    await review.getByLabel('Justification de cette révision', { exact: true }).fill('Date ambiguë précisée avec sa source');
+    await review.getByRole('button', { name: 'Enregistrer le brouillon', exact: true }).click();
+    await expect(review.getByText('Brouillon enregistré.', { exact: false })).toBeVisible();
+    await review.getByRole('button', { name: 'Recharger la revue et remplacer ma saisie' }).click();
+    await expect(review.getByLabel('Début de période 3', { exact: true })).toHaveValue('2024-01');
+    await review.getByLabel('Justification de cette révision', { exact: true }).fill('Publication après relecture humaine');
+    await review.getByRole('button', { name: 'Valider et publier la révision', exact: true }).click();
+    await expect(review.getByText('Révision publiée.', { exact: false })).toBeVisible();
+    await expect(review.getByText('Valeur source : Projet synthétique 2024/25', { exact: true })).toBeVisible();
+    await review.getByRole('button', { name: 'Historique des révisions' }).click();
+    await review.getByRole('button', { name: /Version 3 · Brouillon/ }).click();
+    await expect(review.getByRole('region', { name: 'Détail de la révision' })).toContainText('2024-01');
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

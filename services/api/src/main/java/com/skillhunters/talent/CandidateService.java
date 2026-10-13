@@ -149,6 +149,13 @@ public class CandidateService {
             return view(actor,row(actor,id));
         });
     }
+    // Internal publication boundary; caller owns the transaction and has checked actor/pool/source.
+    void recordReview(UUID actor, UUID id, long expected, String action) {
+        int count=db.sql("UPDATE candidate_profile SET version=version+1 WHERE id=:id AND version=:version")
+            .param("id",id).param("version",expected).update();
+        if(count!=1) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");
+        audit(actor,id,expected+1,List.of("review"),action);
+    }
     private Availability availability(JsonNode node) {
         keys(node,Set.of("status","availableFrom","declaredOn","declaration"));
         String status=text(node.get("status"),20,false);
