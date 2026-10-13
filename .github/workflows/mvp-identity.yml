@@ -107,6 +107,7 @@ jobs:
         run: |
           docker compose --env-file .env -f infrastructure/compose.yml ps -a
           docker compose --env-file .env -f infrastructure/compose.yml logs --no-color --tail 160 clamav
+          docker compose --env-file .env -f infrastructure/compose.yml exec -T clamav sh -c 'cat /sys/fs/cgroup/memory.events' || true
           docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import connection, receive; s=connection(); s.sendall(b"zVERSION\0"); print(receive(s)); s.close()' || true
       - name: Stop stack
         if: always()
