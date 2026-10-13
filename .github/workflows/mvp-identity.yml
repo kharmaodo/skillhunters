@@ -75,7 +75,10 @@ jobs:
         run: |
           for attempt in $(seq 1 90); do
             if docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import av_version; av_version()' >/dev/null 2>&1; then break; fi
-            if [ "$attempt" = 90 ]; then echo "Antivirus unavailable or signatures stale"; exit 1; fi
+            if [ "$attempt" = 90 ]; then
+              echo "Antivirus unavailable or signatures stale"
+              exit 1
+            fi
             sleep 5
           done
           set -a
@@ -99,6 +102,12 @@ jobs:
           name: synthetic-import-screenshots
           path: apps/web/test-results/*.png
           retention-days: 7
+      - name: Antivirus diagnostics on failure
+        if: failure()
+        run: |
+          docker compose --env-file .env -f infrastructure/compose.yml ps -a
+          docker compose --env-file .env -f infrastructure/compose.yml logs --no-color --tail 160 clamav
+          docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import connection, receive; s=connection(); s.sendall(b"zVERSION\0"); print(receive(s)); s.close()' || true
       - name: Stop stack
         if: always()
         run: docker compose --env-file .env -f infrastructure/compose.yml --profile app down -v
