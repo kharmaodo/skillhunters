@@ -13,3 +13,9 @@
 .import-section progress { width: 100%; max-width: 42rem; accent-color: #6545cc; }
 .extracted-text { white-space: pre-wrap; overflow-wrap: anywhere; max-inline-size: 100%; }
 .import-list details { min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }
+
+.extraction-proposals { margin-block: 1rem; overflow-wrap: anywhere; min-width: 0; }
+.proposal-list { list-style: none; padding: 0; margin: 0; }
+.proposal-list > li { margin-block: 1rem; min-width: 0; padding: .5rem 0; border: 0; border-bottom: 1px solid #e3e6ef; border-radius: 0; }
+.proposal-list blockquote { margin-inline: 0; padding-inline-start: .75rem; border-inline-start: 3px solid currentColor; }
+@media (max-width: 480px) { .import-list > li { padding: 12px; } }

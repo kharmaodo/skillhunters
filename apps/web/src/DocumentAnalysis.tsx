@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ExtractionProposals } from './ExtractionProposals';
 import { api, message, type Session } from './api';
 
 type OcrPage = { page: number; confidence: number | null; reviewRequired: boolean; durationMs: number;
@@ -45,8 +46,9 @@ export function DocumentAnalysis({ id, session, failed }: { id: string; session:
           <details><summary>Traçabilité OCR de la page {page.page}</summary><p className="fine">{page.engineVersion} · {page.rendererVersion} · {page.durationMs} ms</p><p className="fine">Modèles : {page.modelVersion}</p></details>
         </div>)}
       </div>}
+      {result.state === 'EXTRACTED' && <ExtractionProposals id={id} session={session} failed={failed} />}
       {result.result && <details><summary>Voir le texte brut et ses sources</summary>
-        <p className="muted">Texte non validé : aucune compétence ni durée n’est encore déduite. La revue structurée sera livrée séparément.</p>
+        <p className="muted">Texte non validé. Les propositions structurées sont consultables séparément ; aucune durée n’est calculée.</p>
         {result.result.blocks.map((block, index) => <div key={index}><p className="fine">{block.source}</p><p className="extracted-text">{block.text}</p></div>)}
         {!result.result.blocks.length && <p>Aucun texte exploitable extrait.</p>}
       </details>}

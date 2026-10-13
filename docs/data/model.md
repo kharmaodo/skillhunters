@@ -45,3 +45,7 @@ V5 ajoute `document_analysis` (une tâche par import, demandeur, état, tentativ
 ## SH-08 : provenance OCR
 
 Le JSON d'analyse accepte `ocr[]` : page, confiance technique nullable, revue requise, durée et versions moteur/renderer/modèles. Les blocs OCR portent `ocr:page:N`. Les anciens JSON restent lisibles sans `ocr`. V6 reprogramme exclusivement les résultats OCR_REQUIRED non expirés ; aucune nouvelle table candidat ni donnée structurée n'est créée.
+
+## Schéma physique SH-09
+
+V7 ajoute `extraction_revision` : identifiant, import, empreinte du snapshot d'analyse, version des règles, snapshot source et révision JSON, création. Contrainte unique `(import_id, analysis_sha256, rules_version)` ; FK vers l'import avec suppression en cascade. Le JSON contient les valeurs brutes/normalisées, statut, précision, confiance inconnue, preuves exactes, versions et auteur. Il ne remplace ni Candidate ni les révisions humaines futures. Les snapshots sont soumis aux mêmes droits et échéances que l'original.

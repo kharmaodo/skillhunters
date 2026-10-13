@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.7.0",
+    "version": "0.8.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -3403,6 +3403,105 @@
         "x-implementation-status": "implemented",
         "description": "Trois tentatives automatiques maximum. Une relance humaine ne contourne jamais un rejet de sécurité. Les originaux restent privés en quarantaine ; EXTRACTED ne signifie ni candidat validé ni indexation."
       }
+    },
+    "/imports/{id}/extraction": {
+      "get": {
+        "operationId": "getExtractionProposals",
+        "summary": "Consulter les propositions de l’analyse courante",
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Révision à vérifier, existante ou créée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRevision"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "SH-09 déterministe borné : uniquement après EXTRACTED, droits du vivier et expiration vérifiés. POST idempotent par import, empreinte analyse et règles ; aucune fiche validée ni indexation. GET renvoie 404 si aucune révision courante ; 409 si analyse indisponible ou source expirée."
+      },
+      "post": {
+        "operationId": "prepareExtractionProposals",
+        "summary": "Préparer des propositions structurées avec preuves",
+        "tags": [
+          "Documents"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Révision à vérifier, existante ou créée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExtractionRevision"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "SH-09 déterministe borné : uniquement après EXTRACTED, droits du vivier et expiration vérifiés. POST idempotent par import, empreinte analyse et règles ; aucune fiche validée ni indexation. GET renvoie 404 si aucune révision courante ; 409 si analyse indisponible ou source expirée."
+      }
     }
   },
   "components": {
@@ -5776,6 +5875,248 @@
                 "OCR_SPARSE_TEXT"
               ]
             }
+          }
+        }
+      },
+      "ExtractionEvidence": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "blockIndex",
+          "source",
+          "start",
+          "end",
+          "quote"
+        ],
+        "properties": {
+          "blockIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4999
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "start": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "quote": {
+            "type": "string",
+            "maxLength": 2048
+          }
+        },
+        "description": "Citation exacte dans le snapshot immuable de l’analyse. Indices de bloc à base zéro ; offsets UTF-16 début inclus, fin exclue."
+      },
+      "ExtractionClaim": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "field",
+          "item",
+          "raw",
+          "normalized",
+          "status",
+          "precision",
+          "confidence",
+          "evidence",
+          "warnings"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "enum": [
+              "FULL_NAME",
+              "TITLE",
+              "AVAILABILITY",
+              "SKILL",
+              "DECLARED_LEVEL",
+              "EXPERIENCE",
+              "EDUCATION",
+              "LANGUAGE",
+              "CERTIFICATION_DECLARATION"
+            ]
+          },
+          "item": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "raw": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          },
+          "normalized": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "PROPOSED",
+              "AMBIGUOUS"
+            ]
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "TEXT",
+              "DECLARED_LEVEL"
+            ]
+          },
+          "confidence": {
+            "type": "null",
+            "description": "Aucune probabilité calibrée revendiquée par les règles."
+          },
+          "evidence": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "$ref": "#/components/schemas/ExtractionEvidence"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "maxItems": 6,
+            "items": {
+              "type": "string",
+              "enum": [
+                "GROUP_ATTRIBUTION_AMBIGUOUS",
+                "LEVEL_OUT_OF_RANGE",
+                "CONFLICTING_DECLARATIONS",
+                "PERIOD_AND_KIND_UNRESOLVED",
+                "ATTAINMENT_UNVERIFIED",
+                "AVAILABILITY_DATE_UNRESOLVED"
+              ]
+            }
+          }
+        },
+        "description": "item relie SKILL et DECLARED_LEVEL ; aucune durée n’est produite. UNKNOWN porte raw/normalized null et evidence vide. Groupe ambigu conservé sans attribution par technologie. Normalisation limitée aux espaces et à la virgule décimale."
+      },
+      "ExtractionProposal": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "rulesVersion",
+          "modelVersion",
+          "promptVersion",
+          "status",
+          "claims",
+          "warnings"
+        ],
+        "properties": {
+          "schemaVersion": {
+            "type": "string",
+            "enum": [
+              "sh09-proposals-1"
+            ]
+          },
+          "rulesVersion": {
+            "type": "string",
+            "enum": [
+              "sh09-rules-1"
+            ]
+          },
+          "modelVersion": {
+            "type": "string",
+            "enum": [
+              "none"
+            ]
+          },
+          "promptVersion": {
+            "type": "string",
+            "enum": [
+              "none"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEEDS_REVIEW"
+            ]
+          },
+          "claims": {
+            "type": "array",
+            "maxItems": 509,
+            "items": {
+              "$ref": "#/components/schemas/ExtractionClaim"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "maxItems": 3,
+            "items": {
+              "type": "string",
+              "enum": [
+                "RULE_BASED_LIMITED_COVERAGE",
+                "LONG_LINE_SKIPPED",
+                "CLAIM_LIMIT"
+              ]
+            }
+          }
+        }
+      },
+      "ExtractionRevision": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "importId",
+          "documentSha256",
+          "analysisSha256",
+          "parserVersion",
+          "avVersion",
+          "createdBy",
+          "createdAt",
+          "proposal"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "importId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "analysisSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "parserVersion": {
+            "type": "string"
+          },
+          "avVersion": {
+            "type": "string"
+          },
+          "createdBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/ExtractionProposal"
           }
         }
       }
