@@ -49,6 +49,22 @@ for (const width of [1280, 320]) {
     await proposals.getByRole('button', { name: 'Actualiser les propositions', exact: true }).click();
     await expect(proposals.getByRole('button', { name: 'Actualiser les propositions', exact: true })).toBeEnabled();
     expect(await proposals.getByText('Traçabilité des propositions').locator('..').textContent()).toBe(firstRevision);
+    await proposals.getByRole('button', { name: 'Créer ou ouvrir la fiche candidat' }).click();
+    const candidate = proposals.getByRole('region', { name: 'Fiche candidat' });
+    await expect(candidate.getByLabel('Disponibilité', { exact: true })).toHaveValue('UNKNOWN');
+    await expect(candidate.getByText('Coordonnées masquées', { exact: false })).toBeVisible();
+    await candidate.getByLabel('Titre professionnel (inconnu si vide)').fill(`Développeur synthétique ${width}`);
+    await candidate.getByLabel('Provenance / motif de la modification').fill('Entretien synthétique');
+    await candidate.getByRole('button', { name: 'Enregistrer la fiche', exact: true }).click();
+    await expect(candidate.getByText('Fiche enregistrée.', { exact: true })).toBeVisible();
+    await candidate.getByRole('button', { name: 'Historique des modifications' }).click();
+    await expect(candidate.getByText('HUMAN: Entretien synthétique', { exact: true })).toBeVisible();
+    await page.reload();
+    await page.getByRole('button', { name: 'Ouvrir le vivier' }).click();
+    await page.getByRole('button', { name: 'Actualiser les fiches' }).click();
+    await page.getByRole('button', { name: `Nom inconnu · Développeur synthétique ${width}`, exact: true }).last().click();
+    await expect(page.getByLabel('Titre professionnel (inconnu si vide)')).toHaveValue(`Développeur synthétique ${width}`);
+    await expect(page.getByLabel('Disponibilité', { exact: true })).toHaveValue('UNKNOWN');
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

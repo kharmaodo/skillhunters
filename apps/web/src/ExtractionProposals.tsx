@@ -1,3 +1,4 @@
+import { CandidateProfile, type Candidate } from './CandidateProfile';
 import { useState } from 'react';
 import { api, message, type Session } from './api';
 
@@ -21,6 +22,7 @@ const warnings: Record<string, string> = {
 };
 export function ExtractionProposals({ id, session, failed }: { id: string; session: Session; failed: (error: unknown) => void }) {
   const [revision, setRevision] = useState<Revision | null>(null);
+  const [candidate, setCandidate] = useState<Candidate | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   async function prepare() {
@@ -29,10 +31,18 @@ export function ExtractionProposals({ id, session, failed }: { id: string; sessi
     catch (e) { setRevision(null); setError(message(e)); failed(e); }
     finally { setBusy(false); }
   }
+  async function createCandidate() {
+    if (!revision) return;
+    setBusy(true); setError('');
+    try { setCandidate(await api<Candidate>(`/imports/${id}/candidate`, { method: 'POST', body: JSON.stringify({ revisionId: revision.id }) }, session.csrfToken)); }
+    catch (e) { setError(message(e)); failed(e); } finally { setBusy(false); }
+  }
   return <section className="extraction-proposals">
     <button className="button" disabled={busy} onClick={() => void prepare()}>{busy ? 'Préparation…' : revision ? 'Actualiser les propositions' : 'Préparer les propositions'}</button>
     {error && <p role="alert">{error}</p>}
     {revision && <div aria-live="polite">
+      <button className="button primary" disabled={busy} onClick={() => void createCandidate()}>Créer ou ouvrir la fiche candidat</button>
+      {candidate && <CandidateProfile key={`${candidate.id}-${candidate.version}`} initial={candidate} session={session} failed={failed}/>}
       <h4>Propositions structurées · à vérifier</h4>
       <p>Lecture des rubriques et libellés reconnus : la couverture peut être incomplète. Aucune proposition n’est validée ni indexée.</p>
       <p>Les notes de 1 à 3 sont des niveaux déclarés, jamais des années d’expérience. Les durées restent inconnues.</p>
