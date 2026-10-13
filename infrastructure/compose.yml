@@ -56,6 +56,8 @@ services:
     image: clamav/clamav:1.5.3
     environment:
       CLAMAV_NO_FRESHCLAMD: "false"
+      # Recover if FreshClam finishes before clamd can receive its notification.
+      CLAMD_CONF_SelfCheck: "60"
     volumes: ["clamav-signatures:/var/lib/clamav"]
     networks: [analysis, signature-updates]
     # Signature reloads briefly retain both engines; 2 GiB can kill clamd.

@@ -73,6 +73,8 @@ jobs:
           python3 scripts/smoke_oidc.py
       - name: Wait for current antivirus signatures and test real document analysis
         run: |
+          # Check that the pinned image actually applies the environment override.
+          docker compose --env-file .env -f infrastructure/compose.yml exec -T clamav grep -qx 'SelfCheck 60' /etc/clamav/clamd.conf
           for attempt in $(seq 1 90); do
             if docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import av_version; av_version()' >/dev/null 2>&1; then break; fi
             if [ "$attempt" = 90 ]; then
