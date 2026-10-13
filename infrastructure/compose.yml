@@ -58,7 +58,8 @@ services:
       CLAMAV_NO_FRESHCLAMD: "false"
     volumes: ["clamav-signatures:/var/lib/clamav"]
     networks: [analysis, signature-updates]
-    mem_limit: 2g
+    # Signature reloads briefly retain both engines; 2 GiB can kill clamd.
+    mem_limit: 4g
     cpus: 1.0
     security_opt: ["no-new-privileges:true"]
   document-worker:

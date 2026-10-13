@@ -145,7 +145,7 @@ Les nouvelles configurations générées sans option contiennent déjà ces vari
 docker compose --env-file .env -f infrastructure/compose.yml up -d --build postgres keycloak s3 document-worker
 ```
 
-Le worker est accessible seulement sur loopback `8090`, avec `WORKER_TOKEN` obligatoire. Dans Compose, l'API utilise son adresse interne. Le worker est sur un réseau interne ; seul ClamAV dispose d'un réseau de mise à jour des signatures. Aucun CV n'est envoyé au service de mise à jour. La première installation télécharge les signatures ; prévoir réseau et environ 2 Gio pour ClamAV, plus 768 Mio pour le worker. Sans signatures récentes (72 heures), aucun document n'est extrait. Un fonctionnement totalement hors ligne nécessite un processus opérationnel d'approvisionnement régulier des signatures, pas une désactivation du contrôle.
+Le worker est accessible seulement sur loopback `8090`, avec `WORKER_TOKEN` obligatoire. Dans Compose, l'API utilise son adresse interne. Le worker est sur un réseau interne ; seul ClamAV dispose d'un réseau de mise à jour des signatures. Aucun CV n'est envoyé au service de mise à jour. La première installation télécharge les signatures ; prévoir réseau et 4 Gio de budget pour ClamAV (chargement et rechargement des signatures), plus 768 Mio pour le worker. Sans signatures récentes (72 heures), aucun document n'est extrait. Un fonctionnement totalement hors ligne nécessite un processus opérationnel d'approvisionnement régulier des signatures, pas une désactivation du contrôle.
 
 `ANALYSIS_ENABLED=true` active l'ordonnanceur API ; `false` conserve les tâches en attente. Une défaillance persistante s'arrête après trois tentatives. Après rétablissement du service, utiliser « Relancer l’analyse » dans l'historique du dépôt. Un rejet de sécurité demande un nouveau fichier corrigé. Les imports plus anciens non expirés sont mis en attente par V5.
 
@@ -160,3 +160,9 @@ Ne pas confondre ce contrôle EICAR et texte avec un benchmark OCR ou une qualif
 ## Mise à niveau OCR SH-08
 
 Aucun nouveau secret ni service. Reconstruire le worker et l'API avec la commande Compose habituelle `--profile app up -d --build`, puis appliquer les migrations au démarrage. Tesseract FR/EN et Poppler sont installés dans l'image. V6 remet automatiquement en attente les anciens PDF `OCR_REQUIRED` non expirés. Prévoir jusqu'à 120 secondes de parsing/OCR par document et 20 pages OCR maximum ; la confiance du texte est visible et indépendante de toute évaluation professionnelle.
+
+### Diagnostic antivirus en CI
+
+Le conteneur ClamAV dispose d'une limite de 4 Gio, conformément au budget recommandé par [la documentation ClamAV](https://docs.clamav.net/manual/Installing/Docker.html#memory-ram-requirements). Prévoir aussi la mémoire de PostgreSQL, Keycloak, de l’API et du worker dans le budget Docker de la machine. La limite précédente de 2 Gio ne couvrait pas les pics de rechargement. Les contrôles de fraîcheur (72 h), le test des bases et le scan réel restent obligatoires.
+
+En cas d’échec de la recette, le workflow conserve dans ses logs les derniers messages ClamAV, les compteurs `memory.events` (dont `oom_kill`) et la réponse VERSION depuis le worker, avant suppression de la stack synthétique. Aucun environnement ou secret n’est imprimé. Une absence de capture navigateur peut simplement indiquer un arrêt à l’étape antivirus : consulter d’abord ce diagnostic.
