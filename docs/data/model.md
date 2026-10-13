@@ -49,3 +49,7 @@ Le JSON d'analyse accepte `ocr[]` : page, confiance technique nullable, revue re
 ## Schéma physique SH-09
 
 V7 ajoute `extraction_revision` : identifiant, import, empreinte du snapshot d'analyse, version des règles, snapshot source et révision JSON, création. Contrainte unique `(import_id, analysis_sha256, rules_version)` ; FK vers l'import avec suppression en cascade. Le JSON contient les valeurs brutes/normalisées, statut, précision, confiance inconnue, preuves exactes, versions et auteur. Il ne remplace ni Candidate ni les révisions humaines futures. Les snapshots sont soumis aux mêmes droits et échéances que l'original.
+
+## Schéma physique SH-06
+
+V8 ajoute `candidate_profile` (une fiche par import, révision source immuable, version positive et champs professionnels JSON), `candidate_contact` (coordonnées séparées) et `candidate_edit` (audit minimisé unique par fiche/version). Les trois sont supprimées en cascade avec la source. Le vivier et la rétention sont hérités de `document_import`, sans duplication modifiable. Les mises à jour utilisent une comparaison atomique de version, et les droits sont revérifiés sous verrou acteur. Ce premier agrégat ne réalise pas encore CandidatePool multi-viviers, rapprochement humain de plusieurs CV, révisions validées ou assertions éditables SH-10. Politique de contacts et limites : `validation/sh-06.md`.

@@ -29,6 +29,10 @@ export function message(error: unknown): string {
     if (error.code === 'FILE_FINGERPRINT_MISMATCH') return 'Le fichier ne correspond pas au document d’origine. Resélectionnez le même nom et le même contenu.';
     if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
     if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
+    if (error.code === 'EXTRACTION_CHANGED') return 'Les propositions ont changé. Actualisez-les avant de créer la fiche.';
+    if (error.code === 'INVALID_CANDIDATE') return 'Vérifiez la fiche : une disponibilité déclarée exige deux dates et sa provenance ; la date de déclaration ne peut pas être future.';
+    if (error.code === 'CANDIDATE_CHANGED') return 'La fiche a changé. Rechargez sa dernière version avant de reprendre vos corrections.';
+    if (error.code === 'VERSION_REQUIRED') return 'Rechargez la fiche pour obtenir sa version actuelle.';
     if (error.status === 409) return 'La clé de reprise correspond à un autre dépôt ou ce dépôt a expiré. Actualisez puis recommencez.';
     if (error.status === 429) return 'La capacité ou le quota d’import est atteint. Réessayez plus tard ou contactez votre administrateur.';
     if (error.code === 'QUARANTINE_UNAVAILABLE') return 'Le stockage est indisponible. Conservez ce formulaire et réessayez : le dépôt sera repris sans doublon.';

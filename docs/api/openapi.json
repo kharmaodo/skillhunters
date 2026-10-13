@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.8.0",
+    "version": "0.9.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -384,13 +384,26 @@
         "tags": [
           "Talent"
         ],
-        "summary": "Lister les fiches des viviers autorisés",
+        "summary": "Lister les fiches non expirées du vivier",
+        "x-implementation-status": "implemented",
         "parameters": [
+          {
+            "name": "poolId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
           {
             "name": "cursor",
             "in": "query",
             "schema": {
-              "type": "string"
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
             }
           },
           {
@@ -406,7 +419,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Succès. Implémenté dans SH-06.",
             "content": {
               "application/json": {
                 "schema": {
@@ -427,14 +440,16 @@
           "404": {
             "$ref": "#/components/responses/Problem"
           },
-          "429": {
+          "409": {
             "$ref": "#/components/responses/Problem"
           },
-          "500": {
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
             "$ref": "#/components/responses/Problem"
           }
-        },
-        "x-implementation-status": "planned"
+        }
       }
     },
     "/candidates/{id}": {
@@ -457,7 +472,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Fiche SH-06. ETag égal à la version entre guillemets. Cache-Control: no-store.",
             "content": {
               "application/json": {
                 "schema": {
@@ -493,7 +508,7 @@
             "$ref": "#/components/responses/Problem"
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented"
       },
       "patch": {
         "operationId": "updateCandidate",
@@ -520,7 +535,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Fiche SH-06. ETag égal à la version entre guillemets. Cache-Control: no-store.",
             "content": {
               "application/json": {
                 "schema": {
@@ -575,7 +590,7 @@
             }
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented"
       }
     },
     "/candidates/{id}/deletion": {
@@ -3502,6 +3517,158 @@
         "x-implementation-status": "implemented",
         "description": "SH-09 déterministe borné : uniquement après EXTRACTED, droits du vivier et expiration vérifiés. POST idempotent par import, empreinte analyse et règles ; aucune fiche validée ni indexation. GET renvoie 404 si aucune révision courante ; 409 si analyse indisponible ou source expirée."
       }
+    },
+    "/candidates/{id}/history": {
+      "get": {
+        "operationId": "candidateHistory",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Historique minimisé des modifications",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès. Implémenté dans SH-06.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateEditPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/imports/{id}/candidate": {
+      "post": {
+        "operationId": "createCandidateFromExtraction",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Créer ou retrouver la fiche d’un import analysé",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès. Implémenté dans SH-06.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Candidate"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "description": "Action explicite, idempotente par import. revisionId doit être la révision courante SH-09. Nom/titre non ambigus proposés préremplis ; disponibilité toujours UNKNOWN. Aucun rapprochement de personnes automatique.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "revisionId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "revisionId"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4046,62 +4213,37 @@
             "type": "string",
             "format": "uuid"
           },
-          "poolIds": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          "displayName": {
+          "poolId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 200
+            "format": "uuid"
           },
-          "professionalTitle": {
+          "importId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "email": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "format": "email"
-          },
-          "availability": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "status": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "REVIEW",
-              "SHORTLISTED",
-              "CONTACTED",
-              "INTERVIEW",
-              "CLOSED"
-            ]
+            "format": "uuid"
           },
           "revisionId": {
             "type": "string",
             "format": "uuid"
           },
-          "skills": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SkillAssertion"
-            }
+          "version": {
+            "type": "integer",
+            "minimum": 1
           },
-          "experiences": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Experience"
-            }
+          "profile": {
+            "$ref": "#/components/schemas/CandidateProfile"
+          },
+          "contact": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CandidateContact"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "contactsVisible": {
+            "type": "boolean"
           },
           "expiresAt": {
             "type": "string",
@@ -4110,59 +4252,51 @@
         },
         "required": [
           "id",
-          "poolIds",
-          "displayName",
-          "professionalTitle",
-          "email",
-          "availability",
-          "status",
+          "poolId",
+          "importId",
           "revisionId",
-          "skills",
-          "experiences"
-        ]
+          "version",
+          "profile",
+          "contact",
+          "contactsVisible",
+          "expiresAt"
+        ],
+        "description": "Fiche SH-06 liée à un import et une révision immuable, sans fusion ni validation métier SH-10. Coordonnées réservées au rôle RECRUITMENT_LEAD du vivier ; ADMIN seul ne donne aucun accès."
       },
       "CandidateUpdate": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "professionalTitle": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200
-          },
-          "email": {
+          "displayName": {
             "type": [
               "string",
               "null"
             ],
-            "format": "email"
+            "maxLength": 200
           },
-          "availability": {
+          "professionalTitle": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "maxLength": 200
           },
-          "status": {
-            "type": "string",
-            "enum": [
-              "NEW",
-              "REVIEW",
-              "SHORTLISTED",
-              "CONTACTED",
-              "INTERVIEW",
-              "CLOSED"
-            ]
+          "availability": {
+            "$ref": "#/components/schemas/CandidateAvailability"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/CandidateContact"
           },
           "reason": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 500
           }
         },
         "required": [
           "reason"
-        ]
+        ],
+        "description": "PATCH partiel. Les champs absents sont conservés. contact, si présent, remplace email et phone ensemble et exige RECRUITMENT_LEAD. Motif obligatoire sans coordonnées. If-Match contient la version entre guillemets ; conflit 412, absence 428."
       },
       "CandidatePage": {
         "type": "object",
@@ -6119,6 +6253,157 @@
             "$ref": "#/components/schemas/ExtractionProposal"
           }
         }
+      },
+      "CandidateAvailability": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "DECLARED"
+            ]
+          },
+          "availableFrom": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "declaredOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "declaration": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "status",
+          "availableFrom",
+          "declaredOn",
+          "declaration"
+        ],
+        "description": "UNKNOWN exige dates et déclaration nulles. DECLARED exige les deux dates et une source non vide ; declaredOn ne peut être future. Une disponibilité extraite non confirmée reste UNKNOWN."
+      },
+      "CandidateProfile": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "professionalTitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "availability": {
+            "$ref": "#/components/schemas/CandidateAvailability"
+          }
+        },
+        "required": [
+          "displayName",
+          "professionalTitle",
+          "availability"
+        ]
+      },
+      "CandidateContact": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 254
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "email",
+          "phone"
+        ]
+      },
+      "CandidateEdit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "provenance": {
+            "type": "string",
+            "maxLength": 600
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "version",
+          "actorId",
+          "fields",
+          "provenance",
+          "occurredAt"
+        ],
+        "description": "Audit minimisé : noms des champs, source/motif, auteur, date ; aucune ancienne valeur. Les champs contact et le motif associé sont masqués sans habilitation."
+      },
+      "CandidateEditPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidateEdit"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
       }
     }
   }
