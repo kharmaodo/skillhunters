@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 for (const width of [1280, 320]) {
   test(`real login and quarantined import at ${width}px`, async ({ page }) => {
+    test.setTimeout(90000);
     const filename = `synthetic-${width}-${Date.now()}.md`;
     await page.setViewportSize({ width, height: 900 });
     await page.goto('/');
@@ -89,6 +90,39 @@ for (const width of [1280, 320]) {
     await review.getByRole('button', { name: 'Historique des révisions' }).click();
     await review.getByRole('button', { name: /Version 3 · Brouillon/ }).click();
     await expect(review.getByRole('region', { name: 'Détail de la révision' })).toContainText('2024-01');
+    const word = page.getByRole('region', { name: 'Export Word', exact: true });
+    await word.getByRole('button', { name: 'Préparer un export Word' }).click();
+    await expect(word.getByRole('button', { name: 'Générer le CV Word' })).toBeDisabled();
+    const session = await (await page.request.get('/api/v1/session')).json();
+    const adminContext = await page.context().browser()!.newContext();
+    const adminPage = await adminContext.newPage();
+    await adminPage.goto('http://localhost:8080/');
+    await adminPage.getByRole('link', { name: 'Se connecter avec le compte professionnel' }).click();
+    await adminPage.locator('#username').fill('admin-demo');
+    await adminPage.locator('#password').fill(process.env.DEMO_PASSWORD!);
+    await adminPage.locator('#kc-login').click();
+    await adminPage.getByRole('button', { name: /Habilitations/ }).click();
+    await adminPage.getByLabel('Membre de l’équipe', { exact: true }).selectOption(session.userId);
+    await adminPage.getByLabel('Vivier', { exact: true }).selectOption(session.poolIds[0]);
+    await expect(adminPage.getByRole('checkbox', { name: 'Autoriser les exports dans ce vivier' })).toBeEnabled();
+    await adminPage.getByRole('checkbox', { name: 'Autoriser les exports dans ce vivier' }).check();
+    await adminPage.getByRole('button', { name: 'Enregistrer la permission d’export' }).click();
+    await expect(adminPage.getByText('Permission d’export enregistrée.', { exact: false })).toBeVisible();
+    await word.getByRole('button', { name: 'Préparer un export Word' }).click();
+    await word.getByRole('button', { name: 'Générer le CV Word' }).click();
+    await expect(word.getByText('Export Word prêt.', { exact: false })).toBeVisible();
+    const downloadPromise = page.waitForEvent('download');
+    await word.getByRole('button', { name: 'Télécharger le CV Word' }).click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(/^cv-[a-f0-9-]+\.docx$/);
+    await download.saveAs(`test-results/export-${width}.docx`);
+    expect(await download.failure()).toBeNull();
+    await adminPage.getByRole('checkbox', { name: 'Autoriser les exports dans ce vivier' }).uncheck();
+    await adminPage.getByRole('button', { name: 'Enregistrer la permission d’export' }).click();
+    await expect(adminPage.getByText('Permission d’export enregistrée.', { exact: false })).toBeVisible();
+    await word.getByRole('button', { name: 'Télécharger le CV Word' }).click();
+    await expect(word.getByRole('alert')).toContainText('permission d’export');
+    await adminContext.close();
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

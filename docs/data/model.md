@@ -57,3 +57,7 @@ V8 ajoute `candidate_profile` (une fiche par import, révision source immuable, 
 ## Schéma physique SH-10
 
 V9 ajoute `candidate_revision` : snapshots humains immuables DRAFT/PUBLISHED, source SH-09, parent, version unique par fiche, décisions, valeurs avant/après, auteur, date et justifications. La fiche garde sa source initiale ; toute nouvelle extraction exige une future réconciliation explicite. `candidate_assertion_index` matérialise exclusivement la dernière publication dans une transaction commune avec le numéro de version et l’audit. FK composite (fiche, révision) pour empêcher les croisements ; cascade lors de suppression de la fiche. Index B-tree sur champ/libellé et précision/type/dates de période. Les brouillons n’altèrent pas la projection active. Les droits et l’échéance viennent de l’import ; aucun accès global à cette projection. Détails et exclusions : `validation/sh-10.md`.
+
+## Schéma physique SH-11
+
+V10 ajoute `export_permission` (utilisateur/vivier, jamais implicite par rôle), `candidate_export` (binaire DOCX privé, révision publiée, empreintes et versions du modèle/moteur) et `candidate_export_event` (génération/préparation de téléchargement). FK composite export→fiche/révision ; cascade depuis l’import. Unicité fiche/révision/modèle/hash/moteur pour la génération idempotente. Les droits et l’expiration sont revérifiés à la lecture, non copiés comme autorisation permanente. `IdentityStore` supprime la permission lors du retrait de la dernière appartenance au vivier.

@@ -4,7 +4,7 @@
 
 Les rubriques âge, photo, vie associative et loisirs ne sont pas reprises. La grille conserve l'échelle déclarative 1–3 et les demi-points. Des sections résumé et expérience documentée sont proposées pour les besoins du MVP.
 
-## Contrat d'export à implémenter
+## Contrat d’export
 
 - Répéter les blocs formation, langue, compétence, expérience et certification pour chaque élément validé.
 - Injecter seulement des valeurs de la révision sélectionnée ; aucun placeholder ne doit rester dans un export candidat final.
@@ -13,4 +13,4 @@ Les rubriques âge, photo, vie associative et loisirs ne sont pas reprises. La g
 - Distinguer type d'expérience, dates imprécises, durée documentée et niveau déclaré.
 - Renseigner la version du modèle dans l'événement d'export.
 
-Ce fichier est un template éditable, pas un moteur de fusion déjà opérationnel. L'original fourni n'est pas ajouté au dépôt public. La vérification locale comprend un rendu et une inspection visuelle du modèle propre.
+Le moteur SH-11 charge ce modèle versionné et produit les DOCX de révisions publiées ; voir `docs/validation/sh-11.md` pour les champs actuellement exportables et la permission requise. L'original fourni n'est pas ajouté au dépôt public. La vérification locale comprend un rendu et une inspection visuelle du modèle propre.

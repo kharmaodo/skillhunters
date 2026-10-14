@@ -4,7 +4,7 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 
 ## État du projet
 
-**Identité, habilitations et réceptions individuelle et en lot, avec reprise (SH-01/02/04 et incrément SH-03).** La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient désormais une API Java et une interface React pour la connexion OIDC et les accès aux viviers. Les dépôts individuel et en lot, leur suivi et leur reprise sont disponibles ; un premier incrément SH-05 permet de vérifier les fichiers identiques dans un vivier. SH-07 ajoute antivirus et extraction texte sourcée via un worker isolé. SH-08 ajoute l’OCR local des pages PDF sans texte. SH-09 ajoute des propositions structurées et leurs citations en mode déterministe borné. SH-06 ajoute les fiches éditables. SH-10 ajoute la revue humaine et la publication de révisions avec index structuré limité aux assertions professionnelles autorisées. La recherche et SMTP restent à développer.
+**Identité, habilitations et réceptions individuelle et en lot, avec reprise (SH-01/02/04 et incrément SH-03).** La maquette MVP et la stack ont été validées le 8 octobre 2026. Le dépôt contient désormais une API Java et une interface React pour la connexion OIDC et les accès aux viviers. Les dépôts individuel et en lot, leur suivi et leur reprise sont disponibles ; un premier incrément SH-05 permet de vérifier les fichiers identiques dans un vivier. SH-07 ajoute antivirus et extraction texte sourcée via un worker isolé. SH-08 ajoute l’OCR local des pages PDF sans texte. SH-09 ajoute des propositions structurées et leurs citations en mode déterministe borné. SH-06 ajoute les fiches éditables. SH-10 ajoute la revue humaine et la publication de révisions avec index structuré limité aux assertions professionnelles autorisées. SH-11 ajoute l’export Word d’une révision publiée avec permission explicite. La recherche et SMTP restent à développer.
 
 [Démarrer en local ou avec Docker](docs/development.md) · [Identité et accès](docs/validation/sh-01-sh-02.md) · [Import et limites SH-03](docs/validation/sh-03.md) · [Lots et reprise SH-04](docs/validation/sh-04.md) · [Doublons documentaires SH-05](docs/validation/sh-05.md)
 
@@ -17,7 +17,7 @@ Application de recrutement permettant de rechercher des développeurs dans un vi
 
 [Antivirus et extraction : périmètre, limites et tests](docs/validation/sh-07.md)
 
-[Revue et publication SH-10](docs/validation/sh-10.md) · [Fiches SH-06](docs/validation/sh-06.md)
+[Export Word SH-11](docs/validation/sh-11.md) · [Revue et publication SH-10](docs/validation/sh-10.md) · [Fiches SH-06](docs/validation/sh-06.md)
 
 [Propositions structurées : couverture et limites](docs/validation/sh-09.md) · [Ordre de réalisation et statut de SH-06](docs/delivery-order.md) · [OCR : périmètre et limites](docs/validation/sh-08.md)
 

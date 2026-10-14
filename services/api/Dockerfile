@@ -9,6 +9,7 @@ FROM maven:3.9.11-eclipse-temurin-21 AS build
 WORKDIR /src
 COPY services/api/pom.xml ./
 COPY services/api/src ./src
+COPY templates/cv/*.docx ./src/main/resources/templates/cv/
 COPY --from=web /web/dist ./src/main/resources/static
 COPY infrastructure/Healthcheck.java ./Healthcheck.java
 RUN javac Healthcheck.java && mvn -B -ntp package -DskipTests
