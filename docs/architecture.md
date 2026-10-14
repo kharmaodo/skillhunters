@@ -66,3 +66,7 @@ Un adaptateur déterministe Java sans I/O interprète les libellés du texte dé
 ## Revue SH-10
 
 Le module Talent conserve les révisions humaines immuables de la source SH-09 attachée à la fiche. Il publie de façon synchrone, sous verrous acteur/fiche et If-Match, une révision et sa projection d’assertions dans une même transaction PostgreSQL. Aucun nouveau worker, modèle ni service d’indexation n’est nécessaire pour cette projection structurée bornée. La publication exclut identité, contacts et narratif brut ; elle ne remplace pas la recherche hybride à venir. Un brouillon ou une extraction ultérieure n’écrase jamais la publication/correction précédente. Voir `validation/sh-10.md`.
+
+## Export Word SH-11
+
+Le module `exports` consomme une révision humaine publiée et le modèle propre versionné. Un adaptateur OOXML JDK borne les parties du package, injecte exclusivement du texte et retire les métadonnées. Aucune nouvelle dépendance Office, aucun worker ni service externe en production. La génération courte est synchrone et idempotente ; le DOCX privé et sa provenance sont stockés transactionnellement en PostgreSQL, sous la rétention source. L’installation locale et l’image Docker embarquent le même fichier de modèle. Le rendu LibreOffice sert uniquement à la recette visuelle, pas au runtime.

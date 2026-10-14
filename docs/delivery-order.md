@@ -12,6 +12,7 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 | SH-07 | Livrée, PR #6 fusionnée | Antivirus et extraction texte ; limites dans validation/sh-07.md |
 | SH-08 | Livrée, PR #7 fusionnée | OCR local ; limites et preuves dans validation/sh-08.md |
 | SH-09 | Incrément fusionné, PR #8 | Propositions sourcées ; couverture et qualification restantes explicites dans validation/sh-09.md |
-| SH-10 | Incrément en revue | Révisions humaines, corrections, publication et index structuré ; limites dans validation/sh-10.md |
+| SH-10 | Incrément fusionné, PR #10 | Révisions humaines, corrections, publication et index structuré ; limites dans validation/sh-10.md |
+| SH-11 | Incrément en revue | Export DOCX d’une révision publiée ; permission explicite et modèle propre, voir validation/sh-11.md |
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.

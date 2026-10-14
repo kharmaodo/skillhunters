@@ -64,6 +64,7 @@ public class IdentityStore {
         var after = roles.stream().distinct().sorted().toList();
         if (before.equals(after)) return;
         db.sql("DELETE FROM membership WHERE user_id = :user AND pool_id = :pool").param("user", user).param("pool", pool).update();
+        if (after.isEmpty()) db.sql("DELETE FROM export_permission WHERE user_id=:user AND pool_id=:pool").param("user",user).param("pool",pool).update();
         for (var role : after) {
             db.sql("INSERT INTO membership(user_id,pool_id,role) VALUES (:user,:pool,:role)")
                     .param("user", user).param("pool", pool).param("role", role).update();

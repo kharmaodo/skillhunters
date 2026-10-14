@@ -21,6 +21,9 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 401) return 'Votre session a expiré. Reconnectez-vous pour continuer.';
+    if (error.code === 'EXPORT_PERMISSION_REQUIRED') return 'La permission d’export est absente ou a été retirée dans ce vivier.';
+    if (error.code === 'REVISION_NOT_PUBLISHED') return 'Publiez cette révision avant de générer le CV.';
+    if (error.code === 'EXPORT_MEMBERSHIP_REQUIRED') return 'Attribuez d’abord un rôle dans ce vivier, puis autorisez l’export.';
     if (error.status === 403) return 'Cette action n’est pas autorisée. Vos habilitations ont peut-être changé.';
     if (error.status === 404) return 'Cet élément n’est pas disponible dans votre périmètre.';
     if (error.status === 413) return 'Le fichier dépasse la limite de 15 Mio.';

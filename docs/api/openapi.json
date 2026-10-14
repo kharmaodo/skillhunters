@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.10.0",
+    "version": "0.11.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -2254,7 +2254,7 @@
         "tags": [
           "Documents"
         ],
-        "summary": "Télécharger un export prêt et autorisé",
+        "summary": "Télécharger le DOCX privé avec nouveau contrôle des droits",
         "parameters": [
           {
             "name": "id",
@@ -2268,9 +2268,21 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "DOCX avec Content-Disposition attachment et Cache-Control no-store.",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
             "content": {
-              "application/octet-stream": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -2297,7 +2309,8 @@
             "$ref": "#/components/responses/Problem"
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented",
+        "description": "Vivier, compte actif, permission export et rétention revérifiés à chaque téléchargement. Audit DOWNLOAD_PREPARED : préparation de la réponse, sans preuve de réception par le client. Nom de fichier opaque sans identité."
       }
     },
     "/admin/score-policies": {
@@ -3837,6 +3850,236 @@
             "$ref": "#/components/responses/Problem"
           }
         }
+      }
+    },
+    "/candidates/{id}/export-options": {
+      "get": {
+        "operationId": "wordExportOptions",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lire la permission d’export et la publication courante",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-11.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordExportOptions"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/candidates/{id}/exports": {
+      "post": {
+        "operationId": "createWordExport",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Générer un DOCX depuis une révision publiée du candidat",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-11.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WordExportReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WordExportRequest"
+              }
+            }
+          }
+        },
+        "description": "Permission explicite utilisateur/vivier, distincte des rôles. Révision publiée immuable requise ; une ancienne publication du même candidat peut être choisie explicitement. Génération synchrone, idempotente par candidat/révision/modèle/hash/version moteur. N’inclut pas les champs SH-06 non validés ni les coordonnées. Source expirée inaccessible."
+      }
+    },
+    "/admin/export-permissions": {
+      "get": {
+        "operationId": "getExportPermission",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lire une permission export en tant qu’administrateur",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "poolId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-11.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportPermission"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "operationId": "setExportPermission",
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Attribuer ou retirer explicitement la permission export",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-11.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportPermission"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "413": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExportPermissionGrant"
+              }
+            }
+          }
+        },
+        "description": "ADMIN requis et CSRF. Autorisation possible seulement avec une appartenance au vivier. Retrait du dernier rôle supprime la permission ; réattribution des rôles ne la recrée pas. Changement audité et sérialisé avec les téléchargements."
       }
     }
   },
@@ -6908,6 +7151,123 @@
           "items"
         ],
         "description": "Projection active de la dernière publication ; les brouillons ne la remplacent pas. Index B-tree des libellés et périodes ; pas de recherche hybride, embedding ni score. Le texte narratif, identité et contacts ne sont jamais copiés ici."
+      },
+      "WordExportOptions": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "canExport": {
+            "type": "boolean"
+          },
+          "publishedRevisionId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "templateVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "canExport",
+          "publishedRevisionId",
+          "templateVersion"
+        ]
+      },
+      "WordExportRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "revisionId"
+        ]
+      },
+      "WordExportReceipt": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateVersion": {
+            "type": "string"
+          },
+          "templateSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "rendererVersion": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "candidateId",
+          "revisionId",
+          "templateVersion",
+          "templateSha256",
+          "rendererVersion",
+          "sha256",
+          "createdAt"
+        ]
+      },
+      "ExportPermission": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allowed"
+        ]
+      },
+      "ExportPermissionGrant": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "allowed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "userId",
+          "poolId",
+          "allowed"
+        ]
       }
     }
   }
