@@ -29,6 +29,9 @@ export function message(error: unknown): string {
     if (error.code === 'FILE_FINGERPRINT_MISMATCH') return 'Le fichier ne correspond pas au document d’origine. Resélectionnez le même nom et le même contenu.';
     if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
     if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
+    if (error.code === 'INVALID_REVIEW') return 'Vérifiez les valeurs, les niveaux 1 à 3, les périodes et la justification de chaque modification.';
+    if (error.code === 'REVIEW_INCOMPLETE') return 'Examinez toutes les propositions avant de publier.';
+    if (error.code === 'REVIEW_CONTRADICTION') return 'Résolvez les propositions contradictoires et validez la compétence associée à chaque niveau.';
     if (error.code === 'EXTRACTION_CHANGED') return 'Les propositions ont changé. Actualisez-les avant de créer la fiche.';
     if (error.code === 'INVALID_CANDIDATE') return 'Vérifiez la fiche : une disponibilité déclarée exige deux dates et sa provenance ; la date de déclaration ne peut pas être future.';
     if (error.code === 'CANDIDATE_CHANGED') return 'La fiche a changé. Rechargez sa dernière version avant de reprendre vos corrections.';

@@ -24,3 +24,10 @@
 .candidate-profile fieldset { min-width: 0; margin: 1rem 0; padding: .75rem; border: 1px solid #d9e1df; border-radius: .5rem; }
 .candidate-profile input, .candidate-profile select { width: 100%; min-width: 0; box-sizing: border-box; }
 .candidate-profile legend { max-width: 100%; white-space: normal; }
+.human-review { margin-block: 1.5rem; overflow-wrap: anywhere; }
+.human-review textarea { font: inherit; width: 100%; min-width: 0; max-width: 100%; resize: vertical; }
+.human-review input, .human-review textarea { padding: .5rem; border: 1px solid #dce0e9; border-radius: .4rem; }
+.human-review blockquote { margin-inline: 0; padding-left: .5rem; border-left: 3px solid #dce0e9; white-space: pre-wrap; }
+.review-item { padding-block: .75rem; border-bottom: 1px solid #dce0e9; }
+.review-item summary { cursor: pointer; }
+.review-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }

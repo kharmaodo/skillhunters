@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Skill Hunters — contrat initial L0",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "description": "Contrat MVP. x-implementation-status distingue les opérations livrées dans le premier incrément identité des parcours encore planifiés."
   },
   "servers": [
@@ -667,9 +667,10 @@
       "get": {
         "operationId": "getRevision",
         "tags": [
-          "Documents"
+          "Talent"
         ],
-        "summary": "Lire la révision et ses preuves",
+        "summary": "Lire une révision et les valeurs avant/après",
+        "x-implementation-status": "implemented",
         "parameters": [
           {
             "name": "id",
@@ -692,19 +693,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReviewRevision"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
                 }
               }
             }
@@ -719,84 +712,6 @@
             "$ref": "#/components/responses/Problem"
           },
           "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "x-implementation-status": "planned"
-      },
-      "patch": {
-        "operationId": "updateRevision",
-        "tags": [
-          "Documents"
-        ],
-        "summary": "Corriger une révision sans écraser le document source",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "revisionId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IfMatch"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ReviewRevision"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
             "$ref": "#/components/responses/Problem"
           },
           "409": {
@@ -808,27 +723,17 @@
           "428": {
             "$ref": "#/components/responses/Problem"
           }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ReviewUpdate"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
+        }
       }
     },
     "/candidates/{id}/validate": {
       "post": {
         "operationId": "validateCandidate",
         "tags": [
-          "Documents"
+          "Talent"
         ],
-        "summary": "Valider la révision et ses inconnues",
+        "summary": "Publier une révision humaine et actualiser son index atomiquement",
+        "x-implementation-status": "implemented",
         "parameters": [
           {
             "name": "id",
@@ -844,18 +749,23 @@
           },
           {
             "$ref": "#/components/parameters/IfMatch"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
           }
         ],
         "responses": {
-          "202": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+          "200": {
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationResult"
+                  "$ref": "#/components/schemas/ReviewRevision"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version courante de la fiche entre guillemets.",
+                "schema": {
+                  "type": "string"
                 }
               }
             }
@@ -870,12 +780,6 @@
             "$ref": "#/components/responses/Problem"
           },
           "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
             "$ref": "#/components/responses/Problem"
           },
           "409": {
@@ -897,8 +801,7 @@
               }
             }
           }
-        },
-        "x-implementation-status": "planned"
+        }
       }
     },
     "/candidates/{id}/notes": {
@@ -3669,6 +3572,272 @@
           }
         }
       }
+    },
+    "/candidates/{id}/review": {
+      "get": {
+        "operationId": "getHumanReview",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Lire la source immuable et la dernière revue",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewState"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version courante de la fiche entre guillemets.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/candidates/{id}/revisions": {
+      "get": {
+        "operationId": "listHumanRevisions",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Lister les révisions immuables",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "saveHumanDraft",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Créer un brouillon immuable sans modifier la publication",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRevision"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "description": "Version courante de la fiche entre guillemets.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ValidationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/publication": {
+      "get": {
+        "operationId": "getPublicationIndex",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "Consulter la projection professionnelle publiée",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Implémenté SH-10. Lecture privée dans le vivier, source non expirée.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicationIndex"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4332,51 +4501,71 @@
             "type": "string",
             "format": "uuid"
           },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "parentId": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
           "status": {
             "type": "string",
             "enum": [
               "DRAFT",
-              "VALIDATED",
-              "SUPERSEDED"
+              "PUBLISHED"
             ]
           },
-          "skills": {
+          "items": {
             "type": "array",
+            "maxItems": 509,
             "items": {
-              "$ref": "#/components/schemas/SkillAssertion"
+              "$ref": "#/components/schemas/ReviewItem"
             }
           },
-          "experiences": {
+          "changes": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Experience"
+              "$ref": "#/components/schemas/ReviewChange"
             }
           },
-          "evidence": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Evidence"
-            }
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
           },
-          "uncertainties": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
           },
-          "extractorVersion": {
-            "type": "string"
+          "justification": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
           }
         },
         "required": [
           "id",
           "candidateId",
+          "sourceRevisionId",
+          "parentId",
+          "version",
           "status",
-          "skills",
-          "experiences",
-          "evidence",
-          "uncertainties",
-          "extractorVersion"
+          "items",
+          "changes",
+          "actorId",
+          "createdAt",
+          "justification"
         ]
       },
       "ReviewUpdate": {
@@ -4411,27 +4600,24 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "revisionId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "acknowledgedUncertainties": {
+          "items": {
             "type": "array",
+            "maxItems": 509,
             "items": {
-              "type": "string"
+              "$ref": "#/components/schemas/ReviewItem"
             }
           },
-          "reason": {
+          "justification": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 200
+            "maxLength": 500
           }
         },
         "required": [
-          "revisionId",
-          "acknowledgedUncertainties",
-          "reason"
-        ]
+          "items",
+          "justification"
+        ],
+        "description": "Snapshot complet des décisions. Publication refuse PENDING et contradictions. If-Match protège toute mutation de fiche/revue ; rejeu avec ancienne version échoue 412 sans doublon. Aucun remplacement des sources ni import automatique d’une nouvelle extraction."
       },
       "Skill": {
         "type": "object",
@@ -6404,6 +6590,324 @@
           "items",
           "nextCursor"
         ]
+      },
+      "ReviewPeriod": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "start": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "end": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 10
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "DAY",
+              "MONTH",
+              "YEAR"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "EMPLOYMENT",
+              "INTERNSHIP",
+              "FREELANCE",
+              "ACADEMIC"
+            ]
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "precision",
+          "kind"
+        ],
+        "description": "Période bornée, start/end inclusifs, même précision ; UNKNOWN exige dates nulles. DAY YYYY-MM-DD, MONTH YYYY-MM, YEAR YYYY, années 0001–9999. Aucune durée calculée. Une période ouverte non déterminée reste inconnue."
+      },
+      "ReviewItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 508
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2048
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "decision": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "VALIDATED",
+              "REJECTED",
+              "UNKNOWN"
+            ]
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "TEXT",
+              "DECLARED_LEVEL"
+            ]
+          },
+          "period": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReviewPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sourceIndex",
+          "value",
+          "decision",
+          "precision",
+          "period",
+          "reason"
+        ],
+        "description": "Un élément par proposition source, dans le même ordre. UNKNOWN/REJECTED exigent value/period null et precision UNKNOWN. Toute modification exige reason. VALIDATED exige valeur non vide ; niveaux 1,1.5,2,2.5,3 seulement. SKILL limité à 200 caractères. Périodes réservées à EXPERIENCE/EDUCATION. Aucune preuve fournie par le client."
+      },
+      "ReviewChange": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceIndex": {
+            "type": "integer"
+          },
+          "before": {
+            "$ref": "#/components/schemas/ReviewItem"
+          },
+          "after": {
+            "$ref": "#/components/schemas/ReviewItem"
+          }
+        },
+        "required": [
+          "sourceIndex",
+          "before",
+          "after"
+        ]
+      },
+      "ReviewState": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "source": {
+            "$ref": "#/components/schemas/ExtractionRevision"
+          },
+          "latest": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReviewRevision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "publishedRevisionId": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "version",
+          "source",
+          "latest",
+          "publishedRevisionId"
+        ]
+      },
+      "ReviewSummary": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "PUBLISHED"
+            ]
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "status",
+          "actorId",
+          "createdAt"
+        ]
+      },
+      "ReviewPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "PublishedAssertion": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sourceIndex": {
+            "type": "integer"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "SKILL",
+              "DECLARED_LEVEL",
+              "EXPERIENCE"
+            ]
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "period": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ReviewPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sourceIndex",
+          "field",
+          "value",
+          "period"
+        ]
+      },
+      "PublicationIndex": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "revisionId": {
+            "oneOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublishedAssertion"
+            }
+          }
+        },
+        "required": [
+          "revisionId",
+          "items"
+        ],
+        "description": "Projection active de la dernière publication ; les brouillons ne la remplacent pas. Index B-tree des libellés et périodes ; pas de recherche hybride, embedding ni score. Le texte narratif, identité et contacts ne sont jamais copiés ici."
       }
     }
   }
