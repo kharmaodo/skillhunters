@@ -39,6 +39,9 @@ export function message(error: unknown): string {
     if (error.code === 'INVALID_CANDIDATE') return 'Vérifiez la fiche : une disponibilité déclarée exige deux dates et sa provenance ; la date de déclaration ne peut pas être future.';
     if (error.code === 'CANDIDATE_CHANGED') return 'La fiche a changé. Rechargez sa dernière version avant de reprendre vos corrections.';
     if (error.code === 'VERSION_REQUIRED') return 'Rechargez la fiche pour obtenir sa version actuelle.';
+    if (error.code === 'SKILL_ALIAS_COLLISION') return 'Cette appellation est déjà utilisée. Choisissez un autre alias ou examinez une fusion explicite.';
+    if (error.code === 'DICTIONARY_CHANGED') return 'Le dictionnaire a changé. Actualisez-le avant de reprendre votre modification.';
+    if (error.code === 'DICTIONARY_LIMIT') return 'La limite de compétences ou d’alias est atteinte.';
     if (error.status === 409) return 'La clé de reprise correspond à un autre dépôt ou ce dépôt a expiré. Actualisez puis recommencez.';
     if (error.status === 429) return 'La capacité ou le quota d’import est atteint. Réessayez plus tard ou contactez votre administrateur.';
     if (error.code === 'QUARANTINE_UNAVAILABLE') return 'Le stockage est indisponible. Conservez ce formulaire et réessayez : le dépôt sera repris sans doublon.';

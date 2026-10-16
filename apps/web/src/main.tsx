@@ -4,6 +4,7 @@ import { api, ApiError, message, type Account, type Membership, type Pool, type 
 import './style.css';
 import { Candidates } from './CandidateProfile';
 import { Imports } from './Imports';
+import { Taxonomy } from './Taxonomy';
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -42,13 +43,13 @@ function App() {
       <div className="workspace">Équipe Talent<span>Espace de recrutement</span></div>
       <p className="nav-label">Recrutement</p>
       <button className={page === 'pools' ? 'nav active' : 'nav'} onClick={() => { setPage('pools'); setMenu(false); }}>▤ &nbsp; Mes viviers <span>{session.poolIds.length}</span></button>
-      {admin && <><p className="nav-label">Administration</p><button className={page === 'access' ? 'nav active' : 'nav'} onClick={() => { setPage('access'); setMenu(false); }}>⚙ &nbsp; Habilitations</button></>}
+      {admin && <><p className="nav-label">Administration</p><button className={page === 'access' ? 'nav active' : 'nav'} onClick={() => { setPage('access'); setMenu(false); }}>⚙ &nbsp; Habilitations</button><button className={page === 'taxonomy' ? 'nav active' : 'nav'} onClick={() => { setPage('taxonomy'); setMenu(false); }}>Compétences</button></>}
       <div className="side-foot"><strong>{session.displayName}</strong><span>{admin ? 'Administrateur' : 'Membre de l’équipe'}</span><button className="nav" onClick={() => void logout()} disabled={busy}>{busy ? 'Déconnexion…' : 'Se déconnecter'}</button></div>
     </aside>
     {menu && <button className="backdrop" aria-label="Fermer le menu" onClick={() => setMenu(false)}/>}
-    <main className="main"><header><button className="mobile" aria-label="Ouvrir le menu" onClick={() => setMenu(true)}>☰</button><span>Espace Talent <span className="muted">/ {page === 'access' ? 'Habilitations' : 'Mes viviers'}</span></span><span className="badge">MVP · Import sécurisé</span></header>
+    <main className="main"><header><button className="mobile" aria-label="Ouvrir le menu" onClick={() => setMenu(true)}>☰</button><span>Espace Talent <span className="muted">/ {page === 'taxonomy' ? 'Compétences' : page === 'access' ? 'Habilitations' : 'Mes viviers'}</span></span><span className="badge">MVP · Import sécurisé</span></header>
       <div className="content">{error && <div className="alert" role="alert">{error}<button className="text-button" onClick={() => setError('')}>Fermer</button></div>}
-      {page === 'access' && admin ? <Access session={session} failed={failed}/> : <Pools session={session} failed={failed}/>}
+      {page === 'taxonomy' && admin ? <Taxonomy session={session} failed={failed}/> : page === 'access' && admin ? <Access session={session} failed={failed}/> : <Pools session={session} failed={failed}/>}
       </div>
     </main>
   </div>;

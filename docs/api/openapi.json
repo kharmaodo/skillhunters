@@ -4081,6 +4081,398 @@
         },
         "description": "ADMIN requis et CSRF. Autorisation possible seulement avec une appartenance au vivier. Retrait du dernier rôle supprime la permission ; réattribution des rôles ne la recrée pas. Changement audité et sérialisé avec les téléchargements."
       }
+    },
+    "/taxonomy": {
+      "get": {
+        "operationId": "getSkillDictionary",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "getSkillDictionary",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "version",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyDictionary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/taxonomy/history": {
+      "get": {
+        "operationId": "getSkillDictionaryHistory",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "getSkillDictionaryHistory",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaxonomyEvent"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/taxonomy/skills": {
+      "post": {
+        "operationId": "createTaxonomySkill",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "createTaxonomySkill",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyDictionary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxonomyEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/taxonomy/skills/{id}": {
+      "put": {
+        "operationId": "updateTaxonomySkill",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "updateTaxonomySkill",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyDictionary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxonomyEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/taxonomy/skills/{id}/merge": {
+      "post": {
+        "operationId": "mergeTaxonomySkill",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "mergeTaxonomySkill",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaxonomyDictionary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaxonomyMerge"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/revisions/{revisionId}/skills": {
+      "get": {
+        "operationId": "getRevisionSkillNormalizations",
+        "tags": [
+          "Taxonomy"
+        ],
+        "summary": "getRevisionSkillNormalizations",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "revisionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-12. Dictionnaire global sans données candidat ; mutations ADMIN, normalisations par vivier.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaxonomyMatch"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7115,6 +7507,14 @@
                 "type": "null"
               }
             ]
+          },
+          "taxonomy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaxonomyMatch"
+              }
+            ],
+            "nullable": true
           }
         },
         "required": [
@@ -7267,6 +7667,169 @@
           "userId",
           "poolId",
           "allowed"
+        ]
+      },
+      "TaxonomySkill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "aliases": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "category",
+          "aliases"
+        ]
+      },
+      "TaxonomyDictionary": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "skills": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "$ref": "#/components/schemas/TaxonomySkill"
+            }
+          }
+        },
+        "required": [
+          "version",
+          "skills"
+        ]
+      },
+      "TaxonomyEdit": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "category": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "aliases": {
+            "type": "array",
+            "maxItems": 50,
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "category",
+          "aliases",
+          "reason"
+        ]
+      },
+      "TaxonomyMerge": {
+        "type": "object",
+        "properties": {
+          "targetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "description": "Must be true; explicit source-to-target merge."
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "targetId",
+          "confirmed",
+          "reason"
+        ]
+      },
+      "TaxonomyMatch": {
+        "type": "object",
+        "properties": {
+          "original": {
+            "type": "string"
+          },
+          "skillId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "canonical": {
+            "type": "string",
+            "nullable": true
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "required": [
+          "original",
+          "skillId",
+          "canonical",
+          "dictionaryVersion"
+        ]
+      },
+      "TaxonomyEvent": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "actorId",
+          "action",
+          "reason",
+          "createdAt"
         ]
       }
     }

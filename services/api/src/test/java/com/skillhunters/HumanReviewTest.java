@@ -55,6 +55,17 @@ class HumanReviewTest extends IdentityTestSupport {
         return result;
     }
     Request request(List<Item> items) {return new Request(items,"Relecture synthétique");}
+    @Autowired com.skillhunters.taxonomy.TaxonomyService taxonomy;
+    @Test void publicationFreezesDictionaryAndPreservesSourceAcrossRename() {
+        var dictionary=taxonomy.edit(admin,null,"\"0\"",new com.skillhunters.taxonomy.TaxonomyService.Edit("Java","Language",List.of(),"Test"));
+        var c=create();var r=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var match=reviews.normalizations(alice,c.id(),r.id()).getFirst();
+        assertThat(match.original()).isEqualTo("Java");assertThat(match.canonical()).isEqualTo("Java");assertThat(match.dictionaryVersion()).isEqualTo(1);
+        taxonomy.edit(admin,dictionary.skills().getFirst().id(),"\"1\"",new com.skillhunters.taxonomy.TaxonomyService.Edit("Java platform","Language",List.of("Java"),"Rename"));
+        assertThat(reviews.normalizations(alice,c.id(),r.id()).getFirst()).isEqualTo(match);
+        assertThat(reviews.publication(alice,c.id()).items()).anySatisfy(i->assertThat(i.taxonomy()).isEqualTo(match));
+        assertThatThrownBy(()->reviews.normalizations(admin,c.id(),r.id())).isInstanceOf(Rejected.class);
+    }
     @Test void dateCorrectionIsPublishedAndIndexedWithExactSourceAndBeforeAfterHistory() {
         var c=create();var original=reviews.get(alice,c.id()).source();
         assertThat(reviews.publication(alice,c.id()).items()).isEmpty();

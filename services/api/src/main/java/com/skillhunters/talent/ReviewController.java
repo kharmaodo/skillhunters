@@ -37,6 +37,10 @@ public class ReviewController {
     ReviewService.Publication publication(Authentication auth,@PathVariable UUID id) {
         return reviews.publication(accounts.require(auth).id(),id);
     }
+    @GetMapping("/revisions/{revisionId}/skills")
+    java.util.List<com.skillhunters.taxonomy.TaxonomyService.Match> skills(Authentication auth,@PathVariable UUID id,@PathVariable UUID revisionId) {
+        return reviews.normalizations(accounts.require(auth).id(),id,revisionId);
+    }
     private ResponseEntity<ReviewService.Revision> response(ReviewService.Revision r) {
         return ResponseEntity.ok().eTag("\""+r.version()+"\"").header("Cache-Control","no-store").body(r);
     }
