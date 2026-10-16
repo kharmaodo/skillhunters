@@ -25,14 +25,15 @@ public class ReviewService {
     public record State(long version, ExtractionService.Revision source, Revision latest, UUID publishedRevisionId) {}
     public record Request(List<Item> items, String justification) {}
     public record Summary(UUID id, long version, String status, UUID actorId, OffsetDateTime createdAt) {}
-    public record Indexed(int sourceIndex, StructuredExtractor.Field field, String value, Period period) {}
+    public record Indexed(int sourceIndex, StructuredExtractor.Field field, String value, Period period, com.skillhunters.taxonomy.TaxonomyService.Match taxonomy) {}
     public record Publication(UUID revisionId, List<Indexed> items) {}
     private final JdbcClient db;
     private final TransactionTemplate tx;
     private final ObjectMapper json;
     private final CandidateService candidates;
-    public ReviewService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates) {
-        this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;
+    private final com.skillhunters.taxonomy.TaxonomyService taxonomy;
+    public ReviewService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,com.skillhunters.taxonomy.TaxonomyService taxonomy) {
+        this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.taxonomy=taxonomy;
     }
     private CandidateService.Candidate access(UUID actor,UUID id,boolean lock) {
         var c=candidates.get(actor,id); // Actor lock stays held by the enclosing transaction.
@@ -70,10 +71,17 @@ public class ReviewService {
     }
     public Publication publication(UUID actor,UUID id) {
         return tx.execute(s->{access(actor,id,true);var published=latest(id,true);
-            var rows=db.sql("SELECT source_index,field,normalized_value,period_start,period_end,period_precision,period_kind FROM candidate_assertion_index WHERE candidate_id=:id ORDER BY source_index")
+            var rows=db.sql("SELECT source_index,field,normalized_value,period_start,period_end,period_precision,period_kind,taxonomy_json FROM candidate_assertion_index WHERE candidate_id=:id ORDER BY source_index")
                 .param("id",id).query((rs,n)->new Indexed(rs.getInt(1),StructuredExtractor.Field.valueOf(rs.getString(2)),rs.getString(3),
-                    rs.getString(4)==null?null:new Period(rs.getString(4),rs.getString(5),DatePrecision.valueOf(rs.getString(6)),Kind.valueOf(rs.getString(7))))).list();
+                    rs.getString(4)==null?null:new Period(rs.getString(4),rs.getString(5),DatePrecision.valueOf(rs.getString(6)),Kind.valueOf(rs.getString(7))),
+                    rs.getString(8)==null?null:read(rs.getString(8),com.skillhunters.taxonomy.TaxonomyService.Match.class))).list();
             return new Publication(published==null?null:published.id(),rows);});
+    }
+    public List<com.skillhunters.taxonomy.TaxonomyService.Match> normalizations(UUID actor,UUID id,UUID revision) {
+        return tx.execute(s->{revision(actor,id,revision);
+            return db.sql("SELECT normalization_json FROM candidate_skill_normalization WHERE candidate_id=:id AND revision_id=:revision ORDER BY source_index")
+                .param("id",id).param("revision",revision).query(String.class).list().stream()
+                .map(v->read(v,com.skillhunters.taxonomy.TaxonomyService.Match.class)).toList();});
     }
     public Revision save(UUID actor,UUID id,String etag,Request request,boolean publish) {
         return tx.execute(s->{var c=access(actor,id,true);
@@ -100,6 +108,7 @@ public class ReviewService {
             db.sql("INSERT INTO candidate_revision(id,candidate_id,version,status,revision_json) VALUES (:revision,:id,:version,:status,:json)")
                 .param("revision",revision.id()).param("id",id).param("version",revision.version()).param("status",revision.status()).param("json",write(revision)).update();
             if(publish) {
+                var dictionary=taxonomy.dictionary(null);
                 db.sql("DELETE FROM candidate_assertion_index WHERE candidate_id=:id").param("id",id).update();
                 for(int i=0;i<items.size();i++) {
                     var item=items.get(i);var field=claims.get(i).field();
@@ -108,10 +117,13 @@ public class ReviewService {
                     boolean label=field==StructuredExtractor.Field.SKILL||field==StructuredExtractor.Field.DECLARED_LEVEL;
                     boolean dated=field==StructuredExtractor.Field.EXPERIENCE&&item.period()!=null&&item.period().precision()!=DatePrecision.UNKNOWN;
                     if(!label&&!dated) continue;
-                    db.sql("INSERT INTO candidate_assertion_index(candidate_id,source_index,revision_id,field,normalized_value,period_start,period_end,period_precision,period_kind) VALUES (:id,:index,:revision,:field,:value,:start,:end,:precision,:kind)")
+                    var normalized=field==StructuredExtractor.Field.SKILL?com.skillhunters.taxonomy.TaxonomyService.normalize(dictionary,item.value()):null;
+                    if(normalized!=null) db.sql("INSERT INTO candidate_skill_normalization(candidate_id,revision_id,source_index,normalization_json) VALUES (:id,:revision,:index,:json)")
+                        .param("id",id).param("revision",revision.id()).param("index",i).param("json",write(normalized)).update();
+                    db.sql("INSERT INTO candidate_assertion_index(candidate_id,source_index,revision_id,field,normalized_value,period_start,period_end,period_precision,period_kind,taxonomy_json) VALUES (:id,:index,:revision,:field,:value,:start,:end,:precision,:kind,:taxonomy)")
                         .param("id",id).param("index",i).param("revision",revision.id()).param("field",field.name())
                         .param("value",label?item.value():null).param("start",dated?item.period().start():null).param("end",dated?item.period().end():null)
-                        .param("precision",dated?item.period().precision().name():null).param("kind",dated?item.period().kind().name():null).update();
+                        .param("precision",dated?item.period().precision().name():null).param("kind",dated?item.period().kind().name():null).param("taxonomy",normalized==null?null:write(normalized)).update();
                 }
             }
             access(actor,id,false); // Expiry during review cannot publish any derivative.

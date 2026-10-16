@@ -21,12 +21,13 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
   const [notice, setNotice] = useState('');
   const [conflict, setConflict] = useState(false);
   const [history, setHistory] = useState<{ items: Summary[]; nextCursor: string | null } | null>(null);
+  const [normalizations, setNormalizations] = useState<{ original: string; canonical: string | null; dictionaryVersion: number }[]>([]);
   const [inspected, setInspected] = useState<Revision | null>(null);
   async function load() {
     setBusy(true); setError(''); setNotice('');
     try {
       const s = await api<State>(`/candidates/${candidateId}/review`); setState(s); setItems(s.latest?.items ?? s.source.proposal.claims.map(initial));
-      setJustification(''); setConflict(false); versionChanged(s.version);
+      setNormalizations([]); setJustification(''); setConflict(false); versionChanged(s.version);
     } catch (e) { setError(message(e)); failed(e); } finally { setBusy(false); }
   }
   function change(i: number, patch: Partial<Item>) { setItems(items.map((item, n) => n === i ? { ...item, ...patch } : item)); }
@@ -45,12 +46,16 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
     try {
       const r = await api<Revision>(`/candidates/${candidateId}/${publish ? 'validate' : 'revisions'}`, { method: 'POST', headers: { 'If-Match': `"${state.version}"` }, body: JSON.stringify({ items, justification }) }, session.csrfToken);
       setState({ ...state, version: r.version, latest: r, publishedRevisionId: publish ? r.id : state.publishedRevisionId });
-      setItems(r.items); setJustification(''); setHistory(null); setInspected(null); versionChanged(r.version);
+      setNormalizations([]); setItems(r.items); setJustification(''); setHistory(null); setInspected(null); versionChanged(r.version);
       setNotice(publish ? 'Révision publiée. L’index professionnel a été mis à jour.' : 'Brouillon enregistré. La publication précédente est conservée.');
     } catch (e) {
       if (e instanceof ApiError && e.code === 'CANDIDATE_CHANGED') { setConflict(true); setError('La fiche ou la revue a changé. Votre saisie est conservée ; rechargez la revue pour repartir de la dernière version.'); }
       else { setError(message(e)); failed(e); }
     } finally { setBusy(false); }
+  }
+  async function showSkills(revision: string) {
+    setBusy(true); try { setNormalizations(await api(`/candidates/${candidateId}/revisions/${revision}/skills`)); }
+    catch(e) { failed(e); } finally { setBusy(false); }
   }
   async function revisions(cursor = '0') {
     setBusy(true);
@@ -114,6 +119,8 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
       </form>
       <p className="fine">Seuls les libellés de compétences validées, leurs niveaux déclarés et les périodes d’expérience renseignées alimentent l’index structuré. Les noms, coordonnées, langues et textes narratifs en sont exclus. La recherche et les embeddings seront livrés séparément.</p>
       <p className="fine">Révision source : {state.source.id} · Publication active : {state.publishedRevisionId ?? 'Aucune'}</p>
+      {state.publishedRevisionId && <button className="button" disabled={busy} onClick={() => void showSkills(state.publishedRevisionId!)}>Appellations de la publication</button>}
+      <ul>{normalizations.map((n,i)=><li key={i}>{n.original} → {n.canonical ?? 'Non reconnue dans le dictionnaire'} · dictionnaire v{n.dictionaryVersion}</li>)}</ul>
       <button className="button" disabled={busy} onClick={() => void revisions()}>Historique des révisions</button>
       {history && <><ul className="proposal-list">{history.items.map(r => <li key={r.id}><button className="text-button" disabled={busy} onClick={() => void inspect(r.id)}>Version {r.version} · {r.status === 'PUBLISHED' ? 'Publiée' : 'Brouillon'} · {new Date(r.createdAt).toLocaleString('fr-FR')}</button></li>)}</ul>
         {history.nextCursor && <button className="button" disabled={busy} onClick={() => void revisions(history.nextCursor!)}>Révisions précédentes</button>}</>}

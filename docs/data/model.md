@@ -61,3 +61,14 @@ V9 ajoute `candidate_revision` : snapshots humains immuables DRAFT/PUBLISHED, so
 ## Schéma physique SH-11
 
 V10 ajoute `export_permission` (utilisateur/vivier, jamais implicite par rôle), `candidate_export` (binaire DOCX privé, révision publiée, empreintes et versions du modèle/moteur) et `candidate_export_event` (génération/préparation de téléchargement). FK composite export→fiche/révision ; cascade depuis l’import. Unicité fiche/révision/modèle/hash/moteur pour la génération idempotente. Les droits et l’expiration sont revérifiés à la lecture, non copiés comme autorisation permanente. `IdentityStore` supprime la permission lors du retrait de la dernière appartenance au vivier.
+
+## Taxonomie SH-12
+
+V11 ajoute `skill_dictionary` (snapshots immuables, auteur, action, justification,
+version), `skill_dictionary_head` (verrou global de mutation) et
+`candidate_skill_normalization` (libellé validé original, identifiant canonique,
+nom canonique et version du dictionnaire par révision publiée/source_index).
+Cette dernière suit la suppression en cascade de la révision et du candidat.
+`candidate_assertion_index.taxonomy_json` projette la même normalisation de la
+publication active. Les preuves et le libellé documentaire brut restent dans
+la révision d'extraction liée ; aucune réécriture des révisions existantes.
