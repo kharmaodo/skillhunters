@@ -1,4 +1,5 @@
 import { WordExport } from './WordExport';
+import { SkillPeriods } from './SkillPeriods';
 import { HumanReview } from './HumanReview';
 import { useState } from 'react';
 import { api, ApiError, message, type Session } from './api';
@@ -82,6 +83,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
       <p>{edit.provenance === 'CONTACT_REDACTED' ? 'Provenance masquée avec les coordonnées' : edit.provenance}</p><p className="fine">Auteur : {edit.actorId}</p>
     </li>)}</ul>{history.nextCursor && <button className="button" disabled={busy} onClick={() => void audit(history.nextCursor!)}>Modifications précédentes</button>}</>}
     <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
+    <SkillPeriods candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <WordExport candidateId={saved.id} session={session} failed={failed}/>
   </section>;
 }

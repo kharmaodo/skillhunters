@@ -66,6 +66,39 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(reviews.publication(alice,c.id()).items()).anySatisfy(i->assertThat(i.taxonomy()).isEqualTo(match));
         assertThatThrownBy(()->reviews.normalizations(admin,c.id(),r.id())).isInstanceOf(Rejected.class);
     }
+    @Autowired com.skillhunters.talent.SkillPeriodService periods;
+    @Test void skillPeriodsRequireHumanLinkKeepAcademicSeparateAndResetOnPublication() throws Exception {
+        var c=create();var r=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var state=reviews.get(alice,c.id());var claims=state.source().proposal().claims();
+        int skill=-1,experience=-1;
+        for(int i=0;i<claims.size();i++) {if(claims.get(i).field()==StructuredExtractor.Field.SKILL) skill=i;if(claims.get(i).field()==StructuredExtractor.Field.EXPERIENCE) experience=i;}
+        var link=new com.skillhunters.talent.SkillPeriodService.Link(skill,experience,r.items().get(experience).period(),claims.get(experience).evidence().getFirst().quote(),true);
+        assertThat(periods.get(alice,c.id(),null).skills().getFirst().professional().minimumMonths()).isNull();
+        var input=new com.skillhunters.talent.SkillPeriodService.Request(r.id(),List.of(link),"Association vérifiée");
+        var report=periods.save(alice,c.id(),"\"2\"",input);
+        assertThat(report.version()).isEqualTo(3);assertThat(report.skills().getFirst().byKind().get(Kind.ACADEMIC).minimumMonths()).isEqualTo(18);
+        assertThat(report.skills().getFirst().professional().minimumMonths()).isNull();
+        assertThatThrownBy(()->periods.save(alice,c.id(),"\"2\"",input)).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->periods.get(admin,c.id(),null)).isInstanceOf(Rejected.class);
+        mvc.perform(put(candidateUrl(c.id())+"/skill-periods").with(as("alice")).contentType("application/json").content(json.writeValueAsString(input))).andExpect(status().isForbidden());
+        reviews.save(alice,c.id(),"\"3\"",request(r.items()),true);
+        assertThat(periods.get(alice,c.id(),null).links()).isEmpty();assertThat(periods.history(alice,c.id(),0)).hasSize(1);
+        assertThatThrownBy(()->periods.save(alice,c.id(),"\"4\"",input)).isInstanceOf(Rejected.class);
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);
+        db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_period_links",Integer.class)).isZero();
+    }
+    @Test void periodsRejectInventedEvidenceUnconfirmedAssociationAndOutOfMissionDates() {
+        var c=create();var r=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var claims=reviews.get(alice,c.id()).source().proposal().claims();int skill=0;int experience=0;
+        for(int i=0;i<claims.size();i++) {if(claims.get(i).field()==StructuredExtractor.Field.SKILL) skill=i;if(claims.get(i).field()==StructuredExtractor.Field.EXPERIENCE) experience=i;}
+        var valid=r.items().get(experience).period();var quote=claims.get(experience).evidence().getFirst().quote();
+        var invalid=List.of(new com.skillhunters.talent.SkillPeriodService.Link(skill,experience,valid,"invented evidence",true),
+            new com.skillhunters.talent.SkillPeriodService.Link(skill,experience,valid,quote,false),
+            new com.skillhunters.talent.SkillPeriodService.Link(skill,experience,new Period("2020-01","2025-06",DatePrecision.MONTH,Kind.ACADEMIC),quote,true));
+        for(var link:invalid) assertThatThrownBy(()->periods.save(alice,c.id(),"\"2\"",new com.skillhunters.talent.SkillPeriodService.Request(r.id(),List.of(link),"Test"))).isInstanceOf(Rejected.class);
+        assertThat(periods.history(alice,c.id(),0)).isEmpty();
+    }
     @Test void dateCorrectionIsPublishedAndIndexedWithExactSourceAndBeforeAfterHistory() {
         var c=create();var original=reviews.get(alice,c.id()).source();
         assertThat(reviews.publication(alice,c.id()).items()).isEmpty();

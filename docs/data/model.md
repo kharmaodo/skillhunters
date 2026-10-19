@@ -72,3 +72,13 @@ Cette dernière suit la suppression en cascade de la révision et du candidat.
 `candidate_assertion_index.taxonomy_json` projette la même normalisation de la
 publication active. Les preuves et le libellé documentaire brut restent dans
 la révision d'extraction liée ; aucune réécriture des révisions existantes.
+
+## Périodes SH-13
+
+V12 ajoute `candidate_period_links`, snapshots immuables par candidat/version de
+fiche, liés à une publication (cascade). Chaque lien porte les indices de compétence
+et mission de la source SH-09, période bornée, extrait exact et confirmation humaine.
+Auteur, justification et date tracent chaque remplacement. Le calcul n'est pas une
+valeur figée en base : le rapport expose la règle `calendar-union-v1`, la date de
+référence, les intervalles retenus et les bornes. L'historique des liens permet de
+retracer les entrées ; aucun champ personnel n'est ajouté à l'index.

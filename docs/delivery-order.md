@@ -15,6 +15,8 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 | SH-10 | Incrément fusionné, PR #10 | Révisions humaines, corrections, publication et index structuré ; limites dans validation/sh-10.md |
 | SH-11 | Incrément fusionné, PR #11 | Export DOCX d’une révision publiée ; permission explicite et modèle propre, voir validation/sh-11.md |
 
-| SH-12 | Incrément en revue | Dictionnaire versionné, alias, fusion explicite et normalisation publiée ; voir validation/sh-12.md |
+| SH-12 | Incrément fusionné, PR #12 | Dictionnaire versionné, alias, fusion explicite et normalisation publiée ; voir validation/sh-12.md |
+
+| SH-13 | Implémentée localement, publication en attente | Union des périodes, bornes et récence, rattachements humains ; voir validation/sh-13.md |
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.

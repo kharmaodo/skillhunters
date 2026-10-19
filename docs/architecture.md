@@ -70,3 +70,10 @@ Le module Talent conserve les révisions humaines immuables de la source SH-09 a
 ## Export Word SH-11
 
 Le module `exports` consomme une révision humaine publiée et le modèle propre versionné. Un adaptateur OOXML JDK borne les parties du package, injecte exclusivement du texte et retire les métadonnées. Aucune nouvelle dépendance Office, aucun worker ni service externe en production. La génération courte est synchrone et idempotente ; le DOCX privé et sa provenance sont stockés transactionnellement en PostgreSQL, sous la rétention source. L’installation locale et l’image Docker embarquent le même fichier de modèle. Le rendu LibreOffice sert uniquement à la recette visuelle, pas au runtime.
+
+## Périodes SH-13
+
+Le module Talent conserve les associations humaines dans des snapshots immuables
+sous le verrou/version de fiche existant. `PeriodCalculator` est une fonction pure
+sans I/O : union des bornes calendaires, exposition et récence, séparation par type.
+Le rapport est recalculé à la référence demandée, sans worker ni service externe.
