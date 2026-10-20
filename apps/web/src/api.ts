@@ -32,6 +32,9 @@ export function message(error: unknown): string {
     if (error.code === 'FILE_FINGERPRINT_MISMATCH') return 'Le fichier ne correspond pas au document d’origine. Resélectionnez le même nom et le même contenu.';
     if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
     if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
+    if (error.code === 'INVALID_SKILL_PERIOD') return 'Vérifiez la confirmation, la preuve et les dates : la période doit rester dans celle de la mission, avec la même précision et le même type.';
+    if (error.code === 'PERIOD_EVIDENCE_REQUIRED') return 'Recopiez un extrait exact de la preuve de mission affichée.';
+    if (error.code === 'PUBLICATION_CHANGED') return 'La publication a changé. Rechargez les périodes et vérifiez les nouveaux rattachements.';
     if (error.code === 'INVALID_REVIEW') return 'Vérifiez les valeurs, les niveaux 1 à 3, les périodes et la justification de chaque modification.';
     if (error.code === 'REVIEW_INCOMPLETE') return 'Examinez toutes les propositions avant de publier.';
     if (error.code === 'REVIEW_CONTRADICTION') return 'Résolvez les propositions contradictoires et validez la compétence associée à chaque niveau.';

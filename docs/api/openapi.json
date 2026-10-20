@@ -4473,6 +4473,208 @@
           }
         }
       }
+    },
+    "/candidates/{id}/skill-periods": {
+      "get": {
+        "operationId": "getSkillPeriodReport",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "getSkillPeriodReport",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "referenceDate",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "UTC today by default; 1900-01-01 through today."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-13. Published source, pool permission and expiry checked. Calendar exposure only, never full-time-equivalent work.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillPeriodReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "operationId": "replaceSkillPeriodLinks",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "replaceSkillPeriodLinks",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-13. Published source, pool permission and expiry checked. Calendar exposure only, never full-time-equivalent work.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SkillPeriodReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SkillPeriodRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/skill-periods/history": {
+      "get": {
+        "operationId": "getSkillPeriodHistory",
+        "tags": [
+          "Talent"
+        ],
+        "summary": "getSkillPeriodHistory",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SH-13. Published source, pool permission and expiry checked. Calendar exposure only, never full-time-equivalent work.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SkillPeriodSnapshot"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7830,6 +8032,307 @@
           "action",
           "reason",
           "createdAt"
+        ]
+      },
+      "SkillPeriod": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "nullable": true
+          },
+          "end": {
+            "type": "string",
+            "nullable": true
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "DAY",
+              "MONTH",
+              "YEAR"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "UNKNOWN",
+              "EMPLOYMENT",
+              "INTERNSHIP",
+              "FREELANCE",
+              "ACADEMIC"
+            ]
+          }
+        },
+        "required": [
+          "start",
+          "end",
+          "precision",
+          "kind"
+        ]
+      },
+      "SkillPeriodLink": {
+        "type": "object",
+        "properties": {
+          "skillIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "experienceIndex": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "period": {
+            "$ref": "#/components/schemas/SkillPeriod"
+          },
+          "evidence": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "confirmed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "skillIndex",
+          "experienceIndex",
+          "period",
+          "evidence",
+          "confirmed"
+        ]
+      },
+      "SkillPeriodRequest": {
+        "type": "object",
+        "properties": {
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillPeriodLink"
+            },
+            "maxItems": 200
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "revisionId",
+          "links",
+          "reason"
+        ]
+      },
+      "CalendarSpan": {
+        "type": "object",
+        "properties": {
+          "start": {
+            "type": "string",
+            "format": "date"
+          },
+          "endExclusive": {
+            "type": "string",
+            "format": "date"
+          }
+        },
+        "required": [
+          "start",
+          "endExclusive"
+        ]
+      },
+      "CalendarCoverage": {
+        "type": "object",
+        "properties": {
+          "minimumMonths": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "maximumMonths": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "recencyMinimumMonths": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "recencyMaximumMonths": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "incomplete": {
+            "type": "boolean"
+          },
+          "certainUnion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarSpan"
+            }
+          },
+          "possibleUnion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CalendarSpan"
+            }
+          }
+        },
+        "required": [
+          "minimumMonths",
+          "maximumMonths",
+          "recencyMinimumMonths",
+          "recencyMaximumMonths",
+          "incomplete",
+          "certainUnion",
+          "possibleUnion"
+        ]
+      },
+      "SkillPeriodSnapshot": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "revisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillPeriodLink"
+            }
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "revisionId",
+          "links",
+          "actorId",
+          "reason",
+          "createdAt"
+        ]
+      },
+      "SkillCoverage": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "taxonomy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TaxonomyMatch"
+              }
+            ],
+            "nullable": true
+          },
+          "sourceIndices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "byKind": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CalendarCoverage"
+            }
+          },
+          "professional": {
+            "$ref": "#/components/schemas/CalendarCoverage"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "taxonomy",
+          "sourceIndices",
+          "byKind",
+          "professional"
+        ]
+      },
+      "SkillPeriodReport": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "revisionId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "referenceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillPeriodLink"
+            }
+          },
+          "globalByKind": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CalendarCoverage"
+            }
+          },
+          "globalProfessional": {
+            "$ref": "#/components/schemas/CalendarCoverage"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillCoverage"
+            }
+          },
+          "lastEdit": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SkillPeriodSnapshot"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "required": [
+          "version",
+          "revisionId",
+          "referenceDate",
+          "rule",
+          "links",
+          "globalByKind",
+          "globalProfessional",
+          "skills",
+          "lastEdit"
         ]
       }
     }
