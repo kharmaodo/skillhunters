@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api, message, type Session } from './api';
 import { CandidateProfile, type Candidate } from './CandidateProfile';
 type Criterion = { skill:string; importance:'REQUIRED'|'DESIRED'; minimumMonths:number|null; maximumRecencyMonths:number|null };
+type Proposal = {id:string;poolId:string;expiresAt:string;interpretation:{criteria:Criterion[];warnings:string[];dictionaryVersion:number;rule:string}};
 type Query = {poolId:string;criteria:Criterion[];strict:boolean;experienceKinds:string[];referenceDate:string|null;dictionaryVersion:number|null;cursor:string|null;limit:number};
 type Status = 'DOCUMENTED'|'NOT_DOCUMENTED'|'UNKNOWN';
 type Match = {criterion:Criterion&{original:string;label:string;skillId:string|null};presence:Status;duration:Status;recency:Status;status:Status;coverage:{minimumMonths:number|null;maximumMonths:number|null;recencyMinimumMonths:number|null;recencyMaximumMonths:number|null;incomplete:boolean};evidence:{sourceIndex:number;validatedValue:string;original:string|null;dictionaryVersion:number|null;citations:{source:string;quote:string}[]}[];periodLinks:{experienceIndex:number;period:{start:string|null;end:string|null;kind:string};evidence:string}[]};
@@ -13,15 +14,26 @@ export function StructuredSearch({poolId,session,failed}:{poolId:string;session:
  const [criteria,setCriteria]=useState<Criterion[]>([{...empty}]);const [strict,setStrict]=useState(false);const [experienceKinds,setKinds]=useState(['EMPLOYMENT','INTERNSHIP','FREELANCE']);
  const [reference,setReference]=useState('');const [result,setResult]=useState<Result|null>(null);const [query,setQuery]=useState<Query|null>(null);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [selected,setSelected]=useState<Candidate|null>(null);
+ const [text,setText]=useState('');const [proposal,setProposal]=useState<Proposal|null>(null);const [confirmed,setConfirmed]=useState(false);const [origin,setOrigin]=useState<Proposal|null>(null);
  const prefix=`search-${poolId}`;
- function invalidate(){setResult(null);setSelected(null);setQuery(null);setError('');}
+ function invalidate(){setConfirmed(false);setOrigin(null);setResult(null);setSelected(null);setQuery(null);setError('');}
  function change(index:number,patch:Partial<Criterion>){setCriteria(criteria.map((c,i)=>i===index?{...c,...patch}:c));invalidate();}
- async function run(next=false){setBusy(true);setError('');setSelected(null);try{
-   const input:Query=next&&query&&result?{...query,cursor:result.nextCursor,referenceDate:result.trace.referenceDate,dictionaryVersion:result.trace.dictionaryVersion}:{poolId,criteria,strict,experienceKinds,referenceDate:reference||null,dictionaryVersion:null,cursor:null,limit:20};
-   const r=await api<Result>('/search/structured',{method:'POST',body:JSON.stringify(input)},session.csrfToken);setResult(r);setQuery(input);
+ async function propose(){setBusy(true);setProposal(null);invalidate();try{
+ const p=await api<Proposal>('/search/natural/proposals',{method:'POST',body:JSON.stringify({poolId,text})},session.csrfToken);setProposal(p);setCriteria(p.interpretation.criteria);setStrict(false);setKinds(['EMPLOYMENT','INTERNSHIP','FREELANCE']);setReference('');setText('');
+ }catch(e){setCriteria([{...empty}]);setError(message(e));failed(e);}finally{setBusy(false);}}
+ async function run(next=false){if(!next&&proposal&&!confirmed)return;setBusy(true);setError('');setSelected(null);try{
+   const input:Query=next&&query&&result?{...query,cursor:result.nextCursor,referenceDate:result.trace.referenceDate,dictionaryVersion:result.trace.dictionaryVersion}:{poolId,criteria,strict,experienceKinds,referenceDate:reference||null,dictionaryVersion:proposal?.interpretation.dictionaryVersion??null,cursor:null,limit:20};
+   const fromProposal=!next&&proposal;
+   const r=await api<Result>(fromProposal?`/search/natural/proposals/${fromProposal.id}/confirm`:'/search/structured',{method:'POST',body:JSON.stringify(fromProposal?{confirmed,query:input}:input)},session.csrfToken);setResult(r);setQuery(input);if(fromProposal){setOrigin(fromProposal);setProposal(null);setConfirmed(false);}
  }catch(e){setResult(null);setError(message(e));failed(e);}finally{setBusy(false);}}
  async function open(id:string){setBusy(true);setSelected(null);try{setSelected(await api<Candidate>(`/candidates/${id}`));}catch(e){failed(e);}finally{setBusy(false);}}
  return <section className="structured-search" aria-label="Recherche structurée"><h3>Rechercher des compétences documentées</h3><p>Combinez jusqu’à dix compétences. Les résultats portent sur les publications humaines de ce vivier. Une absence documentaire ne signifie pas une absence d’aptitude.</p>
+ <form onSubmit={e=>{e.preventDefault();void propose();}}><fieldset disabled={busy}><legend>Préparer les critères en français</legend>
+ <p>Vocabulaire limité aux compétences et alias du dictionnaire. Séparez les demandes par un point-virgule. Les compétences sont proposées obligatoires par défaut ; tous les critères restent modifiables avant confirmation.</p>
+ <label htmlFor={`${prefix}-natural`}>Décrivez les compétences recherchées</label><textarea id={`${prefix}-natural`} maxLength={2000} required value={text} placeholder="cinq ans Java et Spring Boot ; Kafka souhaité récent" onChange={e=>{setText(e.target.value);setProposal(null);setCriteria([{...empty}]);invalidate();}}/>
+ <p className="fine">Exemples : « Java obligatoire cinq ans ; Kafka souhaité dans les 24 derniers mois ». Nombres de un à douze ou en chiffres, ans ou mois. Aucun filtre sur l’âge, le genre, l’identité ou les données personnelles. Les formulations non reconnues sont refusées. Aucun texte saisi n’est conservé côté serveur.</p>
+ <button type="submit" className="button" disabled={!text.trim()}>Proposer les critères</button></fieldset></form>
+ {proposal&&<div role="status"><h4>Proposition à relire avant recherche</h4><p>Aucune recherche de candidats n’a encore été exécutée. Vérifiez les compétences, les exigences, les seuils et les périodes ci-dessous.</p>{proposal.interpretation.warnings.map((w,i)=><p key={i}>{w}</p>)}<p className="fine">Proposition valable 30 minutes · dictionnaire v{proposal.interpretation.dictionaryVersion} · règle {proposal.interpretation.rule}</p><button type="button" className="text-button" disabled={busy} onClick={()=>{setProposal(null);setCriteria([{...empty}]);invalidate();}}>Abandonner la proposition et saisir manuellement</button></div>}
  <form onSubmit={e=>{e.preventDefault();void run();}}><fieldset disabled={busy}><legend>Critères professionnels</legend>
  {criteria.map((c,i)=><div className="search-criterion" key={i}><label htmlFor={`${prefix}-skill-${i}`}>Compétence {i+1}</label><input id={`${prefix}-skill-${i}`} maxLength={200} required value={c.skill} placeholder="Java, Kafka…" onChange={e=>change(i,{skill:e.target.value})}/>
  <label htmlFor={`${prefix}-importance-${i}`}>Exigence {i+1}</label><select id={`${prefix}-importance-${i}`} value={c.importance} onChange={e=>change(i,{importance:e.target.value as Criterion['importance']})}><option value="REQUIRED">Obligatoire</option><option value="DESIRED">Souhaitée</option></select>
@@ -34,8 +46,10 @@ export function StructuredSearch({poolId,session,failed}:{poolId:string;session:
  <label htmlFor={`${prefix}-reference`}>Date de référence (aujourd’hui si vide)</label><input id={`${prefix}-reference`} type="date" value={reference} onChange={e=>{setReference(e.target.value);invalidate();}}/>
  <label><input type="checkbox" checked={strict} onChange={e=>{setStrict(e.target.checked);invalidate();}}/>Mode strict : afficher uniquement les profils dont tous les critères obligatoires sont documentés</label>
  <p className="fine">Désactivez le mode strict pour revoir les profils incomplets. Les compétences souhaitées ne les excluent jamais. Aucun rejet ni classement automatique.</p>
- <button className="button primary" type="submit" disabled={!experienceKinds.length}>{busy?'Recherche…':'Rechercher dans ce vivier'}</button></fieldset></form>
+ {proposal&&<label><input type="checkbox" checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}/>J’ai relu les critères et résolu les ambiguïtés ; les seuils laissés vides ne seront pas appliqués.</label>}
+ <button className="button primary" type="submit" disabled={!experienceKinds.length||!!proposal&&!confirmed}>{busy?'Recherche…':proposal?'Confirmer les critères et rechercher':'Rechercher dans ce vivier'}</button></fieldset></form>
  {error&&<p role="alert">{error}</p>}
+ {origin&&<p className="fine">Interprétation {origin.id} confirmée après relecture · règle {origin.interpretation.rule}. Le détail proposé et la confirmation expirent après 30 minutes ; aucun texte original conservé.</p>}
  {result&&<><p role="status">{result.items.length} résultat(s) sur cette page · {result.scanned} publications examinées · {result.trace.strict?'mode strict':'mode exploratoire'}</p>
  <p>Critères normalisés : {result.trace.criteria.map(c=>`${c.original} → ${c.label} (${c.importance==='REQUIRED'?'obligatoire':'souhaitée'})`).join(' ; ')}</p>
  <p className="fine">Référence {result.trace.referenceDate} · dictionnaire v{result.trace.dictionaryVersion} · règle {result.trace.rule}. Ordre stable par identifiant, sans score. Les résultats sont relus à chaque page.</p>

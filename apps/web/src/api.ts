@@ -33,6 +33,12 @@ export function message(error: unknown): string {
     if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
     if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
     if (error.code === 'INVALID_STRUCTURED_SEARCH') return 'Vérifiez les compétences, les types de périodes et les seuils en mois.';
+    if (error.code === 'UNSUPPORTED_SEARCH_LANGUAGE') return 'Formulation ou compétence non reconnue. Utilisez les compétences du dictionnaire, séparez les demandes par un point-virgule et suivez les exemples. Aucun critère n’a été appliqué.';
+    if (error.code === 'PROHIBITED_SEARCH_CRITERION') return 'Cette demande contient un critère personnel ou non pertinent. Utilisez uniquement des compétences professionnelles, durées et récence.';
+    if (error.code === 'INVALID_NATURAL_SEARCH') return 'Vérifiez la demande : dix compétences maximum, 2 000 caractères et des durées de 1 à 1 200 mois.';
+    if (error.code === 'SEARCH_CONFIRMATION_REQUIRED') return 'Relisez et confirmez explicitement les critères avant de rechercher.';
+    if (error.code === 'SEARCH_PROPOSAL_UNAVAILABLE') return 'Cette proposition a expiré, a déjà été utilisée ou n’est plus accessible. Proposez à nouveau les critères.';
+    if (error.code === 'NATURAL_SEARCH_LIMIT') return 'Limite de 50 propositions sur 30 minutes atteinte. Réessayez plus tard ou utilisez la recherche structurée.';
     if (error.code === 'DUPLICATE_SEARCH_SKILL') return 'Deux critères désignent la même compétence. Regroupez leurs exigences.';
     if (error.code === 'SEARCH_CURSOR_CHANGED') return 'Les critères ou leur version ont changé. Relancez la recherche depuis la première page.';
     if (error.code === 'INVALID_SKILL_PERIOD') return 'Vérifiez la confirmation, la preuve et les dates : la période doit rester dans celle de la mission, avec la même précision et le même type.';
