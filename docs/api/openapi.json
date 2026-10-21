@@ -4675,6 +4675,55 @@
           }
         }
       }
+    },
+    "/search/structured": {
+      "post": {
+        "operationId": "searchStructuredEvidence",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Rechercher les publications autorisées par critères professionnels explicites",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StructuredQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Page live bornée à 100 publications examinées. Aucune décision de recrutement ; inconnus conservés.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructuredSearchResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8334,6 +8383,419 @@
           "skills",
           "lastEdit"
         ]
+      },
+      "StructuredCriterion": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "REQUIRED",
+              "DESIRED"
+            ]
+          },
+          "minimumMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1200,
+            "nullable": true
+          },
+          "maximumRecencyMonths": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "skill",
+          "importance",
+          "minimumMonths",
+          "maximumRecencyMonths"
+        ],
+        "additionalProperties": false
+      },
+      "StructuredQuery": {
+        "type": "object",
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructuredCriterion"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "strict": {
+            "type": "boolean",
+            "default": false
+          },
+          "experienceKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "EMPLOYMENT",
+                "INTERNSHIP",
+                "FREELANCE",
+                "ACADEMIC"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "referenceDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "cursor": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 150
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "poolId",
+          "criteria",
+          "strict",
+          "experienceKinds",
+          "referenceDate",
+          "dictionaryVersion",
+          "cursor",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "NormalizedSearchCriterion": {
+        "type": "object",
+        "properties": {
+          "original": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "skillId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "importance": {
+            "type": "string",
+            "enum": [
+              "REQUIRED",
+              "DESIRED"
+            ]
+          },
+          "minimumMonths": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1200,
+            "nullable": true
+          },
+          "maximumRecencyMonths": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1200,
+            "nullable": true
+          }
+        },
+        "required": [
+          "original",
+          "label",
+          "skillId",
+          "importance",
+          "minimumMonths",
+          "maximumRecencyMonths"
+        ],
+        "additionalProperties": false
+      },
+      "StructuredSearchTrace": {
+        "type": "object",
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NormalizedSearchCriterion"
+            }
+          },
+          "strict": {
+            "type": "boolean"
+          },
+          "experienceKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "EMPLOYMENT",
+                "INTERNSHIP",
+                "FREELANCE",
+                "ACADEMIC"
+              ]
+            }
+          },
+          "referenceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "poolId",
+          "criteria",
+          "strict",
+          "experienceKinds",
+          "referenceDate",
+          "dictionaryVersion",
+          "rule",
+          "fingerprint"
+        ],
+        "additionalProperties": false
+      },
+      "SearchEvidence": {
+        "type": "object",
+        "properties": {
+          "sourceIndex": {
+            "type": "integer"
+          },
+          "validatedValue": {
+            "type": "string"
+          },
+          "original": {
+            "type": "string",
+            "nullable": true
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "blockIndex": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "integer"
+                },
+                "end": {
+                  "type": "integer"
+                },
+                "quote": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "blockIndex",
+                "source",
+                "start",
+                "end",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "sourceIndex",
+          "validatedValue",
+          "original",
+          "dictionaryVersion",
+          "citations"
+        ],
+        "additionalProperties": false
+      },
+      "StructuredCriterionResult": {
+        "type": "object",
+        "properties": {
+          "criterion": {
+            "$ref": "#/components/schemas/NormalizedSearchCriterion"
+          },
+          "presence": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTED",
+              "NOT_DOCUMENTED",
+              "UNKNOWN"
+            ]
+          },
+          "duration": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTED",
+              "NOT_DOCUMENTED",
+              "UNKNOWN"
+            ]
+          },
+          "recency": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTED",
+              "NOT_DOCUMENTED",
+              "UNKNOWN"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DOCUMENTED",
+              "NOT_DOCUMENTED",
+              "UNKNOWN"
+            ]
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/CalendarCoverage"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchEvidence"
+            }
+          },
+          "periodLinks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillPeriodLink"
+            }
+          }
+        },
+        "required": [
+          "criterion",
+          "presence",
+          "duration",
+          "recency",
+          "status",
+          "coverage",
+          "evidence",
+          "periodLinks"
+        ],
+        "additionalProperties": false
+      },
+      "StructuredSearchHit": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string",
+            "nullable": true
+          },
+          "professionalTitle": {
+            "type": "string",
+            "nullable": true
+          },
+          "publicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "periodLinksVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructuredCriterionResult"
+            }
+          }
+        },
+        "required": [
+          "candidateId",
+          "displayName",
+          "professionalTitle",
+          "publicationId",
+          "sourceRevisionId",
+          "candidateVersion",
+          "periodLinksVersion",
+          "criteria"
+        ],
+        "additionalProperties": false
+      },
+      "StructuredSearchResult": {
+        "type": "object",
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/StructuredSearchTrace"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructuredSearchHit"
+            }
+          },
+          "scanned": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "searchId",
+          "trace",
+          "items",
+          "scanned",
+          "nextCursor"
+        ],
+        "additionalProperties": false
       }
     }
   }

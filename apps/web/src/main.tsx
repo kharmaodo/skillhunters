@@ -4,6 +4,7 @@ import { api, ApiError, message, type Account, type Membership, type Pool, type 
 import './style.css';
 import { Candidates } from './CandidateProfile';
 import { Imports } from './Imports';
+import { StructuredSearch } from './StructuredSearch';
 import { Taxonomy } from './Taxonomy';
 
 function App() {
@@ -62,7 +63,7 @@ function Pools({ session, failed }: { session: Session; failed: (e: unknown) => 
   async function open(id: string) { try { setSelected(await api<Pool>(`/pools/${id}`)); } catch (e) { setSelected(null); failed(e); } }
   return <><p className="eyebrow">Votre espace de travail</p><h1>Mes viviers</h1><p className="muted">Choisissez un vivier pour consulter votre périmètre de recrutement.</p>
     {loading ? <p role="status">Chargement des viviers…</p> : pools.length ? <div className="grid">{pools.map(pool => <article className="card" key={pool.id}><div className="pool-icon">▤</div><h2>{pool.name}</h2><p className="muted">Accès attribué par votre organisation.</p><button className="button" onClick={() => void open(pool.id)}>Ouvrir le vivier</button></article>)}</div> : <section className="card empty"><h2>Aucun vivier attribué</h2><p className="muted">Demandez à votre administrateur de vous affecter à un vivier. Un rôle d’administration ne donne pas automatiquement accès aux CV.</p></section>}
-    {selected && <section className="card" aria-live="polite"><div className="row"><h2>{selected.name}</h2><button className="text-button" onClick={() => setSelected(null)}>Fermer</button></div><span className="badge green">Accès vérifié</span><Candidates key={`candidates-${selected.id}`} poolId={selected.id} session={session} failed={failed}/><Imports key={selected.id} pool={selected} session={session} failed={failed}/></section>}
+    {selected && <section className="card" aria-live="polite"><div className="row"><h2>{selected.name}</h2><button className="text-button" onClick={() => setSelected(null)}>Fermer</button></div><span className="badge green">Accès vérifié</span><StructuredSearch key={`search-${selected.id}`} poolId={selected.id} session={session} failed={failed}/><Candidates key={`candidates-${selected.id}`} poolId={selected.id} session={session} failed={failed}/><Imports key={selected.id} pool={selected} session={session} failed={failed}/></section>}
     <section className="milestone"><strong>Import individuel disponible</strong><p>Déposez un document dans un vivier autorisé. L’analyse antivirus, l’OCR, les propositions sourcées et les fiches éditables sont disponibles. La revue humaine et la publication des propositions sont disponibles. La recherche et l’envoi de messages restent à développer.</p></section></>;
 }
 function Access({ session, failed }: { session: Session; failed: (e: unknown) => void }) {
