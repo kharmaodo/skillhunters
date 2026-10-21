@@ -77,3 +77,11 @@ Le module Talent conserve les associations humaines dans des snapshots immuables
 sous le verrou/version de fiche existant. `PeriodCalculator` est une fonction pure
 sans I/O : union des bornes calendaires, exposition et récence, séparation par type.
 Le rapport est recalculé à la référence demandée, sans worker ni service externe.
+
+## Recherche structurée SH-14
+
+Le module Search expose un POST BFF protégé par CSRF. Le backend filtre vivier,
+habilitations, expiration et publication avant récupération, puis réutilise les
+projections et périodes de Talent. Un évaluateur pur distingue preuve, manque de
+documentation et inconnus. Pagination keyset live bornée, aucun cache candidat,
+aucun nouveau moteur ou worker. L'audit minimal utilise `identity_audit` existant.

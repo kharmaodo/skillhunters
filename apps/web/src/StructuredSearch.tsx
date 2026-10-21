@@ -1,0 +1,52 @@
+import { useState } from 'react';
+import { api, message, type Session } from './api';
+import { CandidateProfile, type Candidate } from './CandidateProfile';
+type Criterion = { skill:string; importance:'REQUIRED'|'DESIRED'; minimumMonths:number|null; maximumRecencyMonths:number|null };
+type Query = {poolId:string;criteria:Criterion[];strict:boolean;experienceKinds:string[];referenceDate:string|null;dictionaryVersion:number|null;cursor:string|null;limit:number};
+type Status = 'DOCUMENTED'|'NOT_DOCUMENTED'|'UNKNOWN';
+type Match = {criterion:Criterion&{original:string;label:string;skillId:string|null};presence:Status;duration:Status;recency:Status;status:Status;coverage:{minimumMonths:number|null;maximumMonths:number|null;recencyMinimumMonths:number|null;recencyMaximumMonths:number|null;incomplete:boolean};evidence:{sourceIndex:number;validatedValue:string;original:string|null;dictionaryVersion:number|null;citations:{source:string;quote:string}[]}[];periodLinks:{experienceIndex:number;period:{start:string|null;end:string|null;kind:string};evidence:string}[]};
+type Result = {searchId:string;trace:{poolId:string;strict:boolean;referenceDate:string;dictionaryVersion:number;rule:string;fingerprint:string;criteria:Match['criterion'][]};items:{candidateId:string;displayName:string|null;professionalTitle:string|null;publicationId:string;sourceRevisionId:string;candidateVersion:number;periodLinksVersion:number|null;criteria:Match[]}[];scanned:number;nextCursor:string|null};
+const statuses:Record<Status,string>={DOCUMENTED:'Documenté',NOT_DOCUMENTED:'Non documenté',UNKNOWN:'Inconnu'};
+const kinds:Record<string,string>={EMPLOYMENT:'Emploi',INTERNSHIP:'Stage',FREELANCE:'Freelance',ACADEMIC:'Projet académique'};
+const empty:Criterion={skill:'',importance:'REQUIRED',minimumMonths:null,maximumRecencyMonths:null};
+export function StructuredSearch({poolId,session,failed}:{poolId:string;session:Session;failed:(e:unknown)=>void}) {
+ const [criteria,setCriteria]=useState<Criterion[]>([{...empty}]);const [strict,setStrict]=useState(false);const [experienceKinds,setKinds]=useState(['EMPLOYMENT','INTERNSHIP','FREELANCE']);
+ const [reference,setReference]=useState('');const [result,setResult]=useState<Result|null>(null);const [query,setQuery]=useState<Query|null>(null);
+ const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [selected,setSelected]=useState<Candidate|null>(null);
+ const prefix=`search-${poolId}`;
+ function invalidate(){setResult(null);setSelected(null);setQuery(null);setError('');}
+ function change(index:number,patch:Partial<Criterion>){setCriteria(criteria.map((c,i)=>i===index?{...c,...patch}:c));invalidate();}
+ async function run(next=false){setBusy(true);setError('');setSelected(null);try{
+   const input:Query=next&&query&&result?{...query,cursor:result.nextCursor,referenceDate:result.trace.referenceDate,dictionaryVersion:result.trace.dictionaryVersion}:{poolId,criteria,strict,experienceKinds,referenceDate:reference||null,dictionaryVersion:null,cursor:null,limit:20};
+   const r=await api<Result>('/search/structured',{method:'POST',body:JSON.stringify(input)},session.csrfToken);setResult(r);setQuery(input);
+ }catch(e){setResult(null);setError(message(e));failed(e);}finally{setBusy(false);}}
+ async function open(id:string){setBusy(true);setSelected(null);try{setSelected(await api<Candidate>(`/candidates/${id}`));}catch(e){failed(e);}finally{setBusy(false);}}
+ return <section className="structured-search" aria-label="Recherche structurée"><h3>Rechercher des compétences documentées</h3><p>Combinez jusqu’à dix compétences. Les résultats portent sur les publications humaines de ce vivier. Une absence documentaire ne signifie pas une absence d’aptitude.</p>
+ <form onSubmit={e=>{e.preventDefault();void run();}}><fieldset disabled={busy}><legend>Critères professionnels</legend>
+ {criteria.map((c,i)=><div className="search-criterion" key={i}><label htmlFor={`${prefix}-skill-${i}`}>Compétence {i+1}</label><input id={`${prefix}-skill-${i}`} maxLength={200} required value={c.skill} placeholder="Java, Kafka…" onChange={e=>change(i,{skill:e.target.value})}/>
+ <label htmlFor={`${prefix}-importance-${i}`}>Exigence {i+1}</label><select id={`${prefix}-importance-${i}`} value={c.importance} onChange={e=>change(i,{importance:e.target.value as Criterion['importance']})}><option value="REQUIRED">Obligatoire</option><option value="DESIRED">Souhaitée</option></select>
+ <label htmlFor={`${prefix}-months-${i}`}>Exposition minimale documentée {i+1} (mois, facultatif)</label><input id={`${prefix}-months-${i}`} type="number" min={1} max={1200} step={1} value={c.minimumMonths??''} onChange={e=>change(i,{minimumMonths:e.target.value===''?null:Number(e.target.value)})}/>
+ <label htmlFor={`${prefix}-recent-${i}`}>Dernière période dans les {i+1} (mois, facultatif)</label><input id={`${prefix}-recent-${i}`} type="number" min={0} max={1200} step={1} value={c.maximumRecencyMonths??''} onChange={e=>change(i,{maximumRecencyMonths:e.target.value===''?null:Number(e.target.value)})}/>
+ {criteria.length>1&&<button type="button" className="text-button" onClick={()=>{setCriteria(criteria.filter((_,n)=>n!==i));invalidate();}}>Retirer le critère {i+1}</button>}</div>)}
+ <button type="button" className="button" disabled={criteria.length>=10} onClick={()=>{setCriteria([...criteria,{...empty,importance:'DESIRED'}]);invalidate();}}>Ajouter une compétence</button>
+ <fieldset><legend>Périodes retenues pour les durées et la récence</legend>{Object.entries(kinds).map(([kind,label])=><label key={kind}><input type="checkbox" checked={experienceKinds.includes(kind)} onChange={e=>{setKinds(e.target.checked?[...experienceKinds,kind]:experienceKinds.filter(k=>k!==kind));invalidate();}}/>{label}</label>)}</fieldset>
+ <p className="fine">Ces durées décrivent une exposition calendaire justifiée, pas un temps plein ni un niveau 1–3. Les dates et rattachements manquants restent inconnus.</p>
+ <label htmlFor={`${prefix}-reference`}>Date de référence (aujourd’hui si vide)</label><input id={`${prefix}-reference`} type="date" value={reference} onChange={e=>{setReference(e.target.value);invalidate();}}/>
+ <label><input type="checkbox" checked={strict} onChange={e=>{setStrict(e.target.checked);invalidate();}}/>Mode strict : afficher uniquement les profils dont tous les critères obligatoires sont documentés</label>
+ <p className="fine">Désactivez le mode strict pour revoir les profils incomplets. Les compétences souhaitées ne les excluent jamais. Aucun rejet ni classement automatique.</p>
+ <button className="button primary" type="submit" disabled={!experienceKinds.length}>{busy?'Recherche…':'Rechercher dans ce vivier'}</button></fieldset></form>
+ {error&&<p role="alert">{error}</p>}
+ {result&&<><p role="status">{result.items.length} résultat(s) sur cette page · {result.scanned} publications examinées · {result.trace.strict?'mode strict':'mode exploratoire'}</p>
+ <p>Critères normalisés : {result.trace.criteria.map(c=>`${c.original} → ${c.label} (${c.importance==='REQUIRED'?'obligatoire':'souhaitée'})`).join(' ; ')}</p>
+ <p className="fine">Référence {result.trace.referenceDate} · dictionnaire v{result.trace.dictionaryVersion} · règle {result.trace.rule}. Ordre stable par identifiant, sans score. Les résultats sont relus à chaque page.</p>
+ {!result.items.length&&<p>Aucun résultat sur cette page. {result.nextCursor?'Poursuivez l’examen du vivier.':'Vous pouvez désactiver le mode strict ou modifier les critères.'}</p>}
+ {result.items.map(hit=><article className="card" key={hit.candidateId}><h4>{hit.displayName??'Nom inconnu'} · {hit.professionalTitle??'Titre inconnu'}</h4>
+ <ul className="proposal-list">{hit.criteria.map((m,i)=><li key={i}><strong>{m.criterion.label} · {m.criterion.importance==='REQUIRED'?'Obligatoire':'Souhaitée'} : {statuses[m.status]}</strong><p>Compétence : {statuses[m.presence]}{m.criterion.minimumMonths!==null&&` · Durée : ${statuses[m.duration]}`}{m.criterion.maximumRecencyMonths!==null&&` · Récence : ${statuses[m.recency]}`}</p>
+ {(m.criterion.minimumMonths!==null||m.criterion.maximumRecencyMonths!==null)&&<p>Exposition : {m.coverage.minimumMonths===null?'inconnue':`${m.coverage.minimumMonths} à ${m.coverage.maximumMonths} mois`} · Dernière période : {m.coverage.recencyMinimumMonths===null?'inconnue':`${m.coverage.recencyMinimumMonths} à ${m.coverage.recencyMaximumMonths} mois`}{m.coverage.incomplete?' · couverture incomplète':''}</p>}
+ <details><summary>Preuves du critère {i+1}</summary>{!m.evidence.length&&<p>Aucune compétence publiée correspondante. Ce constat n’est pas une preuve d’inaptitude.</p>}{m.evidence.map(ev=><div key={ev.sourceIndex}><p>Proposition {ev.sourceIndex+1} : {ev.validatedValue} · original : {ev.original??'inconnu'} · dictionnaire de publication {ev.dictionaryVersion??'non renseigné'}</p>{ev.citations.map((citation,n)=><blockquote key={n}>{citation.quote}<small> · {citation.source}</small></blockquote>)}</div>)}{m.periodLinks.map((l,n)=><p key={n}>Mission {l.experienceIndex+1} · {l.period.start??'?'} – {l.period.end??'?'} · {kinds[l.period.kind]??'Type inconnu'} · {l.evidence}</p>)}</details></li>)}</ul>
+ <p className="fine">Publication {hit.publicationId} · source {hit.sourceRevisionId} · fiche v{hit.candidateVersion} · rattachements v{hit.periodLinksVersion??'aucun'}</p><button type="button" className="button" disabled={busy} onClick={()=>void open(hit.candidateId)}>Ouvrir la fiche</button></article>)}
+ {result.nextCursor&&<button type="button" className="button" disabled={busy} onClick={()=>void run(true)}>Page suivante de la recherche</button>}
+ <details><summary>Traçabilité de cette recherche</summary><p>Recherche {result.searchId} · vivier {result.trace.poolId} · empreinte {result.trace.fingerprint}</p></details></>}
+ {selected&&<><button className="text-button" onClick={()=>setSelected(null)}>Fermer la fiche issue de la recherche</button><CandidateProfile key={selected.id} initial={selected} session={session} failed={failed}/></>}
+ </section>;
+}

@@ -82,3 +82,12 @@ Auteur, justification et date tracent chaque remplacement. Le calcul n'est pas u
 valeur figée en base : le rapport expose la règle `calendar-union-v1`, la date de
 référence, les intervalles retenus et les bornes. L'historique des liens permet de
 retracer les entrées ; aucun champ personnel n'est ajouté à l'index.
+
+## Recherche SH-14
+
+Aucune migration ni table de résultats : lecture des publications, index existant,
+normalisations et snapshots de périodes. L'événement `STRUCTURED_SEARCH` dans
+`identity_audit` porte l'ID rendu au client, l'acteur et le vivier. Critères normalisés,
+version du dictionnaire, date, règle et empreinte sont restitués sans conservation
+des résultats personnels. Le curseur identifie la dernière publication examinée,
+avec empreinte des critères ; les autorisations restent revérifiées par le serveur.

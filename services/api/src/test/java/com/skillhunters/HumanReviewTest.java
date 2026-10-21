@@ -99,6 +99,74 @@ class HumanReviewTest extends IdentityTestSupport {
         for(var link:invalid) assertThatThrownBy(()->periods.save(alice,c.id(),"\"2\"",new com.skillhunters.talent.SkillPeriodService.Request(r.id(),List.of(link),"Test"))).isInstanceOf(Rejected.class);
         assertThat(periods.history(alice,c.id(),0)).isEmpty();
     }
+    @Autowired com.skillhunters.search.StructuredSearchService search;
+    com.skillhunters.search.StructuredSearchService.Query searchQuery(boolean strict,String skill,Integer months) {
+        return new com.skillhunters.search.StructuredSearchService.Query(poolA,List.of(
+            new com.skillhunters.search.StructuredSearchService.Criterion(skill,com.skillhunters.search.StructuredSearchService.Importance.REQUIRED,months,null),
+            new com.skillhunters.search.StructuredSearchService.Criterion("Kafka",com.skillhunters.search.StructuredSearchService.Importance.DESIRED,null,null)),
+            strict,List.of(Kind.EMPLOYMENT,Kind.INTERNSHIP,Kind.FREELANCE),null,null,null,20);
+    }
+    @Test void searchDistinguishesRequiredAndDesiredEvidenceAndStrictModeIsReversible() {
+        var c=create();assertThat(search.search(alice,searchQuery(false,"Java",null)).items()).isEmpty();
+        reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var r=search.search(alice,searchQuery(true,"Java",null));assertThat(r.items()).hasSize(1);
+        assertThat(r.items().getFirst().criteria().getFirst().status()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.DOCUMENTED);
+        assertThat(r.items().getFirst().criteria().getLast().status()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.NOT_DOCUMENTED);
+        assertThat(r.items().getFirst().criteria().getFirst().evidence().getFirst().citations()).isNotEmpty();
+        assertThat(search.search(alice,searchQuery(true,"Java",12)).items()).isEmpty();
+        assertThat(search.search(alice,searchQuery(false,"Java",12)).items().getFirst().criteria().getFirst().duration()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.UNKNOWN);
+        assertThat(search.search(alice,searchQuery(true,"JavaScript",null)).items()).isEmpty();
+        assertThat(search.search(alice,searchQuery(true,"Spring Boot",null)).items()).isEmpty();
+    }
+    @Test void searchUsesDictionaryAliasesAndKeepsAcademicDurationsOptIn() {
+        taxonomy.edit(admin,null,"\"0\"",new com.skillhunters.taxonomy.TaxonomyService.Edit("Java","Language",List.of("JDK"),"Test"));
+        var c=create();var rev=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        assertThat(search.search(alice,searchQuery(true,"JDK",null)).items()).hasSize(1);
+        var claims=reviews.get(alice,c.id()).source().proposal().claims();int skill=-1,experience=-1;
+        for(int i=0;i<claims.size();i++){if(claims.get(i).field()==StructuredExtractor.Field.SKILL)skill=i;if(claims.get(i).field()==StructuredExtractor.Field.EXPERIENCE)experience=i;}
+        var link=new com.skillhunters.talent.SkillPeriodService.Link(skill,experience,rev.items().get(experience).period(),claims.get(experience).evidence().getFirst().quote(),true);
+        periods.save(alice,c.id(),"\"2\"",new com.skillhunters.talent.SkillPeriodService.Request(rev.id(),List.of(link),"Vérifié"));
+        assertThat(search.search(alice,searchQuery(true,"JDK",12)).items()).isEmpty();
+        var q=searchQuery(true,"JDK",12);
+        var academic=new com.skillhunters.search.StructuredSearchService.Query(q.poolId(),q.criteria(),true,List.of(Kind.ACADEMIC),null,null,null,20);
+        assertThat(search.search(alice,academic).items().getFirst().criteria().getFirst().coverage().minimumMonths()).isEqualTo(18);
+    }
+    @Test void searchDeniesCrossPoolAdminCsrfExpiredAndUnsupportedPersonalCriteria() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        assertThatThrownBy(()->search.search(admin,searchQuery(false,"Java",null))).isInstanceOf(Rejected.class);
+        mvc.perform(post("/api/v1/search/structured").with(as("alice")).contentType("application/json").content(json.writeValueAsString(searchQuery(false,"Java",null)))).andExpect(status().isForbidden());
+        var personal=json.valueToTree(searchQuery(false,"Java",null));((com.fasterxml.jackson.databind.node.ObjectNode)personal).put("age",30);
+        mvc.perform(post("/api/v1/search/structured").with(as("alice")).with(csrf()).contentType("application/json").content(json.writeValueAsString(personal))).andExpect(status().isBadRequest());
+        db.update("UPDATE document_import SET pool_id=? WHERE id=?",poolB,id);
+        assertThat(search.search(alice,searchQuery(false,"Java",null)).items()).isEmpty();
+        db.update("UPDATE document_import SET pool_id=?,expires_at=CURRENT_TIMESTAMP-INTERVAL '1' DAY WHERE id=?",poolA,id);
+        assertThat(search.search(alice,searchQuery(false,"Java",null)).items()).isEmpty();
+    }
+    @Test void unpublishedCorrectionsCannotReplaceSearchEvidenceAndExplicitUnknownStaysUnknown() {
+        var c=create();var first=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var items=new ArrayList<>(first.items());var claims=reviews.get(alice,c.id()).source().proposal().claims();
+        for(int i=0;i<items.size();i++) if(claims.get(i).field()==StructuredExtractor.Field.SKILL||claims.get(i).field()==StructuredExtractor.Field.DECLARED_LEVEL)
+            items.set(i,new Item(i,null,Decision.UNKNOWN,Precision.UNKNOWN,null,"À revérifier"));
+        reviews.save(alice,c.id(),"\"2\"",request(items),false);
+        assertThat(search.search(alice,searchQuery(true,"Java",null)).items()).hasSize(1);
+        reviews.save(alice,c.id(),"\"3\"",request(items),true);
+        assertThat(search.search(alice,searchQuery(false,"Java",null)).items().getFirst().criteria().getFirst().presence()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.UNKNOWN);
+    }
+    @Test void searchKeysetPagesAreBoundToCriteriaAndNeverRepeatTheFirstCandidate() throws Exception {
+        var first=create();reviews.save(alice,first.id(),"\"1\"",request(accepted(first.id())),true);UUID original=id;
+        UUID policy=db.queryForObject("SELECT id FROM import_policy",UUID.class);
+        mvc.perform(multipart("/api/v1/imports").file(new MockMultipartFile("files","second.md","text/markdown","Second synthetic source".getBytes()))
+            .file(new MockMultipartFile("basis","","application/json",("{\"source\":\"Synthetic\",\"purpose\":\"Test\",\"basisCode\":\"TEST_ONLY\",\"retentionPolicyId\":\""+policy+"\"}").getBytes()))
+            .param("poolId",poolA.toString()).header("Idempotency-Key","search-second").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        id=db.queryForObject("SELECT id FROM document_import WHERE id<>?",UUID.class,original);
+        var second=create();reviews.save(alice,second.id(),"\"1\"",request(accepted(second.id())),true);
+        var q=searchQuery(false,"Java",null);
+        var page=new com.skillhunters.search.StructuredSearchService.Query(poolA,q.criteria(),false,q.experienceKinds(),null,null,null,1);
+        var a=search.search(alice,page);assertThat(a.items()).hasSize(1);assertThat(a.nextCursor()).isNotNull();
+        var next=new com.skillhunters.search.StructuredSearchService.Query(poolA,q.criteria(),false,q.experienceKinds(),a.trace().referenceDate(),a.trace().dictionaryVersion(),a.nextCursor(),1);
+        var b=search.search(alice,next);assertThat(b.items()).hasSize(1);assertThat(b.items().getFirst().candidateId()).isNotEqualTo(a.items().getFirst().candidateId());assertThat(b.nextCursor()).isNull();
+        assertThatThrownBy(()->search.search(alice,new com.skillhunters.search.StructuredSearchService.Query(poolA,q.criteria(),true,q.experienceKinds(),a.trace().referenceDate(),a.trace().dictionaryVersion(),a.nextCursor(),1))).isInstanceOf(Rejected.class);
+    }
     @Test void dateCorrectionIsPublishedAndIndexedWithExactSourceAndBeforeAfterHistory() {
         var c=create();var original=reviews.get(alice,c.id()).source();
         assertThat(reviews.publication(alice,c.id()).items()).isEmpty();
