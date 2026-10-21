@@ -91,3 +91,12 @@ normalisations et snapshots de périodes. L'événement `STRUCTURED_SEARCH` dans
 version du dictionnaire, date, règle et empreinte sont restitués sans conservation
 des résultats personnels. Le curseur identifie la dernière publication examinée,
 avec empreinte des critères ; les autorisations restent revérifiées par le serveur.
+
+## Proposition et confirmation de recherche (SH-15)
+
+`natural_search_proposal` (V13) lie un UUID à l'acteur et au vivier, avec suppression
+cascade, interprétation JSON professionnelle, création/expiration, confirmation,
+trace SH-14 confirmée et ID recherche. Le texte original et les candidats ne sont
+jamais copiés. Conservation 30 minutes, purge périodique, 50 propositions maximum
+par acteur. Confirmation unique sous verrou ; dictionnaire figé, droits revérifiés.
+Ce stockage temporaire ne constitue pas SH-17 (recherches sauvegardées).

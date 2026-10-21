@@ -155,6 +155,37 @@ for (const width of [1280, 320]) {
     await expect(adminPage.getByText('Permission d’export enregistrée.', { exact: false })).toBeVisible();
     await word.getByRole('button', { name: 'Télécharger le CV Word' }).click();
     await expect(word.getByRole('alert')).toContainText('permission d’export');
+    // SH-15 uses the real versioned dictionary and confirmation endpoints.
+    const adminSession = await (await adminPage.request.get('/api/v1/session')).json();
+    for (const name of ['Java', 'Spring Boot', 'Kafka']) {
+      const response = await adminPage.request.get('/api/v1/taxonomy');
+      const dictionary = await response.json();
+      if (!dictionary.skills.some((skill: {name:string}) => skill.name === name)) {
+        const created = await adminPage.request.post('/api/v1/taxonomy/skills', { headers: {'X-CSRF-TOKEN': adminSession.csrfToken, 'If-Match': response.headers()['etag']}, data: {name, category:'Synthetic', aliases:[], reason:'Recette SH-15 synthétique'} });
+        expect(created.ok()).toBeTruthy();
+      }
+    }
+    let retrievals = 0;
+    page.on('request', request => { if (request.url().endsWith('/search/structured') || request.url().endsWith('/confirm')) retrievals++; });
+    await search.getByLabel('Décrivez les compétences recherchées', { exact: true }).fill('cinq ans Java et Spring Boot ; Kafka souhaité récent');
+    await search.getByRole('button', { name: 'Proposer les critères', exact: true }).click();
+    await expect(search.getByRole('heading', { name: 'Proposition à relire avant recherche' })).toBeVisible();
+    expect(retrievals).toBe(0);
+    await expect(search.getByText(/Portée à préciser pour Java et Spring Boot/)).toBeVisible();
+    await expect(search.getByLabel('Exposition minimale documentée 1 (mois, facultatif)', { exact: true })).toHaveValue('');
+    const confirmSearch = search.getByRole('button', { name: 'Confirmer les critères et rechercher', exact: true });
+    const approval = search.getByRole('checkbox', { name: /^J’ai relu les critères/ });
+    await expect(confirmSearch).toBeDisabled();
+    await approval.check();
+    await search.getByLabel('Exigence 2', { exact: true }).selectOption('DESIRED');
+    await expect(approval).not.toBeChecked();
+    await expect(confirmSearch).toBeDisabled();
+    await search.getByLabel('Exposition minimale documentée 1 (mois, facultatif)', { exact: true }).fill('12');
+    await approval.check();
+    await confirmSearch.click();
+    await expect(searchHit.getByText('Java · Obligatoire : Inconnu', { exact: true })).toBeVisible();
+    expect(retrievals).toBe(1);
+    await expect(search.getByText(/Interprétation .* confirmée après relecture/)).toBeVisible();
     await adminContext.close();
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });

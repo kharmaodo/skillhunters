@@ -1084,7 +1084,8 @@
             }
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "planned",
+        "description": "Contrat cible de compréhension générale, non implémenté. Le sous-ensemble français borné SH-15 est exposé sous /search/natural/proposals et exige confirmation explicite."
       }
     },
     "/searches": {
@@ -4720,6 +4721,135 @@
             "$ref": "#/components/responses/Problem"
           },
           "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/search/natural/proposals": {
+      "post": {
+        "operationId": "proposeNaturalSearch",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Proposer des critères français bornés sans rechercher de candidats",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NaturalSearchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Réponse privée no-store. Aucun texte original ni snapshot candidat conservé par la proposition.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NaturalProposal"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/search/natural/proposals/{id}/confirm": {
+      "post": {
+        "operationId": "confirmNaturalSearch",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Confirmer les critères relus et exécuter la recherche structurée",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NaturalConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Réponse privée no-store. Aucun texte original ni snapshot candidat conservé par la proposition.",
+            "headers": {
+              "Cache-Control": {
+                "schema": {
+                  "type": "string",
+                  "const": "no-store"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StructuredSearchResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
             "$ref": "#/components/responses/Problem"
           }
         }
@@ -8796,6 +8926,105 @@
           "nextCursor"
         ],
         "additionalProperties": false
+      },
+      "NaturalSearchRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000,
+            "description": "Grammaire française bornée ; texte non stocké, critères non reconnus refusés."
+          }
+        },
+        "required": [
+          "poolId",
+          "text"
+        ]
+      },
+      "NaturalInterpretation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "criteria": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 10,
+            "items": {
+              "$ref": "#/components/schemas/StructuredCriterion"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "rule": {
+            "type": "string",
+            "const": "fr-explicit-grammar-v1"
+          }
+        },
+        "required": [
+          "criteria",
+          "warnings",
+          "dictionaryVersion",
+          "rule"
+        ]
+      },
+      "NaturalProposal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "interpretation": {
+            "$ref": "#/components/schemas/NaturalInterpretation"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "poolId",
+          "interpretation",
+          "expiresAt"
+        ]
+      },
+      "NaturalConfirmation": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          },
+          "query": {
+            "$ref": "#/components/schemas/StructuredQuery"
+          }
+        },
+        "required": [
+          "confirmed",
+          "query"
+        ],
+        "description": "Critères relus et modifiables, limités au dictionnaire de la proposition. query.dictionaryVersion obligatoire et identique à la proposition ; cursor doit être null. Confirmation unique, auteur et vivier inchangés, validité 30 minutes."
       }
     }
   }

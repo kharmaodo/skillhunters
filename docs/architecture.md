@@ -85,3 +85,12 @@ habilitations, expiration et publication avant récupération, puis réutilise l
 projections et périodes de Talent. Un évaluateur pur distingue preuve, manque de
 documentation et inconnus. Pagination keyset live bornée, aucun cache candidat,
 aucun nouveau moteur ou worker. L'audit minimal utilise `identity_audit` existant.
+
+## Recherche française SH-15
+
+Un interpréteur Java pur applique une grammaire bornée et le dictionnaire versionné.
+Aucun modèle ni appel externe. La proposition ne lit aucun candidat ; une seconde
+requête, après relecture explicite, utilise SH-14 sous les mêmes contrôles de droits.
+V13 garde uniquement la proposition et la trace confirmée pendant 30 minutes, sans
+texte original ni copie de résultats. Voir `validation/sh-15.md` pour la grammaire,
+les ambiguïtés et les limites de cette première version.
