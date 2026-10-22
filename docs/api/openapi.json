@@ -4854,6 +4854,62 @@
           }
         }
       }
+    },
+    "/search/hybrid": {
+      "post": {
+        "operationId": "searchHybridSkills",
+        "tags": [
+          "Search"
+        ],
+        "summary": "Élargir une recherche aux compétences proches sur des pages autorisées",
+        "description": "Union exacte, lexicale et vectorielle sur libellés professionnels du dictionnaire. Aucun score métier. Index vectoriel persistant pgvector non inclus dans cet incrément ; parcours live sans top-K global, curseur lié au modèle et au seuil.",
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HybridQuery"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Page live, no-store. Les états de preuve SH-14 ne changent pas.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HybridResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9025,6 +9081,235 @@
           "query"
         ],
         "description": "Critères relus et modifiables, limités au dictionnaire de la proposition. query.dictionaryVersion obligatoire et identique à la proposition ; cursor doit être null. Confirmation unique, auteur et vivier inchangés, validité 30 minutes."
+      },
+      "HybridQuery": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/HybridStructuredQuery"
+          },
+          "minimumSimilarity": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 1,
+            "description": "Seuil sémantique explicite ; aucun seuil sur les preuves exactes ou le lexical."
+          }
+        },
+        "required": [
+          "query",
+          "minimumSimilarity"
+        ]
+      },
+      "HybridSignal": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criterionIndex": {
+            "type": "integer"
+          },
+          "sourceIndex": {
+            "type": "integer"
+          },
+          "matchedSkill": {
+            "type": "string"
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "STRUCTURED",
+              "LEXICAL",
+              "VECTOR"
+            ]
+          },
+          "similarity": {
+            "type": "number",
+            "minimum": -1,
+            "maximum": 1
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "blockIndex": {
+                  "type": "integer"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "start": {
+                  "type": "integer"
+                },
+                "end": {
+                  "type": "integer"
+                },
+                "quote": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "blockIndex",
+                "source",
+                "start",
+                "end",
+                "quote"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "candidateId",
+          "criterionIndex",
+          "sourceIndex",
+          "matchedSkill",
+          "channel",
+          "similarity",
+          "citations"
+        ]
+      },
+      "HybridRetrieval": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "model": {
+            "type": "string"
+          },
+          "index": {
+            "type": "string"
+          },
+          "strategy": {
+            "type": "string",
+            "const": "scoped-live-union-v1"
+          },
+          "minimumSimilarity": {
+            "type": "number"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HybridSignal"
+            }
+          }
+        },
+        "required": [
+          "model",
+          "index",
+          "strategy",
+          "minimumSimilarity",
+          "signals"
+        ]
+      },
+      "HybridResult": {
+        "type": "object",
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/StructuredSearchTrace"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructuredSearchHit"
+            }
+          },
+          "scanned": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          },
+          "retrieval": {
+            "$ref": "#/components/schemas/HybridRetrieval"
+          }
+        },
+        "required": [
+          "searchId",
+          "trace",
+          "items",
+          "scanned",
+          "nextCursor",
+          "retrieval"
+        ],
+        "additionalProperties": false
+      },
+      "HybridStructuredQuery": {
+        "type": "object",
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StructuredCriterion"
+            },
+            "minItems": 1,
+            "maxItems": 10
+          },
+          "strict": {
+            "type": "boolean",
+            "default": false
+          },
+          "experienceKinds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "EMPLOYMENT",
+                "INTERNSHIP",
+                "FREELANCE",
+                "ACADEMIC"
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 4,
+            "uniqueItems": true
+          },
+          "referenceDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "dictionaryVersion": {
+            "type": "integer",
+            "format": "int64",
+            "nullable": true
+          },
+          "cursor": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 500
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 25
+          }
+        },
+        "required": [
+          "poolId",
+          "criteria",
+          "strict",
+          "experienceKinds",
+          "referenceDate",
+          "dictionaryVersion",
+          "cursor",
+          "limit"
+        ],
+        "additionalProperties": false
       }
     }
   }

@@ -100,3 +100,11 @@ trace SH-14 confirmée et ID recherche. Le texte original et les candidats ne so
 jamais copiés. Conservation 30 minutes, purge périodique, 50 propositions maximum
 par acteur. Confirmation unique sous verrou ; dictionnaire figé, droits revérifiés.
 Ce stockage temporaire ne constitue pas SH-17 (recherches sauvegardées).
+
+## Recherche hybride SH-16 (premier incrément)
+
+Aucune migration : la projection `candidate_assertion_index` publiée demeure la
+source, avec dictionnaire figé pour la requête. Les vecteurs temporaires ne portent
+que sur des libellés canoniques et disparaissent après la réponse. La trace renvoie
+modèle, projection/dictionnaire, stratégie, seuil et citations. Le stockage pgvector
+cible décrit plus haut n'est pas encore implémenté par cet incrément.

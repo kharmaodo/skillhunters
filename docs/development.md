@@ -170,3 +170,13 @@ En cas d’échec de la recette, le workflow conserve dans ses logs les derniers
 Le démarrage simultané de FreshClam et clamd peut perdre la notification de mise à jour : FreshClam finit alors que le socket du daemon n’existe pas encore. Le daemon peut répondre au healthcheck tout en gardant les anciennes signatures. `CLAMD_CONF_SelfCheck=60` ramène sa vérification des changements sur disque à une minute (défaut : 600 secondes). La CI vérifie que l’image applique réellement `SelfCheck 60`, puis exige toujours une version chargée datant de moins de 72 heures et le succès du scan réel.
 
 Diagnostic reproduit le 13 octobre 2026 (run 38397147542) : base disque mise à jour de 28080 vers 28152, notification perdue avant création du socket, réponse VERSION toujours sur 28080, compteurs OOM à zéro. La correction SelfCheck traite cette course au démarrage ; le budget 4 Gio couvre séparément les pics de rechargement.
+
+### Élargissement hybride SH-16
+
+Compose construit `embedding-worker` et télécharge les poids ONNX à révision et
+SHA-256 figés pendant le build. Le runtime n'a pas besoin d'Internet. Le worker
+écoute sur `127.0.0.1:8091` pour l'API lancée hors Docker, avec le même WORKER_TOKEN
+local que l'analyse. L'API utilise `EMBEDDING_ENDPOINT` (défaut local
+`http://localhost:8091/embed`, valeur Compose `http://embedding-worker:8091/embed`).
+La recherche structurée reste utilisable si l'option hybride n'est pas activée.
+Consulter `validation/sh-16.md` avant d'évaluer la pertinence ou la performance.

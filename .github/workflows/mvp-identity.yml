@@ -42,6 +42,12 @@ jobs:
           sudo apt-get update && sudo apt-get install -y antiword libseccomp2 tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng poppler-utils
           python -m pip install -r services/document-worker/requirements.txt
           python -m unittest discover -s services/document-worker/tests -v
+      - name: Qualify local CPU embeddings
+        run: |
+          python -m venv /tmp/embedding-venv
+          /tmp/embedding-venv/bin/pip install -r services/embedding-worker/requirements.txt
+          /tmp/embedding-venv/bin/python services/embedding-worker/download_model.py /tmp/embedding-model
+          MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python -m unittest discover -s services/embedding-worker/tests -v
       - name: Build frontend
         working-directory: apps/web
         run: npm ci --no-audit --no-fund && npm run build

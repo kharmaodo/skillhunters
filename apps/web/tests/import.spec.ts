@@ -186,6 +186,12 @@ for (const width of [1280, 320]) {
     await expect(searchHit.getByText('Java · Obligatoire : Inconnu', { exact: true })).toBeVisible();
     expect(retrievals).toBe(1);
     await expect(search.getByText(/Interprétation .* confirmée après relecture/)).toBeVisible();
+    await search.getByRole('checkbox', {name:'Élargir aux compétences proches (recherche hybride locale)'}).check();
+    await search.getByRole('button', {name:'Rechercher dans ce vivier',exact:true}).click();
+    await expect(search.getByText(/Recherche hybride · modèle minilm/)).toBeVisible();
+    await expect(searchHit.getByText('Java · Obligatoire : Inconnu', {exact:true})).toBeVisible();
+    await searchHit.getByText('Pourquoi ce profil est retrouvé', {exact:true}).click();
+    await expect(searchHit.getByText(/Preuve structurée exacte/)).toBeVisible();
     await adminContext.close();
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });

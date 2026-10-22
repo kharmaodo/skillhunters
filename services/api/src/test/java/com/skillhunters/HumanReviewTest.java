@@ -99,6 +99,60 @@ class HumanReviewTest extends IdentityTestSupport {
         for(var link:invalid) assertThatThrownBy(()->periods.save(alice,c.id(),"\"2\"",new com.skillhunters.talent.SkillPeriodService.Request(r.id(),List.of(link),"Test"))).isInstanceOf(Rejected.class);
         assertThat(periods.history(alice,c.id(),0)).isEmpty();
     }
+    @Autowired com.skillhunters.search.HybridSearchService hybrid;
+    @MockitoBean com.skillhunters.search.EmbeddingPort embeddings;
+    void hybridDictionary() {
+        int version=0;
+        for(String name:List.of("Java","Kafka","Spring Boot")) {
+            taxonomy.edit(admin,null,"\""+version+++"\"",new com.skillhunters.taxonomy.TaxonomyService.Edit(name,"Synthetic",name.equals("Java")?List.of("JDK"):List.of(),"Test"));
+        }
+    }
+    void sameVectors() throws Exception {
+        when(embeddings.encode(any())).thenAnswer(invocation->{
+            List<String> labels=invocation.getArgument(0);
+            return labels.stream().map(label->{var v=new ArrayList<>(Collections.nCopies(384,0.0));v.set(0,1.0);return (List<Double>)v;}).toList();
+        });
+    }
+    @Test void hybridSimilaritiesNeverBecomeProofAndOnlyCanonicalLabelsReachModel() throws Exception {
+        hybridDictionary();sameVectors();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var result=hybrid.search(alice,new com.skillhunters.search.HybridSearchService.Request(searchQuery(false,"Spring Boot",null),0.65));
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.items().getFirst().criteria().getFirst().presence()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.NOT_DOCUMENTED);
+        assertThat(result.retrieval().signals()).anySatisfy(signal->{assertThat(signal.channel()).isEqualTo("VECTOR");assertThat(signal.citations()).isNotEmpty();});
+        verify(embeddings).encode(List.of("Spring Boot","Kafka","Java"));
+        assertThat(hybrid.search(alice,new com.skillhunters.search.HybridSearchService.Request(searchQuery(true,"Spring Boot",null),0.65)).items()).isEmpty();
+    }
+    @Test void hybridRetainsValidatedAliasWithEvidence() throws Exception {
+        hybridDictionary();sameVectors();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var result=hybrid.search(alice,new com.skillhunters.search.HybridSearchService.Request(searchQuery(true,"JDK",null),0.99));
+        assertThat(result.items()).hasSize(1);
+        assertThat(result.retrieval().signals()).anySatisfy(signal->{assertThat(signal.channel()).isEqualTo("STRUCTURED");assertThat(signal.matchedSkill()).isEqualTo("Java");});
+    }
+    @Test void hybridChecksRightsAndExpiryBeforeCallingModelAndRequiresCsrf() throws Exception {
+        hybridDictionary();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var query=new com.skillhunters.search.HybridSearchService.Request(searchQuery(false,"Java",null),0.65);
+        assertThatThrownBy(()->hybrid.search(admin,query)).isInstanceOf(Rejected.class);verifyNoInteractions(embeddings);
+        mvc.perform(post("/api/v1/search/hybrid").with(as("alice")).contentType("application/json").content(json.writeValueAsString(query))).andExpect(status().isForbidden());
+        db.update("UPDATE document_import SET pool_id=? WHERE id=?",poolB,id);
+        assertThat(hybrid.search(alice,query).items()).isEmpty();verifyNoInteractions(embeddings);
+        db.update("UPDATE document_import SET pool_id=?,expires_at=CURRENT_TIMESTAMP-INTERVAL '1' DAY WHERE id=?",poolA,id);
+        assertThat(hybrid.search(alice,query).items()).isEmpty();verifyNoInteractions(embeddings);
+    }
+    @Test void hybridCursorRejectsAChangedThreshold() {
+        var q=searchQuery(false,"Java",null);
+        String cursor=Base64.getUrlEncoder().withoutPadding().encodeToString((com.skillhunters.search.EmbeddingPort.MODEL+"|0.65|opaque").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        var changed=new com.skillhunters.search.StructuredSearchService.Query(q.poolId(),q.criteria(),q.strict(),q.experienceKinds(),null,null,cursor,20);
+        assertThatThrownBy(()->hybrid.search(alice,new com.skillhunters.search.HybridSearchService.Request(changed,0.7))).isInstanceOf(Rejected.class);
+        verifyNoInteractions(embeddings);
+    }
+    @Test void hybridFailsExplicitlyWhenModelIsUnavailableOrInvalid() throws Exception {
+        hybridDictionary();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var query=new com.skillhunters.search.HybridSearchService.Request(searchQuery(false,"Java",null),0.65);
+        when(embeddings.encode(any())).thenThrow(new IllegalStateException());
+        mvc.perform(post("/api/v1/search/hybrid").with(as("alice")).with(csrf()).contentType("application/json").content(json.writeValueAsString(query))).andExpect(status().isServiceUnavailable());
+        doReturn(List.of(List.of(Double.NaN))).when(embeddings).encode(any());
+        assertThatThrownBy(()->hybrid.search(alice,query)).isInstanceOf(Rejected.class);
+    }
     @Autowired com.skillhunters.search.StructuredSearchService search;
     com.skillhunters.search.StructuredSearchService.Query searchQuery(boolean strict,String skill,Integer months) {
         return new com.skillhunters.search.StructuredSearchService.Query(poolA,List.of(
