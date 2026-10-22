@@ -94,3 +94,12 @@ requête, après relecture explicite, utilise SH-14 sous les mêmes contrôles d
 V13 garde uniquement la proposition et la trace confirmée pendant 30 minutes, sans
 texte original ni copie de résultats. Voir `validation/sh-15.md` pour la grammaire,
 les ambiguïtés et les limites de cette première version.
+
+## Recherche hybride SH-16 (incrément)
+
+Un worker ONNX CPU local encode seulement les libellés canoniques professionnels.
+Le service Java parcourt les pages publiées autorisées de SH-14 puis réunit preuve
+exacte, tokens lexicaux et cosinus. Les états de preuve restent séparés des signaux
+de récupération. Aucun vecteur candidat persisté à ce stade : l'index pgvector
+et la recherche sur sections narratives filtrées restent à réaliser. Voir
+`validation/sh-16.md` pour les limites, le modèle et la qualification technique.

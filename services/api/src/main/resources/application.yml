@@ -59,6 +59,9 @@ management:
         readiness:
           include: readinessState,db
 app:
+  embeddings:
+    endpoint: ${EMBEDDING_ENDPOINT:http://localhost:8091/embed}
+    token: ${WORKER_TOKEN:}
   analysis:
     enabled: ${ANALYSIS_ENABLED:false}
     endpoint: ${WORKER_ENDPOINT:http://localhost:8090/analyze}

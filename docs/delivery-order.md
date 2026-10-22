@@ -21,6 +21,8 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 
 | SH-14 | Fusionnée, PR #14 | Recherche structurée, preuve par critère, mode strict réversible ; voir validation/sh-14.md |
 
-| SH-15 | Implémentée, validation en cours | Français borné, ambiguïtés et confirmation avant recherche ; voir validation/sh-15.md |
+| SH-15 | Fusionnée, PR #15 | Français borné, ambiguïtés et confirmation avant recherche ; voir validation/sh-15.md |
+
+| SH-16 | Incrément implémenté, validation en cours | Union structurée/lexicale/vectorielle locale, limitée aux compétences du dictionnaire ; index pgvector persistant et benchmark corpus restent à réaliser, voir validation/sh-16.md |
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.

@@ -1,0 +1,43 @@
+{
+  "synthetic": true,
+  "model": "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v1",
+  "python": "3.12.14",
+  "platform": "Linux-6.18.55-x86_64-with-glibc2.39",
+  "cpu": "x86_64",
+  "logicalCpus": 9,
+  "inferenceThreads": 1,
+  "samples": 10,
+  "labelsPerSample": 12,
+  "loadSeconds": 1.307,
+  "batchMedianSeconds": 0.0406,
+  "batchMaxSeconds": 0.0542,
+  "maxRssKiB": 478972,
+  "pairs": [
+    {
+      "a": "développement logiciel",
+      "b": "software development",
+      "cosine": 0.972144
+    },
+    {
+      "a": "gestion de projet",
+      "b": "project management",
+      "cosine": 0.952207
+    },
+    {
+      "a": "orchestration de conteneurs",
+      "b": "container orchestration",
+      "cosine": 0.720219
+    },
+    {
+      "a": "Java",
+      "b": "JavaScript",
+      "cosine": 0.459254
+    },
+    {
+      "a": "Java",
+      "b": "Spring Boot",
+      "cosine": 0.002532
+    }
+  ],
+  "scope": "Smoke qualification only: no corpus-level recall, fairness or 10000-candidate latency claim."
+}

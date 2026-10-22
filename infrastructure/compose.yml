@@ -82,6 +82,27 @@ services:
     pids_limit: 32
     depends_on:
       clamav: {condition: service_started}
+  embedding-worker:
+    build:
+      context: ..
+      dockerfile: services/embedding-worker/Dockerfile
+    environment:
+      WORKER_TOKEN: ${WORKER_TOKEN:?Run init_local.py --upgrade-analysis}
+    ports: ["127.0.0.1:8091:8091"]
+    networks: [analysis]
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 32
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8091/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      start_period: 30s
+      retries: 12
   api:
     profiles: [app]
     build:
@@ -90,6 +111,7 @@ services:
     environment:
       ANALYSIS_ENABLED: "true"
       WORKER_ENDPOINT: http://document-worker:8090/analyze
+      EMBEDDING_ENDPOINT: http://embedding-worker:8091/embed
       WORKER_TOKEN: ${WORKER_TOKEN:?Run init_local.py --upgrade-analysis}
       DB_URL: jdbc:postgresql://postgres:5432/skillhunters
       DB_USER: skillhunters
@@ -110,6 +132,7 @@ services:
       keycloak: {condition: service_healthy}
       s3: {condition: service_healthy}
       document-worker: {condition: service_started}
+      embedding-worker: {condition: service_healthy}
     healthcheck:
       test: ["CMD", "java", "-cp", "/app", "Healthcheck"]
       interval: 10s

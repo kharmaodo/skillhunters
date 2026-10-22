@@ -33,6 +33,10 @@ export function message(error: unknown): string {
     if (error.code === 'IMPORT_IN_PROGRESS') return 'Une tentative est encore active. Actualisez le lot puis reprenez après l’heure indiquée.';
     if (error.code === 'BATCH_RESUME_REQUIRED') return 'Ce document appartient à un lot. Ouvrez le lot pour reprendre son transfert.';
     if (error.code === 'INVALID_STRUCTURED_SEARCH') return 'Vérifiez les compétences, les types de périodes et les seuils en mois.';
+    if (error.code === 'INVALID_HYBRID_SEARCH') return 'Le seuil de similarité doit être compris entre 0,50 et 1.';
+    if (error.code === 'HYBRID_DICTIONARY_REQUIRED') return 'La recherche hybride exige des compétences connues du dictionnaire. Utilisez la recherche structurée pour les autres termes.';
+    if (error.code === 'HYBRID_PAGE_TOO_DENSE') return 'Cette page contient plus de 128 libellés distincts. Utilisez la recherche structurée pour poursuivre sans tronquer les profils.';
+    if (error.code === 'EMBEDDINGS_UNAVAILABLE') return 'Le moteur sémantique local est indisponible. Réessayez ou désactivez explicitement la recherche hybride.';
     if (error.code === 'UNSUPPORTED_SEARCH_LANGUAGE') return 'Formulation ou compétence non reconnue. Utilisez les compétences du dictionnaire, séparez les demandes par un point-virgule et suivez les exemples. Aucun critère n’a été appliqué.';
     if (error.code === 'PROHIBITED_SEARCH_CRITERION') return 'Cette demande contient un critère personnel ou non pertinent. Utilisez uniquement des compétences professionnelles, durées et récence.';
     if (error.code === 'INVALID_NATURAL_SEARCH') return 'Vérifiez la demande : dix compétences maximum, 2 000 caractères et des durées de 1 à 1 200 mois.';
