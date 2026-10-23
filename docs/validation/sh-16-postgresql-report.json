@@ -1,0 +1,297 @@
+{
+  "corpus": "sh16-synthetic-1",
+  "corpusSha256": "1297f44d4e6680b57d5e8aa070dd576a13a3f3e18634a55c53312ac526691450",
+  "synthetic": true,
+  "profiles": 42,
+  "queries": 30,
+  "model": "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v2",
+  "strategy": "scoped-professional-union-v3",
+  "projection": "professional-dictionary-mentions-v1",
+  "database": "PostgreSQL",
+  "threshold": 0.65,
+  "meanExhaustiveRecall": 1.0,
+  "meanPrecision": 0.678888888888889,
+  "searchMillis": 11474,
+  "embeddingRuntime": {
+    "platform": "Linux-6.17.0-1022-azure-x86_64-with-glibc2.39",
+    "python": "3.12.15",
+    "logicalCpus": 4,
+    "inferenceThreads": 1,
+    "loadSeconds": 0.638578286999973,
+    "encodeSeconds": 0.0656832989999998,
+    "maxRssKiB": 484240
+  },
+  "results": [
+    {
+      "elapsedMillis": 479,
+      "returned": 5,
+      "query": "q01",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 402,
+      "returned": 4,
+      "query": "q02",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 374,
+      "returned": 5,
+      "query": "q03",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 367,
+      "returned": 5,
+      "query": "q04",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 357,
+      "returned": 3,
+      "query": "q05",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 368,
+      "returned": 5,
+      "query": "q06",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 342,
+      "returned": 5,
+      "query": "q07",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 374,
+      "returned": 2,
+      "query": "q08",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 359,
+      "returned": 5,
+      "query": "q09",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 446,
+      "returned": 6,
+      "query": "q10",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.3333333333333333,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 661,
+      "returned": 4,
+      "query": "q11",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 681,
+      "returned": 6,
+      "query": "q12",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.3333333333333333,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 531,
+      "returned": 3,
+      "query": "q13",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 339,
+      "returned": 4,
+      "query": "q14",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.5,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 320,
+      "returned": 3,
+      "query": "q15",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 317,
+      "returned": 2,
+      "query": "q16",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 338,
+      "returned": 2,
+      "query": "q17",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 331,
+      "returned": 2,
+      "query": "q18",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 317,
+      "returned": 5,
+      "query": "q19",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 323,
+      "returned": 2,
+      "query": "q20",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 353,
+      "returned": 5,
+      "query": "q21",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.4,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 316,
+      "returned": 2,
+      "query": "q22",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 326,
+      "returned": 2,
+      "query": "q23",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 328,
+      "returned": 2,
+      "query": "q24",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 320,
+      "returned": 3,
+      "query": "q25",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 323,
+      "returned": 3,
+      "query": "q26",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 326,
+      "returned": 3,
+      "query": "q27",
+      "missing": [],
+      "pages": 6,
+      "precision": 0.6666666666666666,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 332,
+      "returned": 2,
+      "query": "q28",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 463,
+      "returned": 2,
+      "query": "q29",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    {
+      "elapsedMillis": 340,
+      "returned": 2,
+      "query": "q30",
+      "missing": [],
+      "pages": 6,
+      "precision": 1.0,
+      "recall": 1.0
+    }
+  ],
+  "limits": "Synthetic normalized Markdown only; parser mocked. Real ONNX vectors, production retrieval and pagination. No ranking: Recall@20/nDCG@10 and 10000-profile latency are not claimed; SH-18/19 and broader format qualification remain separate gates."
+}

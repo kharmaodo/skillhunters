@@ -45,6 +45,23 @@ Le parcours de récupération SH-16 est livré pour ce vocabulaire professionnel
 
 L'ordre UUID n'est pas un classement de pertinence. Les objectifs globaux Recall@20/nDCG@10 du dossier doivent être évalués avec le classement SH-18/19 ; ils ne sont pas déclarés atteints par un rappel exhaustif. La qualification multi-format OCR, un corpus métier indépendant et la latence à 10 000 profils restent des gates MVP, sans promesse déduite de ce petit corpus. Les appels froids sont sérialisés par dictionnaire ; aucun gain de capacité à grande échelle n'est affirmé.
 
-## Résultat local conservé
+## Résultats validés et livraison
 
-Le rapport `sh-16-corpus-report.json` mesure sur H2 et les vrais vecteurs ONNX un rappel exhaustif moyen de 100 % et une précision moyenne de 67,89 % (30 requêtes, 42 profils). Les faux positifs restent des rapprochements à vérifier. La migration et les opérateurs PostgreSQL natifs doivent être confirmés par la CI avant fusion. Les 128 tests hors corpus, les 4 tests ONNX, le build frontend et les contrôles L0 ont réussi ; le test de corpus a ensuite réussi séparément.
+SH-16 est livrée dans `develop` par les PR [#16](https://github.com/kharmaodo/skillhunters/pull/16) et [#17](https://github.com/kharmaodo/skillhunters/pull/17), fusionnées respectivement les 22 et 23 octobre 2026. Le commit testé de la PR #17 est `b4be0e5274d98d2a05eb8b16a7ae74ce6dc082b9` ; son commit de fusion est `1c70b52`.
+
+Le [workflow CI 39909069938](https://github.com/kharmaodo/skillhunters/actions/runs/39909069938) a terminé avec succès ses deux jobs : `verify` (worker documentaire, ONNX CPU réel, frontend, API avec migrations PostgreSQL) et `compose-smoke` (stack complète, OIDC/révocation, antivirus/analyse, navigateur et responsive). Le workflow Foundation contracts a également réussi.
+
+Le [rapport PostgreSQL conservé](sh-16-postgresql-report.json) provient de l’artefact CI `sh16-corpus-report` (ID 12481749607). Sur 30 requêtes et 42 profils synthétiques : rappel exhaustif moyen **100 %**, précision moyenne **67,89 %**, aucun pertinent manquant dans les annotations. Les résultats H2 locaux étaient identiques pour ces deux métriques. Les 11 474 ms cumulés de recherche du rapport ne constituent pas une mesure de latence de production à 10 000 profils.
+
+### Critères d’acceptation vérifiés
+
+| Exigence SH-16 | Réalisation et preuve |
+|---|---|
+| Retrouver un synonyme validé avec sa preuve | Normalisation du dictionnaire, canal structuré conservé ; tests hybrides et corpus FR/EN/alias dans le job `verify` |
+| Lexical et vecteurs servent au rappel | Union explicite des canaux, seuil visible et pagination exhaustive ; aucun score métier déduit du cosinus |
+| Sections professionnelles autorisées | Projection contrôlée des termes publiés ; identité, contacts, niveaux et clauses sensibles exclus des embeddings |
+| Modèle, index et stratégie traçables | Réponse `retrieval` versionnée, manifeste SHA-256 et générations persistantes par dictionnaire/modèle |
+| Droits et cycle de vie | Tests de révocation, publication, expiration, suppression et réutilisation du cache ; parcours OIDC réel réussi |
+| Installation et interface | Migrations PostgreSQL/pgvector natives et parcours Compose/navigateur réussis |
+
+La livraison concerne le périmètre professionnel contrôlé décrit ci-dessus. Les limites de qualification de la section précédente restent ouvertes pour le MVP : elles ne sont pas transformées en résultats acquis par cette clôture. SH-18/19 portent le score et le classement ; SH-35 porte leur validation qualité. Aucune qualification multi-format du moteur de recherche ni mesure à 10 000 profils n’est annoncée.
