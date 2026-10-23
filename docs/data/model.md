@@ -108,3 +108,7 @@ source, avec dictionnaire figé pour la requête. Les vecteurs temporaires ne po
 que sur des libellés canoniques et disparaissent après la réponse. La trace renvoie
 modèle, projection/dictionnaire, stratégie, seuil et citations. Le stockage pgvector
 cible décrit plus haut n'est pas encore implémenté par cet incrément.
+
+## Index professionnel SH-16 (V14)
+
+`skill_vector_generation` identifie le couple dictionnaire/modèle et la dimension 384. `skill_vector_entry` stocke UUID de compétence, libellé canonique, vecteur et, sur PostgreSQL, tsvector généré. Unicité par version/modèle/compétence et version/modèle/libellé. Suppression en cascade depuis la version de dictionnaire. Aucune FK candidat et aucun texte de CV : les publications et citations restent lues à la demande. Voir `../validation/sh-16-index.md`.

@@ -12,16 +12,16 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class HybridSearchService {
-    public static final String STRATEGY="scoped-live-union-v1";
+    public static final String STRATEGY="scoped-professional-union-v3";
     public record Request(StructuredSearchService.Query query,double minimumSimilarity) {}
-    public record Signal(UUID candidateId,int criterionIndex,int sourceIndex,String matchedSkill,String channel,double similarity,List<StructuredExtractor.Evidence> citations) {}
-    public record Retrieval(String model,String index,String strategy,double minimumSimilarity,List<Signal> signals) {}
+    public record Signal(UUID candidateId,int criterionIndex,int sourceIndex,String matchedSkill,String channel,double similarity,List<StructuredExtractor.Evidence> citations,StructuredExtractor.Field sourceField) {}
+    public record Retrieval(String model,String index,String strategy,double minimumSimilarity,List<Signal> signals,String storage,int reusedLabels,int indexedLabels) {}
     public record Result(UUID searchId,StructuredSearchService.Trace trace,List<StructuredSearchService.Hit> items,int scanned,String nextCursor,Retrieval retrieval) {}
-    private record Label(UUID candidateId,int sourceIndex,String name,List<StructuredExtractor.Evidence> citations) {}
+    private record Label(UUID candidateId,int sourceIndex,String name,List<StructuredExtractor.Evidence> citations,StructuredExtractor.Field field) {}
     private final StructuredSearchService structured;private final ReviewService reviews;private final TaxonomyService taxonomy;
-    private final EmbeddingPort embeddings;private final TransactionTemplate tx;
-    public HybridSearchService(StructuredSearchService structured,ReviewService reviews,TaxonomyService taxonomy,EmbeddingPort embeddings,TransactionTemplate tx) {
-        this.structured=structured;this.reviews=reviews;this.taxonomy=taxonomy;this.embeddings=embeddings;this.tx=tx;
+    private final PersistentSkillVectorIndex index;private final TransactionTemplate tx;
+    public HybridSearchService(StructuredSearchService structured,ReviewService reviews,TaxonomyService taxonomy,PersistentSkillVectorIndex index,TransactionTemplate tx) {
+        this.structured=structured;this.reviews=reviews;this.taxonomy=taxonomy;this.index=index;this.tx=tx;
     }
     public Result search(UUID actor,Request request) {
         if(request==null||request.query()==null||!Double.isFinite(request.minimumSimilarity())||request.minimumSimilarity()<0.5||request.minimumSimilarity()>1)
@@ -39,7 +39,7 @@ public class HybridSearchService {
                 if(match.canonical()==null||FrenchSearchInterpreter.forbidden(match.canonical())) throw new Rejected(HttpStatus.BAD_REQUEST,"HYBRID_DICTIONARY_REQUIRED");
                 queryLabels.add(match.canonical());terms.add(match.canonical());
             }
-            var labels=new ArrayList<Label>();
+            var labels=new ArrayList<Label>();var projection=new ProfessionalTextProjection(dictionary);
             for(var hit:page.items()) {
                 var publication=reviews.publication(actor,hit.candidateId());
                 var state=reviews.get(actor,hit.candidateId());
@@ -47,28 +47,32 @@ public class HybridSearchService {
                     var match=TaxonomyService.normalize(dictionary,item.value());
                     // No raw CV, identity, narrative, contact, declared level or unrecognized label enters the embedding path.
                     if(match.canonical()==null||FrenchSearchInterpreter.forbidden(match.canonical())) continue;
-                    labels.add(new Label(hit.candidateId(),item.sourceIndex(),match.canonical(),state.source().proposal().claims().get(item.sourceIndex()).evidence()));
+                    labels.add(new Label(hit.candidateId(),item.sourceIndex(),match.canonical(),state.source().proposal().claims().get(item.sourceIndex()).evidence(),StructuredExtractor.Field.SKILL));
                     terms.add(match.canonical());
+                }
+                // Read the published revision, never a newer draft. Only approved professional
+                // dictionary mentions survive the projection; raw text stays within Talent.
+                var revision=reviews.revision(actor,hit.candidateId(),publication.revisionId());
+                for(var item:revision.items()) if(item.decision()==ReviewService.Decision.VALIDATED) {
+                    var claim=state.source().proposal().claims().get(item.sourceIndex());
+                    for(String name:projection.labels(claim.field(),item.value())) {
+                        labels.add(new Label(hit.candidateId(),item.sourceIndex(),name,claim.evidence(),claim.field()));
+                        terms.add(name);
+                    }
                 }
             }
             if(terms.size()>128) throw new Rejected(HttpStatus.UNPROCESSABLE_ENTITY,"HYBRID_PAGE_TOO_DENSE");
-            var vectors=new HashMap<String,List<Double>>();
-            if(!labels.isEmpty()) {
-                List<List<Double>> encoded;
-                try {encoded=embeddings.encode(List.copyOf(terms));validateVectors(encoded,terms.size());}
-                catch(Exception e) {throw new Rejected(HttpStatus.SERVICE_UNAVAILABLE,"EMBEDDINGS_UNAVAILABLE");}
-                int i=0;for(String term:terms) vectors.put(term,encoded.get(i++));
-            }
+            var indexed=labels.isEmpty()?new PersistentSkillVectorIndex.Result(Map.of(),"not-used",0,0,Set.of()):index.similarities(dictionary,queryLabels,terms);
             var signals=new ArrayList<Signal>();var included=new ArrayList<StructuredSearchService.Hit>();
             for(var hit:page.items()) {
                 int before=signals.size();
                 for(int i=0;i<queryLabels.size();i++) {
                     String wanted=queryLabels.get(i);var criterion=hit.criteria().get(i);
                     for(var label:labels) if(label.candidateId().equals(hit.candidateId())) {
-                        double cosine=cosine(vectors.get(wanted),vectors.get(label.name()));
+                        double cosine=indexed.similarities().get(new PersistentSkillVectorIndex.Pair(wanted,label.name()));
                         boolean exact=criterion.evidence().stream().anyMatch(e->e.sourceIndex()==label.sourceIndex());
-                        String channel=exact?"STRUCTURED":lexical(wanted,label.name())?"LEXICAL":cosine>=threshold?"VECTOR":null;
-                        if(channel!=null) signals.add(new Signal(hit.candidateId(),i,label.sourceIndex(),label.name(),channel,cosine,label.citations()));
+                        String channel=exact?"STRUCTURED":indexed.lexicalMatches().contains(new PersistentSkillVectorIndex.Pair(wanted,label.name()))?"LEXICAL":cosine>=threshold?"VECTOR":null;
+                        if(channel!=null) signals.add(new Signal(hit.candidateId(),i,label.sourceIndex(),label.name(),channel,cosine,label.citations(),label.field()));
                     }
                 }
                 // Exact structured evidence is never dropped merely because a dictionary entry was removed/renamed.
@@ -78,7 +82,7 @@ public class HybridSearchService {
                 }
             }
             return new Result(page.searchId(),page.trace(),List.copyOf(included),page.scanned(),encode(page.nextCursor(),threshold),
-                new Retrieval(EmbeddingPort.MODEL,"published-skill-projection-v1/dictionary-"+dictionary.version(),STRATEGY,threshold,List.copyOf(signals)));
+                new Retrieval(EmbeddingPort.MODEL,"skill-vectors-v2/dictionary-"+dictionary.version(),STRATEGY,threshold,List.copyOf(signals),indexed.storage(),indexed.reusedLabels(),indexed.indexedLabels()));
         });
     }
     public static boolean lexical(String a,String b) {
@@ -99,14 +103,14 @@ public class HybridSearchService {
         return Math.max(-1,Math.min(1,result));
     }
     private static String encode(String cursor,double threshold) {
-        return cursor==null?null:Base64.getUrlEncoder().withoutPadding().encodeToString((EmbeddingPort.MODEL+"|"+threshold+"|"+cursor).getBytes(StandardCharsets.UTF_8));
+        return cursor==null?null:Base64.getUrlEncoder().withoutPadding().encodeToString((EmbeddingPort.MODEL+"/"+STRATEGY+"|"+threshold+"|"+cursor).getBytes(StandardCharsets.UTF_8));
     }
     private static String decode(String cursor,double threshold) {
         if(cursor==null) return null;
         try {
             if(cursor.length()>500) throw new IllegalArgumentException();
             var parts=new String(Base64.getUrlDecoder().decode(cursor),StandardCharsets.UTF_8).split("\\|",-1);
-            if(parts.length!=3||!parts[0].equals(EmbeddingPort.MODEL)||!parts[1].equals(""+threshold)) throw new IllegalArgumentException();
+            if(parts.length!=3||!parts[0].equals(EmbeddingPort.MODEL+"/"+STRATEGY)||!parts[1].equals(""+threshold)) throw new IllegalArgumentException();
             return parts[2];
         } catch(IllegalArgumentException e) {throw new Rejected(HttpStatus.BAD_REQUEST,"SEARCH_CURSOR_CHANGED");}
     }

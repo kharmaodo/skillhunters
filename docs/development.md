@@ -180,3 +180,14 @@ local que l'analyse. L'API utilise `EMBEDDING_ENDPOINT` (défaut local
 `http://localhost:8091/embed`, valeur Compose `http://embedding-worker:8091/embed`).
 La recherche structurée reste utilisable si l'option hybride n'est pas activée.
 Consulter `validation/sh-16.md` avant d'évaluer la pertinence ou la performance.
+
+## Mise à jour SH-16 : pgvector
+
+PostgreSQL 17 utilise maintenant l’image pgvector 0.8.7 épinglée dans Compose. Sauvegarder la base, conserver le volume, puis recréer postgres avant l’API :
+
+```sh
+docker compose --env-file .env -f infrastructure/compose.yml up -d postgres
+docker compose --env-file .env -f infrastructure/compose.yml --profile app up -d --build api
+```
+
+Flyway crée l’extension et les tables V14. Hors Compose, pgvector 0.8.7 doit être installé dans PostgreSQL. Ne pas supprimer le volume pour appliquer cette migration. Les vieux curseurs hybrides doivent être abandonnés. Voir `validation/sh-16-index.md` pour lancer le corpus annoté et interpréter le rapport.

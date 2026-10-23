@@ -1,0 +1,672 @@
+{
+  "version": "sh16-synthetic-1",
+  "synthetic": true,
+  "annotation": "All query/profile pairs judged by explicit concept equivalence; unlisted profiles are non-relevant. Technical mention alone does not prove mastery. Authored before measuring; not an independent recruitment evaluation.",
+  "threshold": 0.65,
+  "skills": [
+    {
+      "name": "développement logiciel",
+      "aliases": [
+        "génie logiciel"
+      ]
+    },
+    {
+      "name": "software development",
+      "aliases": []
+    },
+    {
+      "name": "gestion de projet",
+      "aliases": [
+        "pilotage de projet"
+      ]
+    },
+    {
+      "name": "project management",
+      "aliases": []
+    },
+    {
+      "name": "orchestration de conteneurs",
+      "aliases": [
+        "orchestration containers"
+      ]
+    },
+    {
+      "name": "container orchestration",
+      "aliases": []
+    },
+    {
+      "name": "gestion de bases de données",
+      "aliases": [
+        "administration de bases"
+      ]
+    },
+    {
+      "name": "database management",
+      "aliases": []
+    },
+    {
+      "name": "tests logiciels",
+      "aliases": [
+        "test logiciel"
+      ]
+    },
+    {
+      "name": "software testing",
+      "aliases": []
+    },
+    {
+      "name": "sécurité informatique",
+      "aliases": [
+        "cybersécurité"
+      ]
+    },
+    {
+      "name": "computer security",
+      "aliases": []
+    },
+    {
+      "name": "analyse de données",
+      "aliases": [
+        "analyse data"
+      ]
+    },
+    {
+      "name": "data analysis",
+      "aliases": []
+    },
+    {
+      "name": "apprentissage automatique",
+      "aliases": [
+        "apprentissage machine"
+      ]
+    },
+    {
+      "name": "machine learning",
+      "aliases": []
+    },
+    {
+      "name": "développement web",
+      "aliases": [
+        "programmation web"
+      ]
+    },
+    {
+      "name": "web development",
+      "aliases": []
+    },
+    {
+      "name": "intégration continue",
+      "aliases": [
+        "CI"
+      ]
+    },
+    {
+      "name": "continuous integration",
+      "aliases": []
+    },
+    {
+      "name": "Java",
+      "aliases": []
+    },
+    {
+      "name": "JavaScript",
+      "aliases": []
+    },
+    {
+      "name": "C++",
+      "aliases": []
+    },
+    {
+      "name": "C#",
+      "aliases": []
+    },
+    {
+      "name": "PostgreSQL",
+      "aliases": []
+    },
+    {
+      "name": "Kafka",
+      "aliases": []
+    },
+    {
+      "name": "Kotlin",
+      "aliases": []
+    },
+    {
+      "name": "Rust",
+      "aliases": []
+    },
+    {
+      "name": "Swift",
+      "aliases": []
+    },
+    {
+      "name": "Docker",
+      "aliases": []
+    },
+    {
+      "name": "Kubernetes",
+      "aliases": []
+    },
+    {
+      "name": "Spring Boot",
+      "aliases": []
+    },
+    {
+      "name": "React",
+      "aliases": []
+    },
+    {
+      "name": "Angular",
+      "aliases": []
+    },
+    {
+      "name": "SQL",
+      "aliases": []
+    },
+    {
+      "name": "Python",
+      "aliases": []
+    },
+    {
+      "name": "Go",
+      "aliases": []
+    },
+    {
+      "name": "Ruby",
+      "aliases": []
+    },
+    {
+      "name": "PHP",
+      "aliases": []
+    },
+    {
+      "name": "TypeScript",
+      "aliases": []
+    }
+  ],
+  "profiles": [
+    {
+      "id": "fr-01",
+      "text": "Compétence : génie logiciel",
+      "format": "markdown"
+    },
+    {
+      "id": "en-01",
+      "text": "Titre : software development",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-02",
+      "text": "Titre : pilotage de projet",
+      "format": "markdown"
+    },
+    {
+      "id": "en-02",
+      "text": "Expérience : project management",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-03",
+      "text": "Expérience : orchestration containers",
+      "format": "markdown"
+    },
+    {
+      "id": "en-03",
+      "text": "Formation : container orchestration",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-04",
+      "text": "Formation : administration de bases",
+      "format": "markdown"
+    },
+    {
+      "id": "en-04",
+      "text": "Certification : database management",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-05",
+      "text": "Certification : test logiciel",
+      "format": "markdown"
+    },
+    {
+      "id": "en-05",
+      "text": "Compétence : software testing",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-06",
+      "text": "Compétence : cybersécurité",
+      "format": "markdown"
+    },
+    {
+      "id": "en-06",
+      "text": "Titre : computer security",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-07",
+      "text": "Titre : analyse data",
+      "format": "markdown"
+    },
+    {
+      "id": "en-07",
+      "text": "Expérience : data analysis",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-08",
+      "text": "Expérience : apprentissage machine",
+      "format": "markdown"
+    },
+    {
+      "id": "en-08",
+      "text": "Formation : machine learning",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-09",
+      "text": "Formation : programmation web",
+      "format": "markdown"
+    },
+    {
+      "id": "en-09",
+      "text": "Certification : web development",
+      "format": "markdown"
+    },
+    {
+      "id": "fr-10",
+      "text": "Certification : CI",
+      "format": "markdown"
+    },
+    {
+      "id": "en-10",
+      "text": "Compétence : continuous integration",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-01",
+      "text": "Compétence : Java",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-02",
+      "text": "Compétence : JavaScript",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-03",
+      "text": "Compétence : C++",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-04",
+      "text": "Compétence : C#",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-05",
+      "text": "Compétence : PostgreSQL",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-06",
+      "text": "Compétence : Kafka",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-07",
+      "text": "Compétence : Kotlin",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-08",
+      "text": "Compétence : Rust",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-09",
+      "text": "Compétence : Swift",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-10",
+      "text": "Compétence : Docker",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-11",
+      "text": "Compétence : Kubernetes",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-12",
+      "text": "Compétence : Spring Boot",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-13",
+      "text": "Compétence : React",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-14",
+      "text": "Compétence : Angular",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-15",
+      "text": "Compétence : SQL",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-16",
+      "text": "Compétence : Python",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-17",
+      "text": "Compétence : Go",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-18",
+      "text": "Compétence : Ruby",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-19",
+      "text": "Compétence : PHP",
+      "format": "markdown"
+    },
+    {
+      "id": "distractor-20",
+      "text": "Compétence : TypeScript",
+      "format": "markdown"
+    },
+    {
+      "id": "excluded-name",
+      "text": "Nom : développement logiciel",
+      "format": "markdown"
+    },
+    {
+      "id": "excluded-hobby",
+      "text": "Loisirs : gestion de projet",
+      "format": "markdown"
+    }
+  ],
+  "queries": [
+    {
+      "id": "q01",
+      "text": "développement logiciel",
+      "relevant": [
+        "fr-01",
+        "en-01"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q02",
+      "text": "software development",
+      "relevant": [
+        "fr-01",
+        "en-01"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q03",
+      "text": "génie logiciel",
+      "relevant": [
+        "fr-01",
+        "en-01"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q04",
+      "text": "gestion de projet",
+      "relevant": [
+        "fr-02",
+        "en-02"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q05",
+      "text": "project management",
+      "relevant": [
+        "fr-02",
+        "en-02"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q06",
+      "text": "pilotage de projet",
+      "relevant": [
+        "fr-02",
+        "en-02"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q07",
+      "text": "orchestration de conteneurs",
+      "relevant": [
+        "fr-03",
+        "en-03"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q08",
+      "text": "container orchestration",
+      "relevant": [
+        "fr-03",
+        "en-03"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q09",
+      "text": "orchestration containers",
+      "relevant": [
+        "fr-03",
+        "en-03"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q10",
+      "text": "gestion de bases de données",
+      "relevant": [
+        "fr-04",
+        "en-04"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q11",
+      "text": "database management",
+      "relevant": [
+        "fr-04",
+        "en-04"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q12",
+      "text": "administration de bases",
+      "relevant": [
+        "fr-04",
+        "en-04"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q13",
+      "text": "tests logiciels",
+      "relevant": [
+        "fr-05",
+        "en-05"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q14",
+      "text": "software testing",
+      "relevant": [
+        "fr-05",
+        "en-05"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q15",
+      "text": "test logiciel",
+      "relevant": [
+        "fr-05",
+        "en-05"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q16",
+      "text": "sécurité informatique",
+      "relevant": [
+        "fr-06",
+        "en-06"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q17",
+      "text": "computer security",
+      "relevant": [
+        "fr-06",
+        "en-06"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q18",
+      "text": "cybersécurité",
+      "relevant": [
+        "fr-06",
+        "en-06"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q19",
+      "text": "analyse de données",
+      "relevant": [
+        "fr-07",
+        "en-07"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q20",
+      "text": "data analysis",
+      "relevant": [
+        "fr-07",
+        "en-07"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q21",
+      "text": "analyse data",
+      "relevant": [
+        "fr-07",
+        "en-07"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q22",
+      "text": "apprentissage automatique",
+      "relevant": [
+        "fr-08",
+        "en-08"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q23",
+      "text": "machine learning",
+      "relevant": [
+        "fr-08",
+        "en-08"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q24",
+      "text": "apprentissage machine",
+      "relevant": [
+        "fr-08",
+        "en-08"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q25",
+      "text": "développement web",
+      "relevant": [
+        "fr-09",
+        "en-09"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q26",
+      "text": "web development",
+      "relevant": [
+        "fr-09",
+        "en-09"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q27",
+      "text": "programmation web",
+      "relevant": [
+        "fr-09",
+        "en-09"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q28",
+      "text": "intégration continue",
+      "relevant": [
+        "fr-10",
+        "en-10"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q29",
+      "text": "continuous integration",
+      "relevant": [
+        "fr-10",
+        "en-10"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    },
+    {
+      "id": "q30",
+      "text": "CI",
+      "relevant": [
+        "fr-10",
+        "en-10"
+      ],
+      "reason": "Same professional concept; alias explicitly validated; FR/EN translation."
+    }
+  ]
+}

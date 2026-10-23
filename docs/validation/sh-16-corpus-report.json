@@ -1,0 +1,266 @@
+{
+  "corpus" : "sh16-synthetic-1",
+  "corpusSha256" : "1297f44d4e6680b57d5e8aa070dd576a13a3f3e18634a55c53312ac526691450",
+  "synthetic" : true,
+  "profiles" : 42,
+  "queries" : 30,
+  "model" : "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v2",
+  "strategy" : "scoped-professional-union-v3",
+  "projection" : "professional-dictionary-mentions-v1",
+  "database" : "H2",
+  "threshold" : 0.65,
+  "meanExhaustiveRecall" : 1.0,
+  "meanPrecision" : 0.678888888888889,
+  "searchMillis" : 5128,
+  "embeddingRuntime" : {
+    "platform" : "Linux-6.18.55-x86_64-with-glibc2.39",
+    "python" : "3.12.14",
+    "logicalCpus" : 9,
+    "inferenceThreads" : 1,
+    "loadSeconds" : 2.801116513000011,
+    "encodeSeconds" : 0.5282808790000217,
+    "maxRssKiB" : 485700
+  },
+  "results" : [ {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 663,
+    "returned" : 5,
+    "query" : "q01",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.5,
+    "recall" : 1.0,
+    "elapsedMillis" : 327,
+    "returned" : 4,
+    "query" : "q02",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 264,
+    "returned" : 5,
+    "query" : "q03",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 254,
+    "returned" : 5,
+    "query" : "q04",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 266,
+    "returned" : 3,
+    "query" : "q05",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 175,
+    "returned" : 5,
+    "query" : "q06",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 260,
+    "returned" : 5,
+    "query" : "q07",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 268,
+    "returned" : 2,
+    "query" : "q08",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 137,
+    "returned" : 5,
+    "query" : "q09",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.3333333333333333,
+    "recall" : 1.0,
+    "elapsedMillis" : 192,
+    "returned" : 6,
+    "query" : "q10",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.5,
+    "recall" : 1.0,
+    "elapsedMillis" : 132,
+    "returned" : 4,
+    "query" : "q11",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.3333333333333333,
+    "recall" : 1.0,
+    "elapsedMillis" : 122,
+    "returned" : 6,
+    "query" : "q12",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 145,
+    "returned" : 3,
+    "query" : "q13",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.5,
+    "recall" : 1.0,
+    "elapsedMillis" : 155,
+    "returned" : 4,
+    "query" : "q14",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 138,
+    "returned" : 3,
+    "query" : "q15",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 96,
+    "returned" : 2,
+    "query" : "q16",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 112,
+    "returned" : 2,
+    "query" : "q17",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 112,
+    "returned" : 2,
+    "query" : "q18",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 141,
+    "returned" : 5,
+    "query" : "q19",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 98,
+    "returned" : 2,
+    "query" : "q20",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.4,
+    "recall" : 1.0,
+    "elapsedMillis" : 93,
+    "returned" : 5,
+    "query" : "q21",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 164,
+    "returned" : 2,
+    "query" : "q22",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 125,
+    "returned" : 2,
+    "query" : "q23",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 100,
+    "returned" : 2,
+    "query" : "q24",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 99,
+    "returned" : 3,
+    "query" : "q25",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 85,
+    "returned" : 3,
+    "query" : "q26",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 0.6666666666666666,
+    "recall" : 1.0,
+    "elapsedMillis" : 92,
+    "returned" : 3,
+    "query" : "q27",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 73,
+    "returned" : 2,
+    "query" : "q28",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 89,
+    "returned" : 2,
+    "query" : "q29",
+    "missing" : [ ]
+  }, {
+    "pages" : 6,
+    "precision" : 1.0,
+    "recall" : 1.0,
+    "elapsedMillis" : 102,
+    "returned" : 2,
+    "query" : "q30",
+    "missing" : [ ]
+  } ],
+  "limits" : "Synthetic normalized Markdown only; parser mocked. Real ONNX vectors, production retrieval and pagination. No ranking: Recall@20/nDCG@10 and 10000-profile latency are not claimed; SH-18/19 and broader format qualification remain separate gates."
+}

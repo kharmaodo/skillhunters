@@ -23,6 +23,7 @@ spring:
     password: ${DB_PASSWORD}
   flyway:
     enabled: true
+    locations: classpath:db/migration,classpath:db/vendor/{vendor}
   jackson:
     deserialization:
       fail-on-unknown-properties: true

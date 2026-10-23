@@ -119,7 +119,7 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(result.items()).hasSize(1);
         assertThat(result.items().getFirst().criteria().getFirst().presence()).isEqualTo(com.skillhunters.search.StructuredMatcher.Status.NOT_DOCUMENTED);
         assertThat(result.retrieval().signals()).anySatisfy(signal->{assertThat(signal.channel()).isEqualTo("VECTOR");assertThat(signal.citations()).isNotEmpty();});
-        verify(embeddings).encode(List.of("Spring Boot","Kafka","Java"));
+        verify(embeddings).encode(List.of("Java","Kafka","Spring Boot"));
         assertThat(hybrid.search(alice,new com.skillhunters.search.HybridSearchService.Request(searchQuery(true,"Spring Boot",null),0.65)).items()).isEmpty();
     }
     @Test void hybridRetainsValidatedAliasWithEvidence() throws Exception {
@@ -138,6 +138,42 @@ class HumanReviewTest extends IdentityTestSupport {
         db.update("UPDATE document_import SET pool_id=?,expires_at=CURRENT_TIMESTAMP-INTERVAL '1' DAY WHERE id=?",poolA,id);
         assertThat(hybrid.search(alice,query).items()).isEmpty();verifyNoInteractions(embeddings);
     }
+    @Test void cachedVectorsDoNotBypassRevokedMembership() throws Exception {
+        hybridDictionary();sameVectors();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var query=new com.skillhunters.search.HybridSearchService.Request(searchQuery(false,"Java",null),0.65);
+        assertThat(hybrid.search(alice,query).retrieval().indexedLabels()).isEqualTo(2);
+        reset(embeddings);when(embeddings.encode(any())).thenThrow(new IllegalStateException("offline"));
+        assertThat(hybrid.search(alice,query).retrieval().reusedLabels()).isEqualTo(2);verifyNoInteractions(embeddings);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->hybrid.search(alice,query)).isInstanceOf(Rejected.class);verifyNoInteractions(embeddings);
+    }
+    @Test void professionalMentionsUsePublishedRevisionAndNeverBecomeExactProof() throws Exception {
+        hybridDictionary();sameVectors();
+        when(analyzer.analyze(any(),any(),any())).thenReturn(new DocumentAnalyzer.Result("EXTRACTED",null,
+            List.of(new DocumentAnalyzer.Block("document","Compétence : Java\nExpérience : Migration Spring Boot\nNom : Kafka")),List.of(),"sh08-test","ClamAV synthetic"));
+        var c=create();var items=accepted(c.id());reviews.save(alice,c.id(),"\"1\"",request(items),true);
+        var query=new com.skillhunters.search.HybridSearchService.Request(searchQuery(false,"Spring Boot",null),0.99);
+        var first=hybrid.search(alice,query);
+        assertThat(first.retrieval().signals()).anySatisfy(signal->{
+            assertThat(signal.matchedSkill()).isEqualTo("Spring Boot");
+            assertThat(signal.sourceField()).isEqualTo(StructuredExtractor.Field.EXPERIENCE);
+            assertThat(signal.channel()).isEqualTo("LEXICAL");assertThat(signal.citations()).isNotEmpty();
+        });
+        assertThat(first.retrieval().signals()).noneMatch(signal->signal.sourceField()==StructuredExtractor.Field.FULL_NAME);
+        assertThat(first.items().getFirst().criteria().getFirst().presence()).isNotEqualTo(com.skillhunters.search.StructuredMatcher.Status.DOCUMENTED);
+        var changed=new ArrayList<>(items);
+        for(int i=0;i<changed.size();i++) if(reviews.get(alice,c.id()).source().proposal().claims().get(i).field()==StructuredExtractor.Field.EXPERIENCE)
+            changed.set(i,new Item(i,null,Decision.REJECTED,Precision.UNKNOWN,null,"Removed mention"));
+        reviews.save(alice,c.id(),"\"2\"",request(changed),false);
+        assertThat(hybrid.search(alice,query).retrieval().signals()).anyMatch(signal->signal.sourceField()==StructuredExtractor.Field.EXPERIENCE);
+        reviews.save(alice,c.id(),"\"3\"",request(changed),true);
+        assertThat(hybrid.search(alice,query).retrieval().signals()).noneMatch(signal->signal.sourceField()==StructuredExtractor.Field.EXPERIENCE);
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(hybrid.search(alice,query).items()).isEmpty();
+    }
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="SH16_BENCHMARK_VECTORS",matches=".+")
+    void annotatedCorpusUsesRealModelAndExhaustiveProductionRetrieval() throws Exception {HybridCorpusBenchmark.run(this);}
     @Test void hybridCursorRejectsAChangedThreshold() {
         var q=searchQuery(false,"Java",null);
         String cursor=Base64.getUrlEncoder().withoutPadding().encodeToString((com.skillhunters.search.EmbeddingPort.MODEL+"|0.65|opaque").getBytes(java.nio.charset.StandardCharsets.UTF_8));

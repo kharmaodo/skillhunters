@@ -32,6 +32,11 @@ class EmbeddingTest(unittest.TestCase):
         self.assertGreater(dot(a,b), dot(a,d))
         self.assertGreater(dot(a,b), 0.65)
 
+    def test_vectors_are_independent_of_batch_order_and_padding(self):
+        alone = self.engine.encode(['Java'])['vectors'][0]
+        mixed = self.engine.encode(['orchestration de conteneurs dans une infrastructure distribuée', 'Java', 'SQL'])['vectors'][1]
+        self.assertEqual(alone, mixed)
+
     def test_limits_do_not_silently_truncate(self):
         for value in [[], ['Java']*129, ['x'*201], ['person@example.com'], ['bad\nlabel'], [None], 'Java']:
             with self.assertRaises(ValueError): self.engine.encode(value)
