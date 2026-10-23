@@ -23,6 +23,12 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 
 | SH-15 | Fusionnée, PR #15 | Français borné, ambiguïtés et confirmation avant recherche ; voir validation/sh-15.md |
 
-| SH-16 | Complément développé, validation et PR en cours | pgvector persistant, plein texte sur projection professionnelle, 30 requêtes synthétiques ; classement et qualification multi-format/grande échelle restent des gates distincts. Voir validation/sh-16-index.md |
+| SH-16 | Livrée, PR #16 et #17 fusionnées ; CI réussie | pgvector persistant, plein texte sur projection professionnelle et corpus PostgreSQL validé (30 requêtes/42 profils). Bilan et limites : [validation/sh-16-index.md](validation/sh-16-index.md) |
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.
+
+## Suite prioritaire après SH-16
+
+SH-18 (score décomposé et reproductible), puis SH-19 (configuration du scoring), sont **Must / MVP** et deviennent les prochains incréments de cette chaîne de dépendances. SH-17 (recherches sauvegardées), **Should / R1**, ne les précède pas. Le complément SH-05 et les autres Must restent ouverts ; aucune clôture implicite n’est faite ici.
+
+Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles qualité SH-35. La qualification multi-format et la mesure à 10 000 profils demeurent des gates MVP non validés. Ce suivi distingue la livraison fonctionnelle de SH-16 de ces objectifs transverses.
