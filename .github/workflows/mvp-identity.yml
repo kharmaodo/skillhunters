@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:17.6
+        image: pgvector/pgvector:0.8.7-pg17-bookworm@sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
         env:
           POSTGRES_DB: skillhunters_test
           POSTGRES_USER: test
@@ -48,6 +48,7 @@ jobs:
           /tmp/embedding-venv/bin/pip install -r services/embedding-worker/requirements.txt
           /tmp/embedding-venv/bin/python services/embedding-worker/download_model.py /tmp/embedding-model
           MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python -m unittest discover -s services/embedding-worker/tests -v
+          MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python scripts/prepare_hybrid_benchmark.py /tmp/sh16-vectors.json
       - name: Build frontend
         working-directory: apps/web
         run: npm ci --no-audit --no-fund && npm run build
@@ -57,7 +58,14 @@ jobs:
           TEST_DB_URL: jdbc:postgresql://localhost:5432/skillhunters_test
           TEST_DB_USER: test
           TEST_DB_PASSWORD: local-test-only
+          SH16_BENCHMARK_VECTORS: /tmp/sh16-vectors.json
         run: mvn -B -ntp verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sh16-corpus-report
+          path: services/api/target/sh-16-corpus-report.json
+          retention-days: 14
   compose-smoke:
     runs-on: ubuntu-latest
     timeout-minutes: 30

@@ -31,8 +31,10 @@ class Engine:
         if any(not isinstance(t, str) or not t.strip() or len(t) > 200 or '@' in t or any(ord(c) < 32 for c in t) for t in texts):
             raise ValueError('INPUT_LABEL')
         vectors = []
-        for start in range(0, len(texts), 8):
-            batch = self.tokenizer.encode_batch(texts[start:start + 8])
+        # Dynamic quantization can depend on batch padding. Encode one label at a
+        # time so a persisted vector is independent of unrelated labels/order.
+        for start in range(len(texts)):
+            batch = self.tokenizer.encode_batch(texts[start:start + 1])
             if any(len(item.ids) > 128 for item in batch):
                 raise ValueError('TOKEN_LIMIT')
             inputs = {

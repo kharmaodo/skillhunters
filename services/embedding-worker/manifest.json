@@ -1,5 +1,5 @@
 {
-  "model": "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v1",
+  "model": "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v2",
   "repository": "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
   "revision": "e8f8c211226b894fcb81acc59f3b34ba3efd5f42",
   "license": "Apache-2.0",

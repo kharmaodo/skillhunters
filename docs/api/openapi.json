@@ -4862,7 +4862,7 @@
           "Search"
         ],
         "summary": "Élargir une recherche aux compétences proches sur des pages autorisées",
-        "description": "Union exacte, lexicale et vectorielle sur libellés professionnels du dictionnaire. Aucun score métier. Index vectoriel persistant pgvector non inclus dans cet incrément ; parcours live sans top-K global, curseur lié au modèle et au seuil.",
+        "description": "Union structurée, plein texte PostgreSQL sur projection du vocabulaire professionnel et cosinus pgvector exact. Les termes sont reconnus dans les compétences, titres, expériences, formations et déclarations de certification publiés et validés. Vecteurs persistants par dictionnaire/modèle ; aucun narratif ni identifiant candidat dans le cache. Pagination live sans classement global ; curseur lié au modèle, à la stratégie et au seuil. Une mention ou proximité ne valide pas une aptitude.",
         "x-implementation-status": "implemented",
         "parameters": [
           {
@@ -9161,6 +9161,16 @@
               ],
               "additionalProperties": false
             }
+          },
+          "sourceField": {
+            "type": "string",
+            "enum": [
+              "SKILL",
+              "TITLE",
+              "EXPERIENCE",
+              "EDUCATION",
+              "CERTIFICATION_DECLARATION"
+            ]
           }
         },
         "required": [
@@ -9170,7 +9180,8 @@
           "matchedSkill",
           "channel",
           "similarity",
-          "citations"
+          "citations",
+          "sourceField"
         ]
       },
       "HybridRetrieval": {
@@ -9185,7 +9196,7 @@
           },
           "strategy": {
             "type": "string",
-            "const": "scoped-live-union-v1"
+            "const": "scoped-professional-union-v3"
           },
           "minimumSimilarity": {
             "type": "number"
@@ -9195,6 +9206,22 @@
             "items": {
               "$ref": "#/components/schemas/HybridSignal"
             }
+          },
+          "storage": {
+            "type": "string",
+            "enum": [
+              "pgvector-exact",
+              "h2-test-adapter",
+              "not-used"
+            ]
+          },
+          "reusedLabels": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "indexedLabels": {
+            "type": "integer",
+            "minimum": 0
           }
         },
         "required": [
@@ -9202,7 +9229,10 @@
           "index",
           "strategy",
           "minimumSimilarity",
-          "signals"
+          "signals",
+          "storage",
+          "reusedLabels",
+          "indexedLabels"
         ]
       },
       "HybridResult": {
