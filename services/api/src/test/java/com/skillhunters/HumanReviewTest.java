@@ -380,6 +380,7 @@ class HumanReviewTest extends IdentityTestSupport {
         var snapshot=scored.create(alice,scoredRequest(true,"Spring Boot"));var item=snapshot.items().getFirst();
         assertThat(item.signals()).isNotEmpty();assertThat(item.score().documented()).isZero();assertThat(item.score().upper()).isEqualTo(100);
         assertThat(item.score().obligationsToVerify()).isTrue();
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);
         db.update("DELETE FROM document_import WHERE id=?",id);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search_item",Integer.class)).isZero();
         assertThat(scored.page(alice,snapshot.metadata().searchId(),0,20).items()).isEmpty();
