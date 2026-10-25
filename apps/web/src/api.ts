@@ -20,6 +20,10 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'SCORING_SNAPSHOT_QUOTA') return 'Vous avez atteint 20 classements actifs. Réutilisez un classement existant ou attendez son expiration (24 h maximum).';
+    if (error.code === 'SCORING_CORPUS_TOO_LARGE') return 'Ce vivier dépasse la limite de 1 000 publications examinées. Aucun classement partiel n’a été enregistré.';
+    if (error.code === 'SCORE_NOT_FOUND') return 'Ce classement ou ce profil a expiré, a été supprimé ou n’est plus accessible. Relancez la recherche.';
+    if (error.code === 'SCORE_REPLAY_MISMATCH' || error.code === 'SCORE_RULE_UNAVAILABLE') return 'Le recalcul ne peut pas être certifié avec cette version. Relancez un nouveau classement.';
     if (error.status === 401) return 'Votre session a expiré. Reconnectez-vous pour continuer.';
     if (error.code === 'EXPORT_PERMISSION_REQUIRED') return 'La permission d’export est absente ou a été retirée dans ce vivier.';
     if (error.code === 'REVISION_NOT_PUBLISHED') return 'Publiez cette révision avant de générer le CV.';

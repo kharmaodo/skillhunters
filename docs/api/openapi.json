@@ -4910,6 +4910,222 @@
           }
         }
       }
+    },
+    "/search/scored": {
+      "post": {
+        "operationId": "createScoredSearch",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Calculer et figer un classement explicable privé",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "Succès ; réponse privée no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoredSearchPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoredSearchRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/search/scored/{id}": {
+      "get": {
+        "operationId": "readScoredSearch",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Paginer le snapshot avec droits et rétention recontrôlés",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "default": 20
+            }
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès ; réponse privée no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoredSearchPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/search/scored/{id}/candidates/{candidateId}/recalculate": {
+      "post": {
+        "operationId": "recalculateFrozenScore",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Recalculer depuis les critères et preuves figés ; vérifier contributions et empreinte",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "candidateId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès ; réponse privée no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoredSearchItem"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9340,6 +9556,337 @@
           "limit"
         ],
         "additionalProperties": false
+      },
+      "ScoreComponent": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "criterionIndex": {
+            "type": "integer"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "REQUIRED",
+              "DESIRED",
+              "EXPERIENCE",
+              "RECENCY"
+            ]
+          },
+          "baseWeight": {
+            "type": "integer"
+          },
+          "normalizedWeight": {
+            "type": "number"
+          },
+          "documentedValue": {
+            "type": "number"
+          },
+          "upperValue": {
+            "type": "number"
+          },
+          "contribution": {
+            "type": "number"
+          },
+          "upperContribution": {
+            "type": "number"
+          },
+          "certainty": {
+            "type": "string",
+            "enum": [
+              "KNOWN",
+              "PARTIAL",
+              "UNKNOWN"
+            ]
+          },
+          "sourceIndices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          }
+        },
+        "required": [
+          "criterionIndex",
+          "dimension",
+          "baseWeight",
+          "normalizedWeight",
+          "documentedValue",
+          "upperValue",
+          "contribution",
+          "upperContribution",
+          "certainty",
+          "sourceIndices"
+        ]
+      },
+      "EvidenceScore": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "weightsVersion": {
+            "type": "string"
+          },
+          "halfLifeMonths": {
+            "type": "integer"
+          },
+          "documented": {
+            "type": "number"
+          },
+          "upper": {
+            "type": "number"
+          },
+          "evidenceCoverage": {
+            "type": "number"
+          },
+          "quality": {
+            "type": "number"
+          },
+          "obligationsToVerify": {
+            "type": "boolean"
+          },
+          "components": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoreComponent"
+            }
+          }
+        },
+        "required": [
+          "rule",
+          "weightsVersion",
+          "halfLifeMonths",
+          "documented",
+          "upper",
+          "evidenceCoverage",
+          "quality",
+          "obligationsToVerify",
+          "components"
+        ]
+      },
+      "ScoredSearchMetadata": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "searchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "trace": {
+            "$ref": "#/components/schemas/StructuredSearchTrace"
+          },
+          "hybrid": {
+            "type": "boolean"
+          },
+          "model": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "retrievalStrategy": {
+            "type": "string"
+          },
+          "minimumSimilarity": {
+            "type": "number"
+          },
+          "scoringRule": {
+            "type": "string"
+          },
+          "weightsVersion": {
+            "type": "string"
+          },
+          "halfLifeMonths": {
+            "type": "integer"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scanned": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "searchId",
+          "trace",
+          "hybrid",
+          "model",
+          "retrievalStrategy",
+          "minimumSimilarity",
+          "scoringRule",
+          "weightsVersion",
+          "halfLifeMonths",
+          "createdAt",
+          "expiresAt",
+          "scanned"
+        ]
+      },
+      "ScoredSearchItem": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "rank": {
+            "type": "integer"
+          },
+          "hit": {
+            "$ref": "#/components/schemas/StructuredSearchHit"
+          },
+          "score": {
+            "$ref": "#/components/schemas/EvidenceScore"
+          },
+          "signals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "candidateId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "criterionIndex": {
+                  "type": "integer"
+                },
+                "sourceIndex": {
+                  "type": "integer"
+                },
+                "matchedSkill": {
+                  "type": "string"
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "STRUCTURED",
+                    "LEXICAL",
+                    "VECTOR"
+                  ]
+                },
+                "similarity": {
+                  "type": "number",
+                  "minimum": -1,
+                  "maximum": 1
+                },
+                "citations": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "blockIndex": {
+                        "type": "integer"
+                      },
+                      "source": {
+                        "type": "string"
+                      },
+                      "start": {
+                        "type": "integer"
+                      },
+                      "end": {
+                        "type": "integer"
+                      },
+                      "quote": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "blockIndex",
+                      "source",
+                      "start",
+                      "end",
+                      "quote"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "sourceField": {
+                  "type": "string",
+                  "enum": [
+                    "SKILL",
+                    "TITLE",
+                    "EXPERIENCE",
+                    "EDUCATION",
+                    "CERTIFICATION_DECLARATION"
+                  ]
+                }
+              },
+              "required": [
+                "candidateId",
+                "criterionIndex",
+                "sourceIndex",
+                "matchedSkill",
+                "channel",
+                "similarity",
+                "citations",
+                "sourceField"
+              ]
+            }
+          },
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "rank",
+          "hit",
+          "score",
+          "signals",
+          "fingerprint"
+        ]
+      },
+      "ScoredSearchPage": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ScoredSearchMetadata"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoredSearchItem"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "metadata",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ScoredSearchRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "$ref": "#/components/schemas/StructuredQuery"
+          },
+          "hybrid": {
+            "type": "boolean"
+          },
+          "minimumSimilarity": {
+            "type": "number",
+            "minimum": 0.5,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "query",
+          "hybrid",
+          "minimumSimilarity"
+        ],
+        "description": "Cursor de query doit être null. Classement global borné à 1000 publications examinées, refus 422 sans snapshot partiel. Poids communs fixes v1 (35/15/20/10), renormalisés sur les groupes demandés. Quota de 20 snapshots actifs par acteur ; rétention maximale 24h et accès source recontrôlé. Pas de configuration SH-19."
       }
     }
   }
