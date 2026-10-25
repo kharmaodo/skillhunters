@@ -27,6 +27,8 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.
 
+| SH-18 | Incrément développé, PR de validation | Score documenté sur critères structurés, contributions et snapshots privés ; périmètre et limites dans [validation/sh-18.md](validation/sh-18.md) |
+
 ## Suite prioritaire après SH-16
 
 SH-18 (score décomposé et reproductible), puis SH-19 (configuration du scoring), sont **Must / MVP** et deviennent les prochains incréments de cette chaîne de dépendances. SH-17 (recherches sauvegardées), **Should / R1**, ne les précède pas. Le complément SH-05 et les autres Must restent ouverts ; aucune clôture implicite n’est faite ici.

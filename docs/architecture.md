@@ -105,3 +105,7 @@ avec plein texte `tsvector` et cosinus pgvector exact. Les références candidat
 et citations sont assemblées depuis la publication courante sous verrou ; aucune
 copie vectorielle du CV n'est persistée. Une proximité reste distincte des preuves.
 Voir `validation/sh-16-index.md` pour le cycle de vie, les limites et le corpus.
+
+## Score documenté SH-18
+
+Le module `scoring` sépare le calcul pur `EvidenceScore` (liste blanche de critères structurés) et l’orchestration transactionnelle `ScoredSearchService`. L’orchestrateur parcourt la récupération structurée/hybride autorisée, refuse un corpus dépassant la borne explicite, puis fige et classe les contributions. V15 conserve un snapshot privé et court des critères/preuves/règles ; les données candidat sont dans des lignes cascadées depuis leur source. Le recalcul réutilise le snapshot et vérifie l’empreinte, sans nouveau modèle ni lecture d’une publication plus récente. Qualité et similarité restent hors du total et du départage. Voir `validation/sh-18.md`.

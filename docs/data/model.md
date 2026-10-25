@@ -112,3 +112,7 @@ cible décrit plus haut n'est pas encore implémenté par cet incrément.
 ## Index professionnel SH-16 (V14)
 
 `skill_vector_generation` identifie le couple dictionnaire/modèle et la dimension 384. `skill_vector_entry` stocke UUID de compétence, libellé canonique, vecteur et, sur PostgreSQL, tsvector généré. Unicité par version/modèle/compétence et version/modèle/libellé. Suppression en cascade depuis la version de dictionnaire. Aucune FK candidat et aucun texte de CV : les publications et citations restent lues à la demande. Voir `../validation/sh-16-index.md`.
+
+## Schéma physique SH-18
+
+V15 ajoute `scored_search` (créateur, vivier, calcul/expiration et métadonnées JSON) et `scored_search_item` (rang, candidat, publication et snapshot JSON de preuves/contributions/empreinte). Unicité recherche/candidat et recherche/rang ; FK composite candidat/publication, avec cascade à la suppression. Maximum 24 heures, accès sous les droits/rétention courants ; nettoyage horaire et suppression des lignes liées aux sources expirées. L’historique ne prolonge pas la conservation d’un CV. Les règles de score et les poids initiaux sont identifiés par version et ne sont pas modifiables via ce lot.

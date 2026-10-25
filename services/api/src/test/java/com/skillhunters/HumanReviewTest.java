@@ -339,4 +339,68 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(db.queryForObject("SELECT COUNT(DISTINCT revision_id) FROM candidate_assertion_index",Integer.class)).isEqualTo(1);
         assertThat(candidates.get(alice,c.id()).version()).isEqualTo(2);
     }
+
+    @Autowired com.skillhunters.scoring.ScoredSearchService scored;
+    com.skillhunters.scoring.ScoredSearchService.Request scoredRequest(boolean hybridMode,String skill) {
+        var q=searchQuery(false,skill,null);
+        var single=new com.skillhunters.search.StructuredSearchService.Query(q.poolId(),List.of(q.criteria().getFirst()),q.strict(),q.experienceKinds(),q.referenceDate(),q.dictionaryVersion(),null,q.limit());
+        return new com.skillhunters.scoring.ScoredSearchService.Request(single,hybridMode,0.65);
+    }
+    @Test void scoreSnapshotReplaysExactlyAfterPublicationChangesAndKeepsEvidence() {
+        var c=create();var published=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var first=scored.create(alice,scoredRequest(false,"Java"));var item=first.items().getFirst();
+        assertThat(item.score().documented()).isEqualTo(100);assertThat(item.hit().publicationId()).isEqualTo(published.id());
+        assertThat(item.hit().criteria().getFirst().evidence()).isNotEmpty();
+        var changed=new ArrayList<>(published.items());var skill=changed.getFirst();
+        changed.set(0,new Item(0,"Python",skill.decision(),skill.precision(),null,"Correction synthétique"));
+        reviews.save(alice,c.id(),"\"2\"",request(changed),true);
+        assertThat(scored.replay(alice,first.metadata().searchId(),c.id())).isEqualTo(item);
+        assertThat(scored.create(alice,scoredRequest(false,"Java")).items().getFirst().score().documented()).isZero();
+    }
+    @Test void scoreSnapshotsEnforceCsrfOwnershipPoolRevocationExpiryAndDeletion() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var body=json.writeValueAsString(scoredRequest(false,"Java"));
+        mvc.perform(post("/api/v1/search/scored").with(as("alice")).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/search/scored").with(as("admin")).with(csrf()).contentType("application/json").content(body)).andExpect(status().isNotFound());
+        var snapshot=scored.create(alice,scoredRequest(false,"Java"));var sid=snapshot.metadata().searchId();
+        String route="/api/v1/search/scored/"+sid;
+        mvc.perform(get(route).with(as("admin"))).andExpect(status().isNotFound());
+        mvc.perform(post(route+"/candidates/"+c.id()+"/recalculate").with(as("alice"))).andExpect(status().isForbidden());
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->scored.page(alice,sid,0,20)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",alice,poolA);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        assertThat(scored.page(alice,sid,0,20).items()).isEmpty();assertThatThrownBy(()->scored.replay(alice,sid,c.id())).isInstanceOf(Rejected.class);
+        scored.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search_item",Integer.class)).isZero();
+        db.update("UPDATE scored_search SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");scored.cleanup();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search",Integer.class)).isZero();
+    }
+    @Test void semanticProximityNeverBecomesScoreAndCascadeErasesFrozenCv() throws Exception {
+        hybridDictionary();sameVectors();var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var snapshot=scored.create(alice,scoredRequest(true,"Spring Boot"));var item=snapshot.items().getFirst();
+        assertThat(item.signals()).isNotEmpty();assertThat(item.score().documented()).isZero();assertThat(item.score().upper()).isEqualTo(100);
+        assertThat(item.score().obligationsToVerify()).isTrue();
+        db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search_item",Integer.class)).isZero();
+        assertThat(scored.page(alice,snapshot.metadata().searchId(),0,20).items()).isEmpty();
+    }
+
+    @Test void scoreRankingTraversesAllPagesAndUnknownProfilesStayVisible() throws Exception {
+        var first=create();reviews.save(alice,first.id(),"\"1\"",request(accepted(first.id())),true);
+        UUID originalImport=id;UUID policy=db.queryForObject("SELECT id FROM import_policy",UUID.class);
+        mvc.perform(multipart("/api/v1/imports").file(new MockMultipartFile("files","second.md","text/markdown","Synthetic second profile".getBytes()))
+            .file(new MockMultipartFile("basis","","application/json",("{\"source\":\"Synthetic\",\"purpose\":\"Test\",\"basisCode\":\"TEST_ONLY\",\"retentionPolicyId\":\""+policy+"\"}").getBytes()))
+            .param("poolId",poolA.toString()).header("Idempotency-Key","scoring-second-profile").with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        id=db.queryForObject("SELECT id FROM document_import WHERE id<>?",UUID.class,originalImport);
+        var second=create();var corrected=new ArrayList<>(accepted(second.id()));var skill=corrected.getFirst();
+        corrected.set(0,new Item(0,"Python",skill.decision(),skill.precision(),null,"Python documenté"));
+        reviews.save(alice,second.id(),"\"1\"",request(corrected),true);
+        var base=scoredRequest(false,"Java").query();
+        var query=new com.skillhunters.search.StructuredSearchService.Query(base.poolId(),base.criteria(),false,base.experienceKinds(),null,null,null,1);
+        var page=scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(query,false,0.65));
+        assertThat(page.metadata().scanned()).isEqualTo(2);assertThat(page.items()).hasSize(1);
+        assertThat(page.items().getFirst().hit().candidateId()).isEqualTo(first.id());assertThat(page.nextCursor()).isEqualTo(1);
+        var next=scored.page(alice,page.metadata().searchId(),page.nextCursor(),1);
+        assertThat(next.items().getFirst().hit().candidateId()).isEqualTo(second.id());assertThat(next.items().getFirst().score().documented()).isZero();assertThat(next.nextCursor()).isNull();
+    }
 }

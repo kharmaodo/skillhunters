@@ -252,3 +252,23 @@ Table outbox_event {
  created_at timestamptz [not null]
  processed_at timestamptz
 }
+
+Table scored_search {
+ id uuid [pk]
+ actor_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ created_at timestamptz [not null]
+ expires_at timestamptz [not null]
+ metadata_json text [not null, note: 'Critères, règles et provenance ; snapshot privé 24h maximum']
+}
+Table scored_search_item {
+ search_id uuid [not null, ref: > scored_search.id]
+ candidate_id uuid [not null, note: 'FK physique candidate_profile, cascade']
+ publication_id uuid [not null, note: 'FK composite candidat/publication, cascade']
+ rank_position int [not null]
+ snapshot_json text [not null, note: 'Preuves et score figés ; accès sous rétention source']
+ indexes {
+  (search_id,candidate_id) [pk]
+  (search_id,rank_position) [unique]
+ }
+}

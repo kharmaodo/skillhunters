@@ -192,6 +192,22 @@ for (const width of [1280, 320]) {
     await expect(searchHit.getByText('Java · Obligatoire : Inconnu', {exact:true})).toBeVisible();
     await searchHit.getByText('Pourquoi ce profil est retrouvé', {exact:true}).click();
     await expect(searchHit.getByText(/Preuve structurée exacte/)).toBeVisible();
+    const scoring = search.getByRole('region', { name: 'Classement documenté', exact: true });
+    await scoring.getByRole('button', { name: 'Calculer et figer le classement', exact: true }).click();
+    await expect(scoring.getByRole('status')).toContainText('Classement figé');
+    const ranked = scoring.locator('article').filter({ hasText: `Développeur synthétique ${width}` });
+    await expect(ranked).toHaveCount(1);
+    await expect(ranked).toContainText('Score documenté');
+    await expect(ranked).toContainText('Borne haute');
+    await expect(ranked).toContainText('Obligations à vérifier');
+    await ranked.locator('summary').click();
+    await expect(ranked.locator('blockquote').first()).toContainText('Java');
+    await ranked.getByRole('button', { name: /^Vérifier le recalcul du rang/ }).click();
+    await expect(scoring.getByRole('status').filter({ hasText: 'Recalcul vérifié' })).toBeVisible();
+    if (width === 320) await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    await page.screenshot({ path: `test-results/scoring-${width}.png`, fullPage: true });
+
     await adminContext.close();
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
