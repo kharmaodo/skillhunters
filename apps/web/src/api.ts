@@ -21,6 +21,10 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.code === 'SCORING_SNAPSHOT_QUOTA') return 'Vous avez atteint 20 classements actifs. Réutilisez un classement existant ou attendez son expiration (24 h maximum).';
+    if (error.code === 'SCORING_CONFIGURATION_CHANGED') return 'Une autre configuration a été validée. Votre saisie est conservée ; rechargez la dernière version avant de recommencer.';
+    if (error.code === 'INVALID_SCORING_CONFIGURATION') return 'Renseignez un nom, un motif et quatre poids entiers de 0 à 10 000, dont au moins un positif.';
+    if (error.code === 'SCORING_NO_ACTIVE_WEIGHT') return 'Aucun poids positif ne correspond aux critères de cette recherche. Choisissez une autre configuration ou ajustez les critères.';
+    if (error.code === 'SCORING_CONFIGURE_REQUIRED') return 'La permission de configurer le scoring exige le rôle responsable recrutement dans ce vivier.';
     if (error.code === 'SCORING_CORPUS_TOO_LARGE') return 'Ce vivier dépasse la limite de 1 000 publications examinées. Aucun classement partiel n’a été enregistré.';
     if (error.code === 'SCORE_NOT_FOUND') return 'Ce classement ou ce profil a expiré, a été supprimé ou n’est plus accessible. Relancez la recherche.';
     if (error.code === 'SCORE_REPLAY_MISMATCH' || error.code === 'SCORE_RULE_UNAVAILABLE') return 'Le recalcul ne peut pas être certifié avec cette version. Relancez un nouveau classement.';

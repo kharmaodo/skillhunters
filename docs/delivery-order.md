@@ -27,7 +27,9 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 
 **Ordre explicite : SH-07 → SH-08 → SH-09 → SH-06**, puis SH-10 et complément SH-05 selon les invariants de versions. SH-06 ne sera pas annoncée comme réalisée avant ses propres tests et sa livraison. Toutes les autres US restent au statut décrit dans le backlog, sans clôture implicite par la présence d'une maquette ou d'un contrat API.
 
-| SH-18 | Incrément développé, PR de validation | Score documenté sur critères structurés, contributions et snapshots privés ; périmètre et limites dans [validation/sh-18.md](validation/sh-18.md) |
+| SH-18 | Incrément fusionné, PR #19 | Score documenté sur critères structurés, contributions et snapshots privés ; périmètre et limites dans [validation/sh-18.md](validation/sh-18.md) |
+
+| SH-19 | Développée, en validation PR | Poids versionnés par vivier, validation responsable recrutement et anciens scores préservés ; voir [validation/sh-19.md](validation/sh-19.md) |
 
 ## Suite prioritaire après SH-16
 

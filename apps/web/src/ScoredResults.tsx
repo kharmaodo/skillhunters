@@ -1,3 +1,4 @@
+import { ScoringConfiguration } from './ScoringConfiguration';
 import { useState } from 'react';
 import { api, message, type Session } from './api';
 type Criteria = { skill:string;importance:'REQUIRED'|'DESIRED';minimumMonths:number|null;maximumRecencyMonths:number|null };
@@ -10,13 +11,15 @@ const dimensions:Record<string,string>={REQUIRED:'Compétence obligatoire',DESIR
 const certainty:Record<string,string>={KNOWN:'Documentée',PARTIAL:'Partiellement connue',UNKNOWN:'Inconnue / non documentée'};
 const number=(v:number)=>v.toLocaleString('fr-FR',{maximumFractionDigits:6});
 export function ScoredResults({query,hybrid,minimumSimilarity,session,failed,open}:{query:Query;hybrid:boolean;minimumSimilarity:number;session:Session;failed:(e:unknown)=>void;open:(id:string)=>void}) {
+ const [configurationVersion,setConfigurationVersion]=useState(0);
  const [page,setPage]=useState<Page|null>(null);const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [notice,setNotice]=useState('');
- async function create(){setBusy(true);setError('');setNotice('');setPage(null);try{setPage(await api<Page>('/search/scored',{method:'POST',body:JSON.stringify({query:{...query,cursor:null},hybrid,minimumSimilarity})},session.csrfToken));}catch(e){setError(message(e));failed(e);}finally{setBusy(false);}}
+ async function create(){setBusy(true);setError('');setNotice('');setPage(null);try{setPage(await api<Page>('/search/scored',{method:'POST',body:JSON.stringify({query:{...query,cursor:null},hybrid,minimumSimilarity,configurationVersion})},session.csrfToken));}catch(e){setError(message(e));failed(e);}finally{setBusy(false);}}
  async function next(){if(!page||page.nextCursor===null)return;setBusy(true);setNotice('');setError('');try{setPage(await api<Page>(`/search/scored/${page.metadata.searchId}?cursor=${page.nextCursor}&limit=${query.limit}`));}catch(e){setPage(null);setError(message(e));failed(e);}finally{setBusy(false);}}
  async function replay(item:Item){if(!page)return;setBusy(true);setNotice('');setError('');try{const r=await api<Item>(`/search/scored/${page.metadata.searchId}/candidates/${item.hit.candidateId}/recalculate`,{method:'POST'},session.csrfToken);setNotice(`Recalcul vérifié pour le rang ${r.rank} : ${number(r.score.documented)} / 100. Contributions et empreinte identiques au snapshot.`);}catch(e){setPage(null);setError(message(e));failed(e);}finally{setBusy(false);}}
  return <section aria-label="Classement documenté" className="human-review"><h4>Classer par correspondance documentée</h4>
- <p>Poids de base : obligatoires 35, souhaitées 15, exposition 20, récence 10. Seuls les groupes demandés sont actifs ; leurs poids sont renormalisés pour toute la recherche. La récence utilise une demi-vie de 36 mois. Responsabilité, certification et secteur ne sont pas évalués dans cette version.</p>
+ <p>Poids initiaux : obligatoires 35, souhaitées 15, exposition 20, récence 10 ; une configuration validée peut les remplacer pour le prochain calcul. Seuls les groupes demandés sont actifs ; leurs poids sont renormalisés pour toute la recherche. La récence utilise une demi-vie de 36 mois. Responsabilité, certification et secteur ne sont pas évalués dans cette version.</p>
  <p>Ce classement conserve tous les profils récupérés, y compris ceux à vérifier. Il ne représente pas une probabilité d’embauche. La similarité et la qualité documentaire ne modifient pas le score.</p>
+ <ScoringConfiguration poolId={query.poolId} session={session} busy={busy} selected={configurationVersion} onSelect={v=>{setConfigurationVersion(v);setNotice('Poids sélectionnés pour le prochain calcul. Le classement affiché conserve sa version précédente.');}}/>
  <button className="button" disabled={busy} onClick={()=>void create()}>Calculer et figer le classement</button>
  <p className="fine">Parcours complet limité à 1 000 publications examinées : au-delà, la demande est refusée sans classement partiel. Snapshot privé valable au maximum 24 h, soumis aux droits et à la conservation des sources.</p>
  {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}

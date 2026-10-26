@@ -116,3 +116,7 @@ cible décrit plus haut n'est pas encore implémenté par cet incrément.
 ## Schéma physique SH-18
 
 V15 ajoute `scored_search` (créateur, vivier, calcul/expiration et métadonnées JSON) et `scored_search_item` (rang, candidat, publication et snapshot JSON de preuves/contributions/empreinte). Unicité recherche/candidat et recherche/rang ; FK composite candidat/publication, avec cascade à la suppression. Maximum 24 heures, accès sous les droits/rétention courants ; nettoyage horaire et suppression des lignes liées aux sources expirées. L’historique ne prolonge pas la conservation d’un CV. Les règles de score et les poids initiaux sont identifiés par version et ne sont pas modifiables via ce lot.
+
+## Schéma physique SH-19
+
+V16 ajoute `scoring_configuration(pool_id, version, revision_json)`, clé primaire composite et cascade du vivier. La révision contient nom, poids avant/après, parts globales normalisées, validateur, date et motif. Les versions sont immuables dans les API. `scored_search.metadata_json` contient désormais une politique figée facultative pour préserver la compatibilité des snapshots SH-18.

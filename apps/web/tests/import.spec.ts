@@ -193,7 +193,9 @@ for (const width of [1280, 320]) {
     await searchHit.getByText('Pourquoi ce profil est retrouvé', {exact:true}).click();
     await expect(searchHit.getByText(/Preuve structurée exacte/)).toBeVisible();
     const scoring = search.getByRole('region', { name: 'Classement documenté', exact: true });
+    const frozenResponse = page.waitForResponse(r => r.url().endsWith('/search/scored') && r.request().method() === 'POST');
     await scoring.getByRole('button', { name: 'Calculer et figer le classement', exact: true }).click();
+    const frozen = await (await frozenResponse).json();
     await expect(scoring.getByRole('status')).toContainText('Classement figé');
     const ranked = scoring.locator('article').filter({ hasText: `Développeur synthétique ${width}` });
     await expect(ranked).toHaveCount(1);
@@ -208,6 +210,33 @@ for (const width of [1280, 320]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await page.screenshot({ path: `test-results/scoring-${width}.png`, fullPage: true });
 
+    // SH-19: a pool lead validates a new version; old snapshots retain their weights.
+    await adminPage.getByLabel('Rôle dans ce vivier', { exact: true }).selectOption('RECRUITMENT_LEAD');
+    await adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true }).click();
+    await expect(adminPage.getByText('Habilitation enregistrée.', { exact: false })).toBeVisible();
+    await search.getByRole('button', { name: 'Rechercher dans ce vivier', exact: true }).click();
+    const config = scoring.getByRole('region', { name: 'Configuration du scoring', exact: true });
+    await config.getByText('Valider de nouveaux poids pour le poste', { exact: true }).click();
+    await config.getByLabel('Nom du poste ou de la configuration', { exact: true }).fill(`Poste synthétique ${width}`);
+    await config.getByLabel('Poids : Compétences obligatoires', { exact: true }).fill('0');
+    await config.getByLabel('Poids : Compétences souhaitées', { exact: true }).fill('100');
+    await config.getByLabel('Poids : Exposition justifiée', { exact: true }).fill('0');
+    await config.getByLabel('Poids : Récence', { exact: true }).fill('0');
+    await config.getByLabel('Motif de modification des poids', { exact: true }).fill('Priorités du poste synthétique validées');
+    await config.getByRole('button', { name: 'Valider une nouvelle version des poids', exact: true }).click();
+    await expect(config.getByRole('status')).toContainText('validée');
+    await scoring.getByRole('button', { name: 'Calculer et figer le classement', exact: true }).click();
+    await expect(scoring.getByRole('status').filter({ hasText: 'Classement figé' })).toBeVisible();
+    await expect(ranked.getByText('Score documenté : 0 / 100', { exact: true })).toBeVisible();
+    const prior = frozen.items.find((i: {hit:{professionalTitle:string}}) => i.hit.professionalTitle === `Développeur synthétique ${width}`);
+    const replay = await page.request.post(`/api/v1/search/scored/${frozen.metadata.searchId}/candidates/${prior.hit.candidateId}/recalculate`, { headers: {'X-CSRF-TOKEN': session.csrfToken} });
+    expect(replay.ok()).toBeTruthy();expect((await replay.json()).score).toEqual(prior.score);
+    await config.getByRole('button', { name: 'Historique des poids', exact: true }).click();
+    await expect(config.getByText('Avant :', { exact: false }).first()).toBeVisible();
+    await page.screenshot({ path: `test-results/scoring-configuration-${width}.png`, fullPage: true });
+    await adminPage.getByLabel('Rôle dans ce vivier', { exact: true }).selectOption('RECRUITER');
+    await adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true }).click();
+    await expect(adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true })).toBeEnabled();
     await adminContext.close();
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });

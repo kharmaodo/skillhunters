@@ -17,22 +17,27 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class ScoredSearchService {
     public static final int MAX_SCANNED=1000;
-    public record Request(Query query,boolean hybrid,double minimumSimilarity) {}
+    public record Request(Query query,boolean hybrid,double minimumSimilarity,Long configurationVersion) {
+        public Request(Query query,boolean hybrid,double minimumSimilarity) {this(query,hybrid,minimumSimilarity,null);}
+    }
     public record Metadata(UUID searchId,Trace trace,boolean hybrid,String model,String retrievalStrategy,double minimumSimilarity,
-            String scoringRule,String weightsVersion,int halfLifeMonths,OffsetDateTime createdAt,OffsetDateTime expiresAt,int scanned) {}
+            String scoringRule,String weightsVersion,int halfLifeMonths,OffsetDateTime createdAt,OffsetDateTime expiresAt,int scanned,EvidenceScore.Policy policy) {}
     public record Item(int rank,Hit hit,EvidenceScore.Score score,List<HybridSearchService.Signal> signals,String fingerprint) {}
     public record Page(Metadata metadata,List<Item> items,Integer nextCursor) {}
     private record Payload(Trace trace,Hit hit,EvidenceScore.Score score,List<HybridSearchService.Signal> signals,String model,String strategy) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;
+    private final ScoringConfigurations configs;
     private final StructuredSearchService structured;private final HybridSearchService hybrid;private final CandidateService candidates;
-    public ScoredSearchService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,StructuredSearchService structured,HybridSearchService hybrid,CandidateService candidates) {
-        this.db=db;this.tx=tx;this.json=json;this.structured=structured;this.hybrid=hybrid;this.candidates=candidates;
+    public ScoredSearchService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,StructuredSearchService structured,HybridSearchService hybrid,CandidateService candidates,ScoringConfigurations configs) {
+        this.configs=configs;this.db=db;this.tx=tx;this.json=json;this.structured=structured;this.hybrid=hybrid;this.candidates=candidates;
     }
     public Page create(UUID actor,Request request) {
         if(request==null||request.query()==null||request.query().cursor()!=null||!Double.isFinite(request.minimumSimilarity())||request.minimumSimilarity()<0.5||request.minimumSimilarity()>1)
             throw new Rejected(HttpStatus.BAD_REQUEST,"INVALID_SCORED_SEARCH");
         return tx.execute(t->{
-            Query q=request.query();String cursor=null;Trace trace=null;int scanned=0;
+            Query q=request.query();
+            var policy=configs.policy(actor,q.poolId(),request.configurationVersion());
+            String cursor=null;Trace trace=null;int scanned=0;
             var hits=new ArrayList<Hit>();var signals=new ArrayList<HybridSearchService.Signal>();
             do {
                 var input=new Query(q.poolId(),q.criteria(),q.strict(),q.experienceKinds(),trace==null?q.referenceDate():trace.referenceDate(),trace==null?q.dictionaryVersion():Long.valueOf(trace.dictionaryVersion()),cursor,q.limit());
@@ -47,17 +52,19 @@ public class ScoredSearchService {
             } while(cursor!=null);
             if(db.sql("SELECT COUNT(*) FROM scored_search WHERE actor_id=:actor AND expires_at>:now").param("actor",actor).param("now",OffsetDateTime.now(ZoneOffset.UTC)).query(Integer.class).single()>=20)
                 throw new Rejected(HttpStatus.TOO_MANY_REQUESTS,"SCORING_SNAPSHOT_QUOTA");
+            boolean active=trace.criteria().stream().anyMatch(c->(c.importance()==Importance.REQUIRED?policy.required():policy.desired())>0||c.minimumMonths()!=null&&policy.experience()>0||c.maximumRecencyMonths()!=null&&policy.recency()>0);
+            if(!active) throw new Rejected(HttpStatus.UNPROCESSABLE_ENTITY,"SCORING_NO_ACTIVE_WEIGHT");
             var frozenTrace=trace;
             String model=request.hybrid()?EmbeddingPort.MODEL:null,strategy=request.hybrid()?HybridSearchService.STRATEGY:StructuredSearchService.RULE;
             var rows=new ArrayList<Item>();
             for(var hit:hits) {
-                var score=EvidenceScore.calculate(hit.criteria());
+                var score=EvidenceScore.calculate(hit.criteria(),policy);
                 var matching=signals.stream().filter(s->s.candidateId().equals(hit.candidateId())).toList();
                 rows.add(new Item(0,hit,score,matching,hash(new Payload(frozenTrace,hit,score,matching,model,strategy))));
             }
             rows.sort(Comparator.comparingDouble((Item i)->i.score().documented()).reversed().thenComparing(i->i.hit().candidateId().toString()));
             OffsetDateTime now=OffsetDateTime.now(ZoneOffset.UTC);UUID id=UUID.randomUUID();
-            var meta=new Metadata(id,trace,request.hybrid(),model,strategy,request.minimumSimilarity(),EvidenceScore.RULE,EvidenceScore.WEIGHTS,EvidenceScore.HALF_LIFE_MONTHS,now,now.plusHours(24),scanned);
+            var meta=new Metadata(id,trace,request.hybrid(),model,strategy,request.minimumSimilarity(),EvidenceScore.RULE,policy.version(),EvidenceScore.HALF_LIFE_MONTHS,now,now.plusHours(24),scanned,policy);
             db.sql("INSERT INTO scored_search(id,actor_id,pool_id,created_at,expires_at,metadata_json) VALUES (:id,:actor,:pool,:now,:expires,:json)")
                 .param("id",id).param("actor",actor).param("pool",q.poolId()).param("now",now).param("expires",meta.expiresAt()).param("json",write(meta)).update();
             int rank=0;
@@ -99,7 +106,7 @@ public class ScoredSearchService {
             if(!current.poolId().equals(meta.trace().poolId())) missing();
             var item=db.sql("SELECT snapshot_json FROM scored_search_item WHERE search_id=:search AND candidate_id=:candidate")
                 .param("search",search).param("candidate",candidate).query(String.class).optional().map(v->read(v,Item.class)).orElseThrow(()->new Rejected(HttpStatus.NOT_FOUND,"SCORE_NOT_FOUND"));
-            var score=EvidenceScore.calculate(item.hit().criteria());
+            var score=EvidenceScore.calculate(item.hit().criteria(),meta.policy()==null?EvidenceScore.defaults():meta.policy());
             if(!score.equals(item.score())||!hash(new Payload(meta.trace(),item.hit(),score,item.signals(),meta.model(),meta.retrievalStrategy())).equals(item.fingerprint()))
                 throw new Rejected(HttpStatus.CONFLICT,"SCORE_REPLAY_MISMATCH");
             candidates.get(actor,candidate);
@@ -114,7 +121,7 @@ public class ScoredSearchService {
             AND EXISTS (SELECT 1 FROM membership m WHERE m.user_id=:actor AND m.pool_id=s.pool_id)
             """).param("id",id).param("actor",actor).param("now",OffsetDateTime.now(ZoneOffset.UTC)).query(String.class).optional().map(v->read(v,Metadata.class))
             .orElseThrow(()->new Rejected(HttpStatus.NOT_FOUND,"SCORE_NOT_FOUND"));
-        if(!EvidenceScore.RULE.equals(meta.scoringRule())||!EvidenceScore.WEIGHTS.equals(meta.weightsVersion())) throw new Rejected(HttpStatus.CONFLICT,"SCORE_RULE_UNAVAILABLE");
+        if(!EvidenceScore.RULE.equals(meta.scoringRule())||!(meta.policy()==null?EvidenceScore.WEIGHTS:meta.policy().version()).equals(meta.weightsVersion())) throw new Rejected(HttpStatus.CONFLICT,"SCORE_RULE_UNAVAILABLE");
         return meta;
     }
     @Scheduled(initialDelayString="${app.scoring.cleanup-ms:3600000}",fixedDelayString="${app.scoring.cleanup-ms:3600000}")
