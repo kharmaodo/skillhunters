@@ -86,7 +86,8 @@ function Access({ session, failed }: { session: Session; failed: (e: unknown) =>
   const [pending, setPending] = useState(true); const [saving, setSaving] = useState(false); const [notice, setNotice] = useState('');
   useEffect(() => { let active = true; Promise.all([api<Account[]>('/admin/users'), api<Pool[]>('/admin/pools')]).then(([u,p]) => { if (active) { setUsers(u); setPools(p); setUserId(u[0]?.id || ''); setPoolId(p[0]?.id || ''); } }).catch(e => { if (active) failed(e); }).finally(() => { if (active) setPending(false); }); return () => { active = false; }; }, []);
   useEffect(() => { if (!userId) return; let active = true; setPending(true); setNotice(''); api<Membership[]>(`/admin/users/${userId}/memberships`).then(m => { if (active) setMembers(m); }).catch(e => { if (active) failed(e); }).finally(() => { if (active) setPending(false); }); return () => { active = false; }; }, [userId]);
-  useEffect(() => { setRole(members.find(m => m.poolId === poolId)?.role || ''); setNotice(''); }, [members, poolId]);
+  useEffect(() => { setRole(members.find(m => m.poolId === poolId)?.role || ''); }, [members, poolId]);
+  useEffect(() => { setNotice(''); }, [poolId]);
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setNotice('');
     try {
