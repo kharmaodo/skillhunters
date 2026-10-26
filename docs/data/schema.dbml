@@ -272,3 +272,12 @@ Table scored_search_item {
   (search_id,rank_position) [unique]
  }
 }
+
+Table scoring_configuration {
+ pool_id uuid [not null, ref: > talent_pool.id]
+ version bigint [not null]
+ revision_json text [not null, note: 'Poids avant/après, motif, validateur, date ; version immuable via API']
+ indexes {
+  (pool_id,version) [pk]
+ }
+}

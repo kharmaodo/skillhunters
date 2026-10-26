@@ -20,7 +20,9 @@ class ScoringBoundTest {
         var db=mock(JdbcClient.class);var tx=mock(TransactionTemplate.class);var search=mock(StructuredSearchService.class);
         when(tx.execute(any())).thenAnswer(i->((TransactionCallback<?>)i.getArgument(0)).doInTransaction(null));
         when(search.search(any(),any())).thenReturn(new Result(UUID.randomUUID(),null,List.of(),100,"more"));
-        var service=new ScoredSearchService(db,tx,new ObjectMapper(),search,mock(HybridSearchService.class),mock(CandidateService.class));
+        var configs=mock(com.skillhunters.scoring.ScoringConfigurations.class);
+        when(configs.policy(any(),any(),any())).thenReturn(com.skillhunters.scoring.EvidenceScore.defaults());
+        var service=new ScoredSearchService(db,tx,new ObjectMapper(),search,mock(HybridSearchService.class),mock(CandidateService.class),configs);
         var q=new Query(UUID.randomUUID(),List.of(new Criterion("Java",Importance.REQUIRED,null,null)),false,List.of(Kind.EMPLOYMENT),null,null,null,25);
         assertThatThrownBy(()->service.create(UUID.randomUUID(),new ScoredSearchService.Request(q,false,0.65)))
             .isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORING_CORPUS_TOO_LARGE"));

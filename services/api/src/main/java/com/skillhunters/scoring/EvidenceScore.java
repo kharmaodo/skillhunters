@@ -10,6 +10,8 @@ public final class EvidenceScore {
     public static final String RULE="documented-skills-v1";
     public static final String WEIGHTS="skills-35-15-20-10-v1";
     public static final int HALF_LIFE_MONTHS=36;
+    public record Policy(String version,int required,int desired,int experience,int recency) {}
+    public static Policy defaults() {return new Policy(WEIGHTS,35,15,20,10);}
     public record Component(int criterionIndex,String dimension,int baseWeight,double normalizedWeight,
             double documentedValue,double upperValue,double contribution,double upperContribution,
             String certainty,List<Integer> sourceIndices) {}
@@ -17,13 +19,15 @@ public final class EvidenceScore {
             double evidenceCoverage,double quality,boolean obligationsToVerify,List<Component> components) {}
     private record Part(int index,String dimension,int weight,int count,double low,double high,boolean known,boolean quality,List<Integer> sources) {}
     private EvidenceScore() {}
-    public static Score calculate(List<CriterionResult> criteria) {
+    public static Score calculate(List<CriterionResult> criteria) {return calculate(criteria,defaults());}
+    public static Score calculate(List<CriterionResult> criteria,Policy policy) {
         if(criteria==null||criteria.isEmpty()) throw new IllegalArgumentException("EMPTY_SCORE");
         int required=(int)criteria.stream().filter(c->c.criterion().importance()==Importance.REQUIRED).count();
         int desired=criteria.size()-required;
         int durations=(int)criteria.stream().filter(c->c.criterion().minimumMonths()!=null).count();
         int recencies=(int)criteria.stream().filter(c->c.criterion().maximumRecencyMonths()!=null).count();
-        int denominator=(required>0?35:0)+(desired>0?15:0)+(durations>0?20:0)+(recencies>0?10:0);
+        int denominator=(required>0?policy.required():0)+(desired>0?policy.desired():0)+(durations>0?policy.experience():0)+(recencies>0?policy.recency():0);
+        if(denominator<=0) throw new com.skillhunters.shared.ApiProblem.Rejected(org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY,"SCORING_NO_ACTIVE_WEIGHT");
         var parts=new ArrayList<Part>();boolean obligations=false;
         for(int i=0;i<criteria.size();i++) {
             var c=criteria.get(i);var q=c.criterion();var coverage=c.coverage();
@@ -33,22 +37,23 @@ public final class EvidenceScore {
             boolean must=q.importance()==Importance.REQUIRED;
             if(must&&c.status()!=Status.DOCUMENTED) obligations=true;
             // "Not documented" is not proof of absence: the possible contribution remains visible.
-            parts.add(new Part(i,must?"REQUIRED":"DESIRED",must?35:15,must?required:desired,present?1:0,1,present,proof,sources));
+            parts.add(new Part(i,must?"REQUIRED":"DESIRED",must?policy.required():policy.desired(),must?required:desired,present?1:0,1,present,proof,sources));
             if(q.minimumMonths()!=null) {
                 boolean dated=present&&coverage.minimumMonths()!=null;
                 double low=dated?Math.min(1,coverage.minimumMonths()/(double)q.minimumMonths()):0;
                 double high=dated&&!coverage.incomplete()&&coverage.maximumMonths()!=null?Math.min(1,coverage.maximumMonths()/(double)q.minimumMonths()):1;
                 boolean known=dated&&!coverage.incomplete()&&Objects.equals(coverage.minimumMonths(),coverage.maximumMonths());
-                parts.add(new Part(i,"EXPERIENCE",20,durations,low,Math.max(low,high),known,proof&&known,sources));
+                parts.add(new Part(i,"EXPERIENCE",policy.experience(),durations,low,Math.max(low,high),known,proof&&known,sources));
             }
             if(q.maximumRecencyMonths()!=null) {
                 boolean dated=present&&coverage.recencyMaximumMonths()!=null;
                 double low=dated?StrictMath.pow(2,-coverage.recencyMaximumMonths()/(double)HALF_LIFE_MONTHS):0;
                 double high=dated&&!coverage.incomplete()&&coverage.recencyMinimumMonths()!=null?StrictMath.pow(2,-coverage.recencyMinimumMonths()/(double)HALF_LIFE_MONTHS):1;
                 boolean known=dated&&!coverage.incomplete()&&Objects.equals(coverage.recencyMinimumMonths(),coverage.recencyMaximumMonths());
-                parts.add(new Part(i,"RECENCY",10,recencies,low,Math.max(low,high),known,proof&&known,sources));
+                parts.add(new Part(i,"RECENCY",policy.recency(),recencies,low,Math.max(low,high),known,proof&&known,sources));
             }
         }
+        parts.removeIf(p->p.weight()==0);
         var components=new ArrayList<Component>();double known=0,quality=0;
         BigDecimal total=BigDecimal.ZERO,upper=BigDecimal.ZERO;
         BigDecimal allocated=BigDecimal.ZERO;
@@ -62,7 +67,7 @@ public final class EvidenceScore {
             if(p.known()) known+=w;if(p.quality()) quality+=w;
             components.add(new Component(p.index(),p.dimension(),p.weight(),w,p.low(),p.high(),contribution,possible,p.known()?"KNOWN":p.low()>0?"PARTIAL":"UNKNOWN",p.sources()));
         }
-        return new Score(RULE,WEIGHTS,HALF_LIFE_MONTHS,total.doubleValue(),upper.doubleValue(),round(100*known),round(100*quality),obligations,List.copyOf(components));
+        return new Score(RULE,policy.version(),HALF_LIFE_MONTHS,total.doubleValue(),upper.doubleValue(),round(100*known),round(100*quality),obligations,List.copyOf(components));
     }
     private static double round(double value) {return BigDecimal.valueOf(value).setScale(6,RoundingMode.HALF_UP).doubleValue();}
 }

@@ -5126,6 +5126,255 @@
           }
         }
       }
+    },
+    "/pools/{poolId}/scoring-configurations": {
+      "get": {
+        "operationId": "scoringConfigurationState",
+        "summary": "Lire la dernière version et la permission CONFIGURE_SCORING du vivier",
+        "tags": [
+          "Scoring"
+        ],
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationState"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "post": {
+        "operationId": "validateScoringConfiguration",
+        "summary": "Responsable recrutement du vivier : valider une nouvelle version justifiée",
+        "tags": [
+          "Scoring"
+        ],
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "201": {
+            "description": "Succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationRevision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoringConfigurationEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pools/{poolId}/scoring-configurations/history": {
+      "get": {
+        "operationId": "scoringConfigurationHistory",
+        "summary": "Historique avant/après, motif et validateur ; 25 versions par page",
+        "tags": [
+          "Scoring"
+        ],
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/pools/{poolId}/scoring-configurations/{version}": {
+      "get": {
+        "operationId": "scoringConfigurationVersion",
+        "summary": "Lire une version immuable de ce vivier (0 = initiale)",
+        "tags": [
+          "Scoring"
+        ],
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "version",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoringConfigurationRevision"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9711,6 +9960,17 @@
           },
           "scanned": {
             "type": "integer"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Poids figés ; absent/null pour les snapshots historiques SH-18."
           }
         },
         "required": [
@@ -9879,6 +10139,14 @@
             "type": "number",
             "minimum": 0.5,
             "maximum": 1
+          },
+          "configurationVersion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "description": "Version du vivier choisi ; null ou absence = poids initiaux v0. Aucune sélection implicite de la dernière version."
           }
         },
         "required": [
@@ -9886,7 +10154,219 @@
           "hybrid",
           "minimumSimilarity"
         ],
-        "description": "Cursor de query doit être null. Classement global borné à 1000 publications examinées, refus 422 sans snapshot partiel. Poids communs fixes v1 (35/15/20/10), renormalisés sur les groupes demandés. Quota de 20 snapshots actifs par acteur ; rétention maximale 24h et accès source recontrôlé. Pas de configuration SH-19."
+        "description": "Classement global borné à 1000 publications. Configuration validée du vivier explicitement sélectionnée ; v0 par défaut. Les poids actifs sont renormalisés sur les groupes demandés. Refus 422 si aucun groupe demandé n’a de poids positif. Snapshots privés immuables 24h, quota 20."
+      },
+      "ScoringWeights": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "required": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "desired": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "experience": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "recency": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "required",
+          "desired",
+          "experience",
+          "recency"
+        ]
+      },
+      "ScoringPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "required": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "desired": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "experience": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "recency": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "version",
+          "required",
+          "desired",
+          "experience",
+          "recency"
+        ]
+      },
+      "ScoringConfigurationEdit": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "weights": {
+            "$ref": "#/components/schemas/ScoringWeights"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "name",
+          "weights",
+          "reason"
+        ]
+      },
+      "ScoringConfigurationRevision": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "poolId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string"
+          },
+          "weights": {
+            "$ref": "#/components/schemas/ScoringWeights"
+          },
+          "before": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ScoringWeights"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "normalized": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "REQUIRED": {
+                "type": "number"
+              },
+              "DESIRED": {
+                "type": "number"
+              },
+              "EXPERIENCE": {
+                "type": "number"
+              },
+              "RECENCY": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "REQUIRED",
+              "DESIRED",
+              "EXPERIENCE",
+              "RECENCY"
+            ]
+          },
+          "validatorId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "validatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "poolId",
+          "version",
+          "name",
+          "weights",
+          "before",
+          "normalized",
+          "validatorId",
+          "validatedAt",
+          "reason"
+        ]
+      },
+      "ScoringConfigurationState": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "latest": {
+            "$ref": "#/components/schemas/ScoringConfigurationRevision"
+          },
+          "canConfigure": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "latest",
+          "canConfigure"
+        ]
+      },
+      "ScoringConfigurationHistory": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoringConfigurationRevision"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
       }
     }
   }

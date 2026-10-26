@@ -404,4 +404,29 @@ class HumanReviewTest extends IdentityTestSupport {
         var next=scored.page(alice,page.metadata().searchId(),page.nextCursor(),1);
         assertThat(next.items().getFirst().hit().candidateId()).isEqualTo(second.id());assertThat(next.items().getFirst().score().documented()).isZero();assertThat(next.nextCursor()).isNull();
     }
+
+    @Autowired com.skillhunters.scoring.ScoringConfigurations scoringConfigs;
+    @Test void configuredScoresFreezeWeightsAndLegacySnapshotsStillReplay() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var q=searchQuery(false,"Java",null);
+        var initial=scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(q,false,0.65));
+        assertThat(initial.items().getFirst().score().documented()).isEqualTo(70);
+        // Emulate a stored SH-18 metadata record before the policy field existed.
+        var stored=json.readTree(db.queryForObject("SELECT metadata_json FROM scored_search WHERE id=?",String.class,initial.metadata().searchId()));
+        ((com.fasterxml.jackson.databind.node.ObjectNode)stored).remove("policy");
+        db.update("UPDATE scored_search SET metadata_json=? WHERE id=?",json.writeValueAsString(stored),initial.metadata().searchId());
+        db.update("UPDATE membership SET role='RECRUITMENT_LEAD' WHERE user_id=?",alice);
+        scoringConfigs.save(alice,poolA,"\"0\"",new com.skillhunters.scoring.ScoringConfigurations.Edit("Souhaitées prioritaires",new com.skillhunters.scoring.ScoringConfigurations.Weights(1,3,0,0),"Test pondération"));
+        var custom=scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(q,false,0.65,1L));
+        assertThat(custom.items().getFirst().score().documented()).isEqualTo(25);
+        scoringConfigs.save(alice,poolA,"\"1\"",new com.skillhunters.scoring.ScoringConfigurations.Edit("Obligatoires prioritaires",new com.skillhunters.scoring.ScoringConfigurations.Weights(1,0,0,0),"Nouvelle priorité"));
+        assertThat(scored.replay(alice,custom.metadata().searchId(),c.id())).isEqualTo(custom.items().getFirst());
+        assertThat(scored.replay(alice,initial.metadata().searchId(),c.id())).isEqualTo(initial.items().getFirst());
+        var zero=scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(q,false,0.65,2L)).items().getFirst().score();
+        assertThat(zero.documented()).isEqualTo(100);assertThat(zero.components()).hasSize(1);
+        scoringConfigs.save(alice,poolA,"\"2\"",new com.skillhunters.scoring.ScoringConfigurations.Edit("Durée seule",new com.skillhunters.scoring.ScoringConfigurations.Weights(0,0,1,0),"Pas de durée demandée"));
+        int count=db.queryForObject("SELECT COUNT(*) FROM scored_search",Integer.class);
+        assertThatThrownBy(()->scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(q,false,0.65,3L))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORING_NO_ACTIVE_WEIGHT"));
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search",Integer.class)).isEqualTo(count);
+    }
 }

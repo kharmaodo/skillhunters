@@ -109,3 +109,7 @@ Voir `validation/sh-16-index.md` pour le cycle de vie, les limites et le corpus.
 ## Score documenté SH-18
 
 Le module `scoring` sépare le calcul pur `EvidenceScore` (liste blanche de critères structurés) et l’orchestration transactionnelle `ScoredSearchService`. L’orchestrateur parcourt la récupération structurée/hybride autorisée, refuse un corpus dépassant la borne explicite, puis fige et classe les contributions. V15 conserve un snapshot privé et court des critères/preuves/règles ; les données candidat sont dans des lignes cascadées depuis leur source. Le recalcul réutilise le snapshot et vérifie l’empreinte, sans nouveau modèle ni lecture d’une publication plus récente. Qualité et similarité restent hors du total et du départage. Voir `validation/sh-18.md`.
+
+## Configuration du scoring SH-19
+
+`ScoringConfigurations` contrôle le rôle RECRUITMENT_LEAD du vivier et alloue les versions sous verrou du vivier avec If-Match. Le classement résout explicitement une version autorisée, puis fige sa politique dans les métadonnées. Le rejeu dépend exclusivement de cette politique figée ; les snapshots historiques sans politique utilisent les constantes SH-18. Voir [validation SH-19](validation/sh-19.md).
