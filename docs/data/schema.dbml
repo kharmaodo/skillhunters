@@ -281,3 +281,15 @@ Table scoring_configuration {
   (pool_id,version) [pk]
  }
 }
+
+Table score_review_event {
+ search_id uuid [not null]
+ candidate_id uuid [not null]
+ version integer [not null]
+ replacement_search_id uuid [ref: > scored_search.id]
+ event_json text [not null]
+ indexes {
+  (search_id,candidate_id,version) [pk]
+ }
+}
+Ref: score_review_event.(search_id,candidate_id) > scored_search_item.(search_id,candidate_id)

@@ -120,3 +120,7 @@ V15 ajoute `scored_search` (créateur, vivier, calcul/expiration et métadonnée
 ## Schéma physique SH-19
 
 V16 ajoute `scoring_configuration(pool_id, version, revision_json)`, clé primaire composite et cascade du vivier. La révision contient nom, poids avant/après, parts globales normalisées, validateur, date et motif. Les versions sont immuables dans les API. `scored_search.metadata_json` contient désormais une politique figée facultative pour préserver la compatibilité des snapshots SH-18.
+
+## Contestation et décision SH-20
+
+V17 ajoute `score_review_event`, clé `(search_id,candidate_id,version)` et FK composite vers la ligne de snapshot avec cascade. La comparaison référence aussi son nouveau snapshot en cascade. Événements immuables via API ; aucun historique ne prolonge la rétention.

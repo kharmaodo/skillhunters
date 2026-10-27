@@ -1,3 +1,4 @@
+import { ScoreReview } from './ScoreReview';
 import { ScoringConfiguration } from './ScoringConfiguration';
 import { useState } from 'react';
 import { api, message, type Session } from './api';
@@ -35,6 +36,7 @@ export function ScoredResults({query,hybrid,minimumSimilarity,session,failed,ope
  {item.hit.criteria.map((c,i)=><div key={i}><h5>Preuves : {c.criterion.label}</h5>{!c.evidence.length&&<p>Aucune preuve publiée correspondante : l’aptitude reste à vérifier.</p>}{c.evidence.map((e,j)=><div key={j}><p>Valeur validée : {e.validatedValue} · original : {e.original||'inconnu'}</p>{e.citations.map((proof,k)=><blockquote key={k}>{proof.quote}<small> · {proof.source}</small></blockquote>)}</div>)}{c.periodLinks.map((link,j)=><p key={j}>{link.period.start||'?'} – {link.period.end||'?'} · {link.period.kind} · {link.evidence}</p>)}</div>)}
  <p className="fine">Publication {item.hit.publicationId} · source {item.hit.sourceRevisionId} · fiche v{item.hit.candidateVersion} · rattachements v{item.hit.periodLinksVersion??'aucun'} · empreinte {item.fingerprint}</p></details>
  <button className="button" disabled={busy} onClick={()=>void replay(item)}>Vérifier le recalcul du rang {item.rank}</button> <button className="button" disabled={busy} onClick={()=>open(item.hit.candidateId)}>Ouvrir la fiche actuelle du rang {item.rank}</button>
+ <ScoreReview searchId={page.metadata.searchId} candidateId={item.hit.candidateId} labels={item.hit.criteria.map(c=>c.criterion.label)} originalScore={item.score.documented} createdAt={page.metadata.createdAt} session={session} open={()=>open(item.hit.candidateId)}/>
  </article>)}
  {page.nextCursor!==null&&<button className="button" disabled={busy} onClick={()=>void next()}>Page suivante du classement</button>}
  </>}

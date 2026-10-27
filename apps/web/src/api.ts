@@ -20,6 +20,12 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'SCORE_REVIEW_CHANGED') return 'Une décision a été enregistrée entre-temps. Rechargez l’historique ; votre motif est conservé.';
+    if (error.code === 'INVALID_SCORE_REVIEW') return 'Choisissez une action, un critère valide et un motif factuel de 500 caractères maximum.';
+    if (error.code === 'SCORE_CONTEST_REQUIRED') return 'Enregistrez d’abord une contestation du classement.';
+    if (error.code === 'SCORE_CORRECTION_REQUIRED') return 'Publiez une correction de la fiche ou des périodes avant de comparer.';
+    if (error.code === 'SCORE_CORRECTION_NOT_RETRIEVED') return 'Le profil n’est plus retrouvé avec les critères d’origine. L’ancien classement est conservé ; lancez une nouvelle recherche pour examiner la fiche corrigée.';
+    if (error.code === 'SCORE_REVIEW_QUOTA') return 'La limite de 100 décisions pour ce profil dans ce classement est atteinte.';
     if (error.code === 'SCORING_SNAPSHOT_QUOTA') return 'Vous avez atteint 20 classements actifs. Réutilisez un classement existant ou attendez son expiration (24 h maximum).';
     if (error.code === 'SCORING_CONFIGURATION_CHANGED') return 'Une autre configuration a été validée. Votre saisie est conservée ; rechargez la dernière version avant de recommencer.';
     if (error.code === 'INVALID_SCORING_CONFIGURATION') return 'Renseignez un nom, un motif et quatre poids entiers de 0 à 10 000, dont au moins un positif.';

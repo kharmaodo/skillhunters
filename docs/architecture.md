@@ -113,3 +113,7 @@ Le module `scoring` sépare le calcul pur `EvidenceScore` (liste blanche de crit
 ## Configuration du scoring SH-19
 
 `ScoringConfigurations` contrôle le rôle RECRUITMENT_LEAD du vivier et alloue les versions sous verrou du vivier avec If-Match. Le classement résout explicitement une version autorisée, puis fige sa politique dans les métadonnées. Le rejeu dépend exclusivement de cette politique figée ; les snapshots historiques sans politique utilisent les constantes SH-18. Voir [validation SH-19](validation/sh-19.md).
+
+## Contestation et décision SH-20
+
+`ScoreReviews` utilise le rejeu SH-18 pour contrôler auteur, vivier, source et empreinte. Le verrou acteur sérialise les décisions avec les révocations ; If-Match protège la saisie concurrente. La comparaison crée une recherche avec les paramètres figés et exige une correction publiée. Les décisions ne modifient ni score ni rang.
