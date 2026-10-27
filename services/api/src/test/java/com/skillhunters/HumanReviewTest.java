@@ -429,4 +429,56 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThatThrownBy(()->scored.create(alice,new com.skillhunters.scoring.ScoredSearchService.Request(q,false,0.65,3L))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORING_NO_ACTIVE_WEIGHT"));
         assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search",Integer.class)).isEqualTo(count);
     }
+
+    @Autowired com.skillhunters.scoring.ScoreReviews scoreReviews;
+    @Test void contestCorrectionAndSelectionPreserveOriginalAndPermissions() throws Exception {
+        var c=create();var publication=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var snapshot=scored.create(alice,scoredRequest(false,"Java"));var sid=snapshot.metadata().searchId();var original=snapshot.items().getFirst();
+        var contest=new com.skillhunters.scoring.ScoreReviews.Edit(com.skillhunters.scoring.ScoreReviews.Action.CONTEST,"Preuve contestée",0);
+        var correction=new com.skillhunters.scoring.ScoreReviews.Edit(com.skillhunters.scoring.ScoreReviews.Action.CORRECTION,"Correction publiée vérifiée",null);
+        assertThatThrownBy(()->scoreReviews.save(alice,sid,c.id(),"\"0\"",correction)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORE_CONTEST_REQUIRED"));
+        scoreReviews.save(alice,sid,c.id(),"\"0\"",contest);
+        assertThatThrownBy(()->scoreReviews.save(alice,sid,c.id(),"\"0\"",contest)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORE_REVIEW_CHANGED"));
+        assertThatThrownBy(()->scoreReviews.save(alice,sid,c.id(),"\"1\"",correction)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SCORE_CORRECTION_REQUIRED"));
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM scored_search",Integer.class)).isEqualTo(1);
+        var changed=new ArrayList<>(publication.items());var skill=changed.getFirst();
+        changed.set(0,new Item(0,"Python",skill.decision(),skill.precision(),null,"Correction synthétique"));
+        var fixed=reviews.save(alice,c.id(),"\"2\"",request(changed),true);
+        var event=scoreReviews.save(alice,sid,c.id(),"\"1\"",correction);
+        assertThat(event.score().documented()).isZero();assertThat(event.publicationId()).isEqualTo(fixed.id());assertThat(event.actorId()).isEqualTo(alice);
+        assertThat(scored.replay(alice,sid,c.id())).isEqualTo(original);
+        var selected=scoreReviews.save(alice,event.replacementSearchId(),c.id(),"\"0\"",new com.skillhunters.scoring.ScoreReviews.Edit(com.skillhunters.scoring.ScoreReviews.Action.SELECT,"Vérification humaine malgré score nul",null));
+        assertThat(selected.score().documented()).isZero();assertThat(scoreReviews.history(alice,sid,c.id(),0).items()).hasSize(2);
+        String route="/api/v1/search/scored/"+sid+"/candidates/"+c.id()+"/reviews";
+        mvc.perform(get(route).with(as("admin"))).andExpect(status().isNotFound());
+        mvc.perform(post(route).with(as("alice")).contentType("application/json").content(json.writeValueAsString(contest))).andExpect(status().isForbidden());
+        mvc.perform(post(route).with(as("alice")).with(csrf()).contentType("application/json").content(json.writeValueAsString(contest))).andExpect(status().isPreconditionRequired());
+        mvc.perform(get(route).with(as("alice"))).andExpect(status().isOk()).andExpect(header().string("ETag","\"2\""));
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->scoreReviews.history(alice,sid,c.id(),0)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",alice,poolA);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        assertThatThrownBy(()->scoreReviews.history(alice,sid,c.id(),0)).isInstanceOf(Rejected.class);
+        scored.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM score_review_event",Integer.class)).isZero();
+    }
+    @Test void scoreReviewValidatesAndSerializesConcurrentDecisions() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var snapshot=scored.create(alice,scoredRequest(false,"Java"));var sid=snapshot.metadata().searchId();
+        var action=com.skillhunters.scoring.ScoreReviews.Action.CONTEST;
+        for(var edit:List.of(new com.skillhunters.scoring.ScoreReviews.Edit(action," ",0),new com.skillhunters.scoring.ScoreReviews.Edit(action,"Test",99),new com.skillhunters.scoring.ScoreReviews.Edit(action,"Test",null),new com.skillhunters.scoring.ScoreReviews.Edit(action,"x".repeat(501),0)))
+            assertThatThrownBy(()->scoreReviews.save(alice,sid,c.id(),"\"0\"",edit)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_SCORE_REVIEW"));
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",admin,poolA);
+        assertThatThrownBy(()->scoreReviews.history(admin,sid,c.id(),0)).isInstanceOf(Rejected.class);
+        var edit=new com.skillhunters.scoring.ScoreReviews.Edit(action,"Preuve contestée",0);
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var start=new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.Callable<String> task=()->{start.await();try{scoreReviews.save(alice,sid,c.id(),"\"0\"",edit);return "OK";}catch(Rejected e){return e.code;}};
+            var a=executor.submit(task);var b=executor.submit(task);start.countDown();
+            assertThat(List.of(a.get(),b.get())).containsExactlyInAnyOrder("OK","SCORE_REVIEW_CHANGED");
+        }
+        assertThat(scoreReviews.history(alice,sid,c.id(),0).version()).isEqualTo(1);
+        scoreReviews.save(alice,sid,c.id(),"\"1\"",new com.skillhunters.scoring.ScoreReviews.Edit(com.skillhunters.scoring.ScoreReviews.Action.WITHDRAW,"Relecture humaine",null));
+        db.update("DELETE FROM candidate_profile WHERE id=?",c.id());
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM score_review_event",Integer.class)).isZero();
+    }
 }

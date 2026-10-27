@@ -5375,6 +5375,174 @@
           }
         }
       }
+    },
+    "/search/scored/{search}/candidates/{candidate}/reviews": {
+      "get": {
+        "operationId": "getScoreReviews",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Historique privé des contestations et décisions",
+        "x-implementation-status": "implemented",
+        "description": "Créateur du snapshot, vivier courant et source non expirée. Historique 24 h maximum, 100 événements. CORRECTION exige une contestation et une nouvelle publication ou de nouveaux rattachements ; critères et poids d’origine conservés. SELECT ne modifie ni score ni rang et ne contacte personne.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version de l’historique"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreReviewHistory"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "recordScoreReview",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Tracer une décision humaine ou comparer une correction publiée",
+        "x-implementation-status": "implemented",
+        "description": "Créateur du snapshot, vivier courant et source non expirée. Historique 24 h maximum, 100 événements. CORRECTION exige une contestation et une nouvelle publication ou de nouveaux rattachements ; critères et poids d’origine conservés. SELECT ne modifie ni score ni rang et ne contacte personne.",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "201": {
+            "description": "Succès",
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version de l’historique"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScoreReviewEvent"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScoreReviewEdit"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10364,6 +10532,128 @@
           }
         },
         "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ScoreReviewEdit": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "CONTEST",
+              "SELECT",
+              "WITHDRAW",
+              "CORRECTION"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "criterionIndex": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "action",
+          "reason"
+        ]
+      },
+      "ScoreReviewEvent": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "CONTEST",
+              "SELECT",
+              "WITHDRAW",
+              "CORRECTION"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "criterionIndex": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "replacementSearchId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "publicationId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "score": {
+            "$ref": "#/components/schemas/EvidenceScore"
+          },
+          "fingerprint": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "action",
+          "reason",
+          "criterionIndex",
+          "actorId",
+          "createdAt",
+          "replacementSearchId",
+          "publicationId",
+          "score",
+          "fingerprint"
+        ]
+      },
+      "ScoreReviewHistory": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoreReviewEvent"
+            },
+            "maxItems": 25
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "version",
           "items",
           "nextCursor"
         ]

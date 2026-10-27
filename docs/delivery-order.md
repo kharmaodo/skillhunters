@@ -29,10 +29,12 @@ La numérotation du backlog n'est pas l'ordre de développement. Ce suivi ne rem
 
 | SH-18 | Incrément fusionné, PR #19 | Score documenté sur critères structurés, contributions et snapshots privés ; périmètre et limites dans [validation/sh-18.md](validation/sh-18.md) |
 
-| SH-19 | Développée, en validation PR | Poids versionnés par vivier, validation responsable recrutement et anciens scores préservés ; voir [validation/sh-19.md](validation/sh-19.md) |
+| SH-19 | Fusionnée, PR #20 | Poids versionnés par vivier, validation responsable recrutement et anciens scores préservés ; voir [validation/sh-19.md](validation/sh-19.md) |
 
 ## Suite prioritaire après SH-16
 
 SH-18 (score décomposé et reproductible), puis SH-19 (configuration du scoring), sont **Must / MVP** et deviennent les prochains incréments de cette chaîne de dépendances. SH-17 (recherches sauvegardées), **Should / R1**, ne les précède pas. Le complément SH-05 et les autres Must restent ouverts ; aucune clôture implicite n’est faite ici.
 
 Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles qualité SH-35. La qualification multi-format et la mesure à 10 000 profils demeurent des gates MVP non validés. Ce suivi distingue la livraison fonctionnelle de SH-16 de ces objectifs transverses.
+
+| SH-20 | Développée, en validation PR | Contestation, comparaison après correction et sélection humaine ; [périmètre](validation/sh-20.md) |

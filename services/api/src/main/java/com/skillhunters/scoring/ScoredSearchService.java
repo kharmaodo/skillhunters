@@ -113,6 +113,15 @@ public class ScoredSearchService {
             return new Item(item.rank(),item.hit(),score,item.signals(),item.fingerprint());
         });
     }
+    /** Re-evaluate with original criteria, date, dictionary and weights; never overwrite history. */
+    public Page refresh(UUID actor,UUID search) {
+        return tx.execute(t->{
+            var m=access(actor,search);var trace=m.trace();
+            var criteria=trace.criteria().stream().map(c->new Criterion(c.original(),c.importance(),c.minimumMonths(),c.maximumRecencyMonths())).toList();
+            long version=m.policy()==null||EvidenceScore.WEIGHTS.equals(m.weightsVersion())?0:Long.parseLong(m.weightsVersion().substring(m.weightsVersion().lastIndexOf('/')+1).replace("scoring-",""));
+            return create(actor,new Request(new Query(trace.poolId(),criteria,trace.strict(),trace.experienceKinds(),trace.referenceDate(),trace.dictionaryVersion(),null,25),m.hybrid(),m.minimumSimilarity(),version));
+        });
+    }
     private Metadata access(UUID actor,UUID id) {
         if(!db.sql("SELECT enabled FROM app_user WHERE id=:actor FOR UPDATE").param("actor",actor).query(Boolean.class).optional().orElse(false))
             throw new Rejected(HttpStatus.FORBIDDEN,"ACCOUNT_DISABLED");

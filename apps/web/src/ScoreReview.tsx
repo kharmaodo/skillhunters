@@ -1,0 +1,24 @@
+import { useState } from 'react';
+import { api, message, type Session } from './api';
+type Event={version:number;action:string;reason:string;criterionIndex:number|null;actorId:string;createdAt:string;replacementSearchId:string|null;publicationId:string;score:{documented:number;upper:number;components:{criterionIndex:number;dimension:string;contribution:number;upperContribution:number}[]}};
+type History={version:number;items:Event[];nextCursor:number|null};
+const actions:Record<string,string>={CONTEST:'Contestation',SELECT:'Sélection humaine malgré le score',WITHDRAW:'Retrait de la sélection humaine',CORRECTION:'Comparaison après correction publiée'};
+export function ScoreReview({searchId,candidateId,labels,originalScore,createdAt,session,open}:{searchId:string;candidateId:string;labels:string[];originalScore:number;createdAt:string;session:Session;open:()=>void}) {
+ const [history,setHistory]=useState<History|null>(null);const [reason,setReason]=useState('');const [criterion,setCriterion]=useState(0);const [action,setAction]=useState('CONTEST');const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [notice,setNotice]=useState('');
+ const base=`/search/scored/${searchId}/candidates/${candidateId}/reviews`;const prefix=`review-${searchId}-${candidateId}`;
+ async function load(cursor=0){setBusy(true);setError('');try{setHistory(await api<History>(`${base}?cursor=${cursor}`));}catch(e){setError(message(e));}finally{setBusy(false);}}
+ async function save(){if(!history)return;setBusy(true);setError('');setNotice('');try{const event=await api<Event>(base,{method:'POST',headers:{'If-Match':`"${history.version}"`},body:JSON.stringify({action,reason,criterionIndex:action==='CONTEST'?criterion:null})},session.csrfToken);setHistory({version:event.version,items:[event],nextCursor:null});setReason('');setNotice('Décision enregistrée. Le score et le rang d’origine restent inchangés.');}catch(e){setError(message(e));}finally{setBusy(false);}}
+ return <details><summary>Contester ou décider pour ce profil</summary><section aria-label="Revue du classement">
+ <p>Une sélection reste une décision humaine, quel que soit le score. Elle concerne ce classement privé et ne déclenche aucun contact. Historique conservé au maximum 24 h, sous réserve des droits et de la conservation du document.</p>
+ <p>Score d’origine : {originalScore} / 100 · calcul du {new Date(createdAt).toLocaleString()}.</p>
+ <button className="button" disabled={busy} onClick={()=>void load()}>Charger l’historique des décisions</button>
+ {error&&<p role="alert">{error}</p>}{notice&&<p role="status">{notice}</p>}
+ {history&&<><form onSubmit={e=>{e.preventDefault();void save();}}><fieldset disabled={busy}><legend>Décision explicite</legend>
+ <label htmlFor={`${prefix}-action`}>Action sur le classement</label><select id={`${prefix}-action`} value={action} onChange={e=>setAction(e.target.value)}>{Object.entries(actions).map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
+ {action==='CONTEST'&&<><label htmlFor={`${prefix}-criterion`}>Critère contesté</label><select id={`${prefix}-criterion`} value={criterion} onChange={e=>setCriterion(Number(e.target.value))}>{labels.map((l,i)=><option key={i} value={i}>{l}</option>)}</select></>}
+ {action==='CORRECTION'&&<p>Publiez d’abord la correction dans la fiche. Le serveur recalcule avec les critères, la date, le dictionnaire et les poids d’origine. Si le profil n’est plus retrouvé, la comparaison est refusée sans modifier l’ancien score.</p>}
+ <label htmlFor={`${prefix}-reason`}>Motif factuel de la décision</label><textarea id={`${prefix}-reason`} value={reason} onChange={e=>setReason(e.target.value)} required maxLength={500}/><p className="fine">Décrivez uniquement les preuves professionnelles ; aucune donnée sensible ni coordonnée personnelle.</p>
+ <button className="button">Enregistrer la décision</button><button type="button" className="button" onClick={open}>Ouvrir la fiche pour correction</button>
+ </fieldset></form><ol>{history.items.map(e=><li key={e.version}><strong>{actions[e.action]}</strong> · {new Date(e.createdAt).toLocaleString()}<p>{e.reason}</p>{e.criterionIndex!==null&&<p>Critère : {labels[e.criterionIndex]}</p>}<p className="fine">Auteur : {e.actorId} · version {e.version}</p>{e.action==='CORRECTION'&&<><p>Score après correction : {e.score.documented} / 100 · borne haute {e.score.upper}.</p><ul>{e.score.components.map((c,i)=><li key={i}>{labels[c.criterionIndex]} · {c.dimension} : {c.contribution} à {c.upperContribution} points</li>)}</ul><p className="fine">Publication corrigée : {e.publicationId} · nouveau classement : {e.replacementSearchId}</p></>}</li>)}</ol>{history.nextCursor!==null&&<button className="button" disabled={busy} onClick={()=>void load(history.nextCursor!)}>Suite des décisions</button>}</>}
+ </section></details>;
+}
