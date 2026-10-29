@@ -20,6 +20,10 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'TRACKING_CHANGED') return 'Votre suivi a été modifié dans une autre session. La saisie est conservée ; rechargez avant de recommencer.';
+    if (error.code === 'INVALID_TRACKING') return 'Vérifiez le statut, les longueurs, les doublons de listes/tags et la confirmation des faits professionnels. Le balisage et les caractères de contrôle sont refusés.';
+    if (error.code === 'TRACKING_UNCHANGED') return 'Aucun changement de suivi à enregistrer.';
+    if (error.code === 'TRACKING_QUOTA') return 'La limite du suivi est atteinte (1 000 fiches ou 500 versions par fiche).';
     if (error.code === 'SCORE_REVIEW_CHANGED') return 'Une décision a été enregistrée entre-temps. Rechargez l’historique ; votre motif est conservé.';
     if (error.code === 'INVALID_SCORE_REVIEW') return 'Choisissez une action, un critère valide et un motif factuel de 500 caractères maximum.';
     if (error.code === 'SCORE_CONTEST_REQUIRED') return 'Enregistrez d’abord une contestation du classement.';

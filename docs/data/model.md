@@ -124,3 +124,7 @@ V16 ajoute `scoring_configuration(pool_id, version, revision_json)`, clé primai
 ## Contestation et décision SH-20
 
 V17 ajoute `score_review_event`, clé `(search_id,candidate_id,version)` et FK composite vers la ligne de snapshot avec cascade. La comparaison référence aussi son nouveau snapshot en cascade. Événements immuables via API ; aucun historique ne prolonge la rétention.
+
+## Organisation personnelle SH-21
+
+V18 ajoute candidate_tracking (compte/candidat, version indépendante et état), candidate_tracking_label (LIST/TAG normalisés, index de filtrage) et candidate_tracking_event (avant/après, auteur/date/motif). Cascade candidat/compte et purge horaire des sources expirées ; accès refusé dès expiration. Les tables conceptuelles shortlist/candidate_note sont remplacées par ce modèle personnel.

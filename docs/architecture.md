@@ -117,3 +117,7 @@ Le module `scoring` sépare le calcul pur `EvidenceScore` (liste blanche de crit
 ## Contestation et décision SH-20
 
 `ScoreReviews` utilise le rejeu SH-18 pour contrôler auteur, vivier, source et empreinte. Le verrou acteur sérialise les décisions avec les révocations ; If-Match protège la saisie concurrente. La comparaison crée une recherche avec les paramètres figés et exige une correction publiée. Les décisions ne modifient ni score ni rang.
+
+## Organisation personnelle SH-21
+
+CandidateTracking contrôle le compte, le vivier et la source via CandidateService. Le verrou acteur sérialise suivi et révocation ; If-Match évite les écrasements. GET retourne NEW/version 0 sans écrire ; recherche et scoring ne dépendent pas du suivi. Filtres SQL paramétrés, pagination 25, maximum 1 000 suivis par compte et 500 versions par fiche. La collaboration/partage est SH-23.

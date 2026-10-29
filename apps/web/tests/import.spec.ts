@@ -252,6 +252,37 @@ for (const width of [1280, 320]) {
     await adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true }).click();
     await expect(adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true })).toBeEnabled();
     await adminContext.close();
+    // SH-21: personal organization is explicit and unaffected by searches.
+    await candidate.getByText('Organiser ce candidat', { exact: true }).click();
+    const follow = candidate.getByRole('region', { name: 'Suivi personnel du candidat', exact: true });
+    const loadedFollow = page.waitForResponse(r => r.url().endsWith('/tracking') && r.request().method() === 'GET');
+    await follow.getByRole('button', { name: 'Charger ou remplacer ma saisie de suivi', exact: true }).click();
+    const initialFollow = await (await loadedFollow).json();
+    expect(initialFollow.version).toBe(0);
+    await follow.getByLabel('Statut de suivi', { exact: true }).selectOption('SHORTLISTED');
+    await follow.getByLabel('Listes nommées (séparées par des virgules)', { exact: true }).fill(`Poste synthétique ${width}`);
+    await follow.getByLabel('Tags professionnels (séparés par des virgules)', { exact: true }).fill('Java, Backend');
+    await follow.getByLabel('Note factuelle', { exact: true }).fill('Preuve Java publiée à revoir en entretien technique.');
+    await follow.getByLabel('Motif du changement de suivi', { exact: true }).fill('Décision humaine après lecture des preuves');
+    await follow.getByRole('checkbox').check();
+    await follow.getByRole('button', { name: 'Enregistrer mon suivi', exact: true }).click();
+    await expect(follow.getByRole('status')).toContainText('Suivi personnel enregistré');
+    await follow.getByRole('button', { name: 'Historique de mon suivi', exact: true }).click();
+    await expect(follow.getByText('Version 1', { exact: false })).toBeVisible();
+    await search.getByRole('button', { name: 'Rechercher dans ce vivier', exact: true }).click();
+    const persisted = await (await page.request.get(`/api/v1/candidates/${initialFollow.candidateId}/tracking`)).json();
+    expect(persisted.version).toBe(1);expect(persisted.values.status).toBe('SHORTLISTED');
+    const lists = page.getByRole('region', { name: 'Mes listes de candidats', exact: true });
+    await lists.getByLabel('Nom exact de la liste', { exact: true }).fill(`Poste synthétique ${width}`);
+    await lists.getByLabel('Tag exact', { exact: true }).fill('JAVA');
+    await lists.getByRole('button', { name: 'Afficher mon suivi', exact: true }).click();
+    await expect(lists.locator('article')).toHaveCount(1);
+    await expect(lists.locator('article')).toContainText('Présélectionné');
+    await expect(lists.locator('article')).toContainText('Preuve Java publiée');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
+    await follow.screenshot({ path: `test-results/candidate-tracking-${width}.png` });
+    await lists.screenshot({ path: `test-results/candidate-lists-${width}.png` });
+
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBeTruthy();

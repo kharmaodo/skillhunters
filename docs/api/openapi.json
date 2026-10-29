@@ -804,76 +804,6 @@
         }
       }
     },
-    "/candidates/{id}/notes": {
-      "post": {
-        "operationId": "addNote",
-        "tags": [
-          "Selection"
-        ],
-        "summary": "Ajouter une note factuelle et des tags",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Note"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NoteInput"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
     "/documents/{id}/download": {
       "get": {
         "operationId": "downloadDocument",
@@ -1211,238 +1141,6 @@
             "$ref": "#/components/responses/Problem"
           },
           "500": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/shortlists": {
-      "get": {
-        "operationId": "listShortlists",
-        "tags": [
-          "Selection"
-        ],
-        "summary": "Lister les sélections autorisées",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Shortlist"
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "x-implementation-status": "planned"
-      },
-      "post": {
-        "operationId": "createShortlist",
-        "tags": [
-          "Selection"
-        ],
-        "summary": "Créer une sélection",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Shortlist"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ShortlistInput"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/shortlists/{id}/entries": {
-      "post": {
-        "operationId": "addShortlistEntry",
-        "tags": [
-          "Selection"
-        ],
-        "summary": "Sélectionner humainement un candidat",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Shortlist"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CandidateLink"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/shortlists/{id}/entries/{candidateId}": {
-      "delete": {
-        "operationId": "removeShortlistEntry",
-        "tags": [
-          "Selection"
-        ],
-        "summary": "Retirer un candidat de la sélection",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "candidateId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté."
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
             "$ref": "#/components/responses/Problem"
           }
         },
@@ -5538,6 +5236,285 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ScoreReviewEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/tracking": {
+      "get": {
+        "operationId": "getCandidateTracking",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Lire mon suivi personnel sans le créer",
+        "x-implementation-status": "implemented",
+        "description": "Suivi personnel au compte connecté, jamais modifié par recherche/scoring. Contrôle du vivier et rétention source. Aucun envoi de message. Listes créées par affectation nominative ; retrait par suppression du nom. Texte brut, sans balisage/contrôles ni attributs protégés, confirmation humaine obligatoire. Noms NFKC minuscules, doublons refusés. Note courante versionnée.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingState"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version du suivi personnel, indépendante de la fiche"
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "updateCandidateTracking",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Modifier explicitement mon suivi",
+        "x-implementation-status": "implemented",
+        "description": "Suivi personnel au compte connecté, jamais modifié par recherche/scoring. Contrôle du vivier et rétention source. Aucun envoi de message. Listes créées par affectation nominative ; retrait par suppression du nom. Texte brut, sans balisage/contrôles ni attributs protégés, confirmation humaine obligatoire. Noms NFKC minuscules, doublons refusés. Note courante versionnée.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingState"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version du suivi personnel, indépendante de la fiche"
+              }
+            }
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackingEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/tracking/history": {
+      "get": {
+        "operationId": "getCandidateTrackingHistory",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Historique privé avant/après",
+        "x-implementation-status": "implemented",
+        "description": "Suivi personnel au compte connecté, jamais modifié par recherche/scoring. Contrôle du vivier et rétention source. Aucun envoi de message. Listes créées par affectation nominative ; retrait par suppression du nom. Texte brut, sans balisage/contrôles ni attributs protégés, confirmation humaine obligatoire. Noms NFKC minuscules, doublons refusés. Note courante versionnée.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingHistory"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pools/{pool}/tracking": {
+      "get": {
+        "operationId": "listCandidateTracking",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Filtrer mes listes, tags et statuts dans un vivier",
+        "x-implementation-status": "implemented",
+        "description": "Suivi personnel au compte connecté, jamais modifié par recherche/scoring. Contrôle du vivier et rétention source. Aucun envoi de message. Listes créées par affectation nominative ; retrait par suppression du nom. Texte brut, sans balisage/contrôles ni attributs protégés, confirmation humaine obligatoire. Noms NFKC minuscules, doublons refusés. Note courante versionnée.",
+        "parameters": [
+          {
+            "name": "pool",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000,
+              "default": 0
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "NEW",
+                "TO_REVIEW",
+                "SHORTLISTED",
+                "CONTACTED",
+                "INTERVIEW",
+                "CLOSED"
+              ]
+            }
+          },
+          {
+            "name": "list",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackingPage"
+                }
               }
             }
           }
@@ -10654,6 +10631,238 @@
         },
         "required": [
           "version",
+          "items",
+          "nextCursor"
+        ]
+      },
+      "TrackingValues": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "TO_REVIEW",
+              "SHORTLISTED",
+              "CONTACTED",
+              "INTERVIEW",
+              "CLOSED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "lists": {
+            "type": "array",
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          }
+        },
+        "required": [
+          "status",
+          "note",
+          "tags",
+          "lists"
+        ]
+      },
+      "TrackingEdit": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "NEW",
+              "TO_REVIEW",
+              "SHORTLISTED",
+              "CONTACTED",
+              "INTERVIEW",
+              "CLOSED"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 2000
+          },
+          "tags": {
+            "type": "array",
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "lists": {
+            "type": "array",
+            "maxItems": 10,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "professionalOnly": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "status",
+          "note",
+          "tags",
+          "lists",
+          "reason",
+          "professionalOnly"
+        ]
+      },
+      "TrackingState": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "values": {
+            "$ref": "#/components/schemas/TrackingValues"
+          }
+        },
+        "required": [
+          "candidateId",
+          "version",
+          "values"
+        ]
+      },
+      "TrackingEvent": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "before": {
+            "$ref": "#/components/schemas/TrackingValues"
+          },
+          "after": {
+            "$ref": "#/components/schemas/TrackingValues"
+          }
+        },
+        "required": [
+          "version",
+          "actorId",
+          "occurredAt",
+          "reason",
+          "before",
+          "after"
+        ]
+      },
+      "TrackingRow": {
+        "type": "object",
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "professionalTitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tracking": {
+            "$ref": "#/components/schemas/TrackingState"
+          }
+        },
+        "required": [
+          "candidateId",
+          "displayName",
+          "professionalTitle",
+          "tracking"
+        ]
+      },
+      "TrackingHistory": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/TrackingEvent"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "TrackingPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/TrackingRow"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
           "items",
           "nextCursor"
         ]

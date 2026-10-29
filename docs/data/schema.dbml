@@ -155,24 +155,6 @@ Table search_result {
  upper_bound decimal [not null]
  indexes { (search_id, candidate_id) [pk] }
 }
-Table shortlist {
- id uuid [pk]
- owner_id uuid [not null, ref: > app_user.id]
- pool_id uuid [not null, ref: > talent_pool.id]
- name varchar [not null]
-}
-Table shortlist_entry {
- shortlist_id uuid [not null, ref: > shortlist.id]
- candidate_id uuid [not null, ref: > candidate.id]
- indexes { (shortlist_id, candidate_id) [pk] }
-}
-Table candidate_note {
- id uuid [pk]
- candidate_id uuid [not null, ref: > candidate.id]
- author_id uuid [not null, ref: > app_user.id]
- body text [not null]
- tags jsonb
-}
 Table email_template {
  id uuid [pk]
  name varchar [not null]
@@ -293,3 +275,28 @@ Table score_review_event {
  }
 }
 Ref: score_review_event.(search_id,candidate_id) > scored_search_item.(search_id,candidate_id)
+
+Table candidate_tracking {
+ actor_id uuid [not null, ref: > app_user.id]
+ candidate_id uuid [not null, ref: > candidate.id, note: 'FK physique candidate_profile, cascade']
+ version int [not null]
+ status varchar [not null]
+ state_json text [not null]
+ indexes { (actor_id,candidate_id) [pk] }
+}
+Table candidate_tracking_label {
+ actor_id uuid [not null]
+ candidate_id uuid [not null]
+ kind varchar [not null, note: 'LIST ou TAG']
+ label varchar [not null]
+ indexes { (actor_id,candidate_id,kind,label) [pk] }
+}
+Table candidate_tracking_event {
+ actor_id uuid [not null]
+ candidate_id uuid [not null]
+ version int [not null]
+ event_json text [not null, note: 'Avant/après, auteur, date et motif ; rétention source']
+ indexes { (actor_id,candidate_id,version) [pk] }
+}
+Ref: candidate_tracking_label.(actor_id,candidate_id) > candidate_tracking.(actor_id,candidate_id)
+Ref: candidate_tracking_event.(actor_id,candidate_id) > candidate_tracking.(actor_id,candidate_id)
