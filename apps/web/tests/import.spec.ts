@@ -253,8 +253,11 @@ for (const width of [1280, 320]) {
     await expect(adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true })).toBeEnabled();
     await adminContext.close();
     // SH-21: personal organization is explicit and unaffected by searches.
-    await candidate.getByText('Organiser ce candidat', { exact: true }).click();
-    const follow = candidate.getByRole('region', { name: 'Suivi personnel du candidat', exact: true });
+    // The import-scoped fiche was unmounted by page.reload(); use the reopened fiche.
+    const currentCandidate = page.getByRole('region', { name: 'Fiche candidat', exact: true });
+    await expect(currentCandidate).toHaveCount(1);
+    await currentCandidate.getByText('Organiser ce candidat', { exact: true }).click();
+    const follow = currentCandidate.getByRole('region', { name: 'Suivi personnel du candidat', exact: true });
     const loadedFollow = page.waitForResponse(r => r.url().endsWith('/tracking') && r.request().method() === 'GET');
     await follow.getByRole('button', { name: 'Charger ou remplacer ma saisie de suivi', exact: true }).click();
     const initialFollow = await (await loadedFollow).json();
