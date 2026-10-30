@@ -48,3 +48,7 @@ SH-19 ajoute la configuration versionnée sous `/api/v1/pools/{poolId}/scoring-c
 ## Contestation et décision SH-20
 
 SH-20 ajoute GET/POST `/api/v1/search/scored/{search}/candidates/{candidate}/reviews` : historique privé paginé, CSRF et If-Match. Actions CONTEST, SELECT, WITHDRAW et CORRECTION. Voir [validation SH-20](../validation/sh-20.md).
+
+## Organisation personnelle SH-21
+
+SH-21 remplace les routes planifiées /shortlists et /candidates/{id}/notes par GET/PUT /candidates/{id}/tracking, GET /candidates/{id}/tracking/history et GET /pools/{pool}/tracking. Contrat personnel avec If-Match/CSRF, listes/tags normalisés et historique avant/après ; [règles](../validation/sh-21.md).

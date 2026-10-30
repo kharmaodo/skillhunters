@@ -52,3 +52,11 @@
 .structured-search blockquote { margin-inline: 0; border-inline-start: 3px solid #dce0e9; padding-inline-start: .5rem; white-space: pre-wrap; }
 
 .structured-search textarea { resize: vertical; min-height: 6rem; }
+
+/* Personal tracking is also rendered outside .candidate-profile. */
+.candidate-tracking { min-inline-size: 0; max-inline-size: 100%; overflow-wrap: anywhere; }
+.candidate-tracking fieldset { min-inline-size: 0; margin: 1rem 0; padding: .75rem; border: 1px solid #dce0e9; border-radius: .5rem; }
+.candidate-tracking legend { max-inline-size: 100%; white-space: normal; }
+.candidate-tracking input:not([type=checkbox]), .candidate-tracking select, .candidate-tracking textarea { font: inherit; width: 100%; min-width: 0; max-width: 100%; padding: .5rem; border: 1px solid #dce0e9; border-radius: .4rem; }
+.candidate-tracking input[type=checkbox] { width: auto; }
+.candidate-tracking textarea { resize: vertical; }

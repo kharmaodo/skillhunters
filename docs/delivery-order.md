@@ -37,4 +37,6 @@ SH-18 (score décomposé et reproductible), puis SH-19 (configuration du scoring
 
 Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles qualité SH-35. La qualification multi-format et la mesure à 10 000 profils demeurent des gates MVP non validés. Ce suivi distingue la livraison fonctionnelle de SH-16 de ces objectifs transverses.
 
-| SH-20 | Développée, en validation PR | Contestation, comparaison après correction et sélection humaine ; [périmètre](validation/sh-20.md) |
+| SH-20 | Fusionnée, PR #21, CI réussie | Contestation, comparaison après correction et sélection humaine ; [périmètre](validation/sh-20.md) |
+
+| SH-21 | Développée, en validation PR | Listes personnelles, note factuelle versionnée, tags et statuts humains ; [périmètre](validation/sh-21.md) |

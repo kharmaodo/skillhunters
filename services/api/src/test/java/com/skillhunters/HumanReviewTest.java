@@ -481,4 +481,62 @@ class HumanReviewTest extends IdentityTestSupport {
         db.update("DELETE FROM candidate_profile WHERE id=?",c.id());
         assertThat(db.queryForObject("SELECT COUNT(*) FROM score_review_event",Integer.class)).isZero();
     }
+
+    @Autowired com.skillhunters.talent.CandidateTracking tracking;
+    com.skillhunters.talent.CandidateTracking.Edit follow(com.skillhunters.talent.CandidateTracking.Status status,String note,List<String> tags,List<String> lists) {
+        return new com.skillhunters.talent.CandidateTracking.Edit(status,note,tags,lists,"Relecture professionnelle",true);
+    }
+    @Test void trackingIsExplicitPrivateAndFilterableWithBeforeAfterHistory() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        assertThat(tracking.get(alice,c.id()).version()).isZero();
+        assertThat(tracking.list(alice,poolA,com.skillhunters.talent.CandidateTracking.Status.NEW,null,null,0).items()).hasSize(1);
+        scored.create(alice,scoredRequest(false,"Java"));
+        assertThat(tracking.get(alice,c.id()).values().status()).isEqualTo(com.skillhunters.talent.CandidateTracking.Status.NEW);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking",Integer.class)).isZero();
+        var edit=follow(com.skillhunters.talent.CandidateTracking.Status.SHORTLISTED,"Preuve Java publiée",List.of("Java"),List.of("Poste Backend"));
+        var saved=tracking.save(alice,c.id(),"\"0\"",edit);
+        assertThat(saved.values().tags()).containsExactly("java");assertThat(saved.values().lists()).containsExactly("poste backend");
+        assertThat(tracking.list(alice,poolA,com.skillhunters.talent.CandidateTracking.Status.SHORTLISTED,"POSTE BACKEND","JAVA",0).items()).hasSize(1);
+        assertThat(tracking.list(alice,poolA,com.skillhunters.talent.CandidateTracking.Status.NEW,null,null,0).items()).isEmpty();
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",admin,poolA);
+        assertThat(tracking.get(admin,c.id()).version()).isZero();assertThat(tracking.get(admin,c.id()).values().note()).isEmpty();
+        assertThat(tracking.history(admin,c.id(),0).items()).isEmpty();assertThat(tracking.list(admin,poolA,null,"poste backend",null,0).items()).isEmpty();
+        var after=tracking.save(alice,c.id(),"\"1\"",follow(com.skillhunters.talent.CandidateTracking.Status.TO_REVIEW,"Vérification technique prévue",List.of(),List.of()));
+        var h=tracking.history(alice,c.id(),0).items();assertThat(h).hasSize(2);assertThat(h.getFirst().before()).isEqualTo(saved.values());assertThat(h.getFirst().after()).isEqualTo(after.values());assertThat(h.getFirst().actorId()).isEqualTo(alice);
+        assertThat(tracking.list(alice,poolA,null,"poste backend",null,0).items()).isEmpty();
+        scored.create(alice,scoredRequest(false,"Java"));assertThat(tracking.get(alice,c.id())).isEqualTo(after);
+        String route="/api/v1/candidates/"+c.id()+"/tracking";
+        mvc.perform(get(route).with(as("alice"))).andExpect(status().isOk()).andExpect(header().string("ETag","\"2\""));
+        mvc.perform(put(route).with(as("alice")).contentType("application/json").content(json.writeValueAsString(edit))).andExpect(status().isForbidden());
+        mvc.perform(put(route).with(as("alice")).with(csrf()).contentType("application/json").content(json.writeValueAsString(edit))).andExpect(status().isPreconditionRequired());
+        mvc.perform(put(route).with(as("alice")).with(csrf()).header("If-Match","\"2\"").contentType("application/json").content(json.writeValueAsString(edit))).andExpect(status().isOk());
+    }
+    @Test void trackingRejectsInvalidContentAndConcurrentOverwrite() throws Exception {
+        var c=create();var status=com.skillhunters.talent.CandidateTracking.Status.TO_REVIEW;
+        var valid=follow(status,"Relecture du document",List.of("java"),List.of("backend"));
+        for(var edit:List.of(follow(status,"<script>bad</script>",List.of(),List.of()),follow(status,"x".repeat(2001),List.of(),List.of()),follow(status,"Test",List.of("Java","java"),List.of()),follow(status,"Test",List.of("＜b＞"),List.of()),new com.skillhunters.talent.CandidateTracking.Edit(status,"Test",List.of(),List.of(),"Motif",false)))
+            assertThatThrownBy(()->tracking.save(alice,c.id(),"\"0\"",edit)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_TRACKING"));
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var start=new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.Callable<String> task=()->{start.await();try{tracking.save(alice,c.id(),"\"0\"",valid);return "OK";}catch(Rejected e){return e.code;}};
+            var a=executor.submit(task);var b=executor.submit(task);start.countDown();assertThat(List.of(a.get(),b.get())).containsExactlyInAnyOrder("OK","TRACKING_CHANGED");
+        }
+        assertThat(tracking.history(alice,c.id(),0).items()).hasSize(1);
+        for(int n=1;n<=25;n++)tracking.save(alice,c.id(),"\""+n+"\"",follow(status,"Note factuelle "+n,List.of(),List.of()));
+        assertThat(tracking.history(alice,c.id(),0).items()).hasSize(25);assertThat(tracking.history(alice,c.id(),0).nextCursor()).isEqualTo("25");assertThat(tracking.history(alice,c.id(),25).items()).hasSize(1);
+        db.update("DELETE FROM candidate_profile WHERE id=?",c.id());
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_event",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_label",Integer.class)).isZero();
+    }
+    @Test void trackingChecksScopeRevocationAndSourceRetention() {
+        var c=create();var edit=follow(com.skillhunters.talent.CandidateTracking.Status.CONTACTED,"Contact professionnel consigné",List.of("java"),List.of("backend"));
+        assertThatThrownBy(()->tracking.get(admin,c.id())).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->tracking.list(alice,poolB,null,null,null,0)).isInstanceOf(Rejected.class);
+        tracking.save(alice,c.id(),"\"0\"",edit);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->tracking.get(alice,c.id())).isInstanceOf(Rejected.class);assertThatThrownBy(()->tracking.history(alice,c.id(),0)).isInstanceOf(Rejected.class);assertThatThrownBy(()->tracking.save(alice,c.id(),"\"1\"",edit)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",alice,poolA);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        assertThat(tracking.list(alice,poolA,null,null,null,0).items()).isEmpty();assertThatThrownBy(()->tracking.get(alice,c.id())).isInstanceOf(Rejected.class);
+        tracking.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_event",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_label",Integer.class)).isZero();
+    }
 }
