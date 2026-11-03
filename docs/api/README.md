@@ -52,3 +52,7 @@ SH-20 ajoute GET/POST `/api/v1/search/scored/{search}/candidates/{candidate}/rev
 ## Organisation personnelle SH-21
 
 SH-21 remplace les routes planifiées /shortlists et /candidates/{id}/notes par GET/PUT /candidates/{id}/tracking, GET /candidates/{id}/tracking/history et GET /pools/{pool}/tracking. Contrat personnel avec If-Match/CSRF, listes/tags normalisés et historique avant/après ; [règles](../validation/sh-21.md).
+
+## Comparaisons SH-22
+
+POST /search/scored/{id}/comparisons : CSRF et 2–4 UUID distincts. Réponse 200 no-store avec métadonnées communes, snapshots vérifiés et expériences déclarées. 400 sélection invalide, 404 accès refusé sans réponse partielle, 409 empreinte incohérente, 429 quota.

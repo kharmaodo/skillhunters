@@ -9,8 +9,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/search/scored")
 public class ScoredSearchController {
-    private final ScoredSearchService service;private final CurrentAccount accounts;
-    public ScoredSearchController(ScoredSearchService service,CurrentAccount accounts) {this.service=service;this.accounts=accounts;}
+    private final ProfileComparisons comparisons;private final ScoredSearchService service;private final CurrentAccount accounts;
+    public ScoredSearchController(ScoredSearchService service,CurrentAccount accounts,ProfileComparisons comparisons) {this.comparisons=comparisons;this.service=service;this.accounts=accounts;}
     @PostMapping
     ResponseEntity<ScoredSearchService.Page> create(Authentication auth,@RequestBody ScoredSearchService.Request request) {
         return ResponseEntity.status(201).header("Cache-Control","no-store").body(service.create(accounts.require(auth).id(),request));
@@ -22,5 +22,9 @@ public class ScoredSearchController {
     @PostMapping("/{id}/candidates/{candidateId}/recalculate")
     ResponseEntity<ScoredSearchService.Item> replay(Authentication auth,@PathVariable UUID id,@PathVariable UUID candidateId) {
         return ResponseEntity.ok().header("Cache-Control","no-store").body(service.replay(accounts.require(auth).id(),id,candidateId));
+    }
+    @PostMapping("/{id}/comparisons")
+    ResponseEntity<ProfileComparisons.Result> compare(Authentication auth,@PathVariable UUID id,@RequestBody ProfileComparisons.Request request) {
+        return ResponseEntity.ok().header("Cache-Control","no-store").body(comparisons.compare(accounts.require(auth).id(),id,request));
     }
 }

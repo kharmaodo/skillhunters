@@ -300,3 +300,18 @@ Table candidate_tracking_event {
 }
 Ref: candidate_tracking_label.(actor_id,candidate_id) > candidate_tracking.(actor_id,candidate_id)
 Ref: candidate_tracking_event.(actor_id,candidate_id) > candidate_tracking.(actor_id,candidate_id)
+
+Table profile_comparison {
+ id uuid [pk]
+ search_id uuid [not null, ref: > scored_search.id]
+ created_at timestamptz [not null]
+ indexes { (id,search_id) [unique] }
+}
+Table profile_comparison_member {
+ comparison_id uuid [not null]
+ search_id uuid [not null]
+ candidate_id uuid [not null]
+ indexes { (comparison_id,candidate_id) [pk] }
+}
+Ref: profile_comparison_member.(comparison_id,search_id) > profile_comparison.(id,search_id)
+Ref: profile_comparison_member.(search_id,candidate_id) > scored_search_item.(search_id,candidate_id)

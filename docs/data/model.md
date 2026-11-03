@@ -128,3 +128,7 @@ V17 ajoute `score_review_event`, clé `(search_id,candidate_id,version)` et FK c
 ## Organisation personnelle SH-21
 
 V18 ajoute candidate_tracking (compte/candidat, version indépendante et état), candidate_tracking_label (LIST/TAG normalisés, index de filtrage) et candidate_tracking_event (avant/après, auteur/date/motif). Cascade candidat/compte et purge horaire des sources expirées ; accès refusé dès expiration. Les tables conceptuelles shortlist/candidate_note sont remplacées par ce modèle personnel.
+
+## Comparaisons SH-22
+
+profile_comparison référence le classement privé et une date. profile_comparison_member référence les lignes comparées avec cascades vers scored_search_item. Auteur, vivier et échéance hérités du classement, aucune copie de texte. Maximum 100 comparaisons par classement.

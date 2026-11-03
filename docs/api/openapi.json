@@ -5520,6 +5520,80 @@
           }
         }
       }
+    },
+    "/search/scored/{id}/comparisons": {
+      "post": {
+        "operationId": "compareFrozenProfiles",
+        "tags": [
+          "Scoring"
+        ],
+        "summary": "Comparer deux à quatre profils du même classement figé avec droits revérifiés",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "x-implementation-status": "implemented",
+        "responses": {
+          "200": {
+            "description": "Succès ; réponse privée no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileComparison"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "422": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "500": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "description": "Tout profil inaccessible invalide la réponse. Aucun statut modifié. Audit minimal sous rétention du classement, maximum 100 comparaisons.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileComparisonRequest"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -10866,6 +10940,105 @@
           "items",
           "nextCursor"
         ]
+      },
+      "ProfileComparisonRequest": {
+        "type": "object",
+        "properties": {
+          "candidateIds": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "candidateIds"
+        ],
+        "additionalProperties": false
+      },
+      "ComparisonDeclaration": {
+        "type": "object",
+        "properties": {
+          "value": {
+            "type": "string"
+          },
+          "period": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewPeriod"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExtractionEvidence"
+            }
+          }
+        },
+        "required": [
+          "value",
+          "period",
+          "citations"
+        ],
+        "additionalProperties": false
+      },
+      "ComparisonProfile": {
+        "type": "object",
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/ScoredSearchItem"
+          },
+          "declaredExperience": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComparisonDeclaration"
+            }
+          }
+        },
+        "required": [
+          "snapshot",
+          "declaredExperience"
+        ],
+        "additionalProperties": false
+      },
+      "ProfileComparison": {
+        "type": "object",
+        "properties": {
+          "comparisonId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ScoredSearchMetadata"
+          },
+          "profiles": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 4,
+            "items": {
+              "$ref": "#/components/schemas/ComparisonProfile"
+            }
+          }
+        },
+        "required": [
+          "comparisonId",
+          "createdAt",
+          "metadata",
+          "profiles"
+        ],
+        "additionalProperties": false
       }
     }
   }

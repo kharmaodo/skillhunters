@@ -121,3 +121,7 @@ Le module `scoring` sépare le calcul pur `EvidenceScore` (liste blanche de crit
 ## Organisation personnelle SH-21
 
 CandidateTracking contrôle le compte, le vivier et la source via CandidateService. Le verrou acteur sérialise suivi et révocation ; If-Match évite les écrasements. GET retourne NEW/version 0 sans écrire ; recherche et scoring ne dépendent pas du suivi. Filtres SQL paramétrés, pagination 25, maximum 1 000 suivis par compte et 500 versions par fiche. La collaboration/partage est SH-23.
+
+## Comparaisons SH-22
+
+ProfileComparisons réutilise le rejeu SH-18 sous verrou acteur, puis les expériences de la publication historique. Aucun mélange de critères ni de versions. V19 conserve seulement date et références autorisées.

@@ -539,4 +539,75 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(tracking.list(alice,poolA,null,null,null,0).items()).isEmpty();assertThatThrownBy(()->tracking.get(alice,c.id())).isInstanceOf(Rejected.class);
         tracking.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_event",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking_label",Integer.class)).isZero();
     }
+
+    @Autowired com.skillhunters.scoring.ProfileComparisons comparisons;
+    UUID comparisonCandidate(String skill) throws Exception {
+        UUID policy=db.queryForObject("SELECT id FROM import_policy LIMIT 1",UUID.class);
+        String file="compare-"+UUID.randomUUID()+".md";
+        mvc.perform(multipart("/api/v1/imports").file(new MockMultipartFile("files",file,"text/markdown",file.getBytes()))
+            .file(new MockMultipartFile("basis","","application/json",json.writeValueAsBytes(Map.of("source","Synthetic","purpose","Test","basisCode","TEST_ONLY","retentionPolicyId",policy))))
+            .param("poolId",poolA.toString()).header("Idempotency-Key",UUID.randomUUID().toString()).with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        id=db.queryForObject("SELECT id FROM document_import WHERE file_name=?",UUID.class,file);
+        analysis.runOnce(); // Drain the initial fixture import before the additional document.
+        var c=create();var items=new ArrayList<>(accepted(c.id()));var first=items.getFirst();
+        items.set(0,new Item(0,skill,first.decision(),first.precision(),null,"Compétence relue"));
+        reviews.save(alice,c.id(),"\"1\"",request(items),true);return c.id();
+    }
+    @Test void comparisonUsesSameFrozenCriteriaForThreeProfilesAndDoesNotChangeTracking() throws Exception {
+        var a=comparisonCandidate("Java");var b=comparisonCandidate("Python");var c=comparisonCandidate("Java");
+        var snapshot=scored.create(alice,scoredRequest(false,"Java"));
+        var selection=new com.skillhunters.scoring.ProfileComparisons.Request(List.of(c,b,a));
+        var result=comparisons.compare(alice,snapshot.metadata().searchId(),selection);
+        assertThat(result.profiles()).extracting(p->p.snapshot().hit().candidateId()).containsExactly(c,b,a);
+        assertThat(result.profiles()).allSatisfy(p->{
+            assertThat(p.snapshot().hit().criteria()).extracting(r->r.criterion()).containsExactlyElementsOf(snapshot.metadata().trace().criteria());
+            assertThat(p.declaredExperience()).isNotEmpty();assertThat(p.declaredExperience().getFirst().citations()).isNotEmpty();
+            assertThat(p.snapshot().hit().criteria().getFirst().coverage().minimumMonths()).isNull();
+        });
+        assertThat(result.profiles().get(1).snapshot().score().documented()).isZero();
+        assertThat(result.profiles().getFirst().snapshot().score().documented()).isEqualTo(100);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison_member",Integer.class)).isEqualTo(3);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_tracking",Integer.class)).isZero();
+        var edits=new ArrayList<>(accepted(a));var first=edits.getFirst();
+        edits.set(0,new Item(0,"Go",first.decision(),first.precision(),null,"Correction ultérieure"));
+        reviews.save(alice,a,"\"2\"",request(edits),true);
+        assertThat(comparisons.compare(alice,snapshot.metadata().searchId(),selection).profiles()).isEqualTo(result.profiles());
+        String route="/api/v1/search/scored/"+snapshot.metadata().searchId()+"/comparisons";
+        mvc.perform(post(route).with(as("alice")).contentType("application/json").content(json.writeValueAsString(selection))).andExpect(status().isForbidden());
+        mvc.perform(post(route).with(as("alice")).with(csrf()).contentType("application/json").content(json.writeValueAsString(selection)))
+            .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andExpect(jsonPath("$.profiles.length()").value(3));
+    }
+    @Test void comparisonRejectsInvalidSelectionsOtherActorsAndMixedSnapshotsAtomically() throws Exception {
+        var a=comparisonCandidate("Java");var b=comparisonCandidate("Python");var c=comparisonCandidate("Java");var d=comparisonCandidate("Java");
+        var sid=scored.create(alice,scoredRequest(false,"Java")).metadata().searchId();
+        var request=new com.skillhunters.scoring.ProfileComparisons.Request(List.of(a,b));
+        assertThat(comparisons.compare(alice,sid,new com.skillhunters.scoring.ProfileComparisons.Request(List.of(a,b,c,d))).profiles()).hasSize(4);
+        for(var ids:List.of(List.<UUID>of(),List.of(a),List.of(a,a),List.of(a,b,c,d,UUID.randomUUID()),Arrays.asList(a,null)))
+            assertThatThrownBy(()->comparisons.compare(alice,sid,new com.skillhunters.scoring.ProfileComparisons.Request(ids)))
+                .isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_COMPARISON"));
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",admin,poolA);
+        assertThatThrownBy(()->comparisons.compare(admin,sid,request)).isInstanceOf(Rejected.class);
+        var later=comparisonCandidate("Java");
+        assertThatThrownBy(()->comparisons.compare(alice,sid,new com.skillhunters.scoring.ProfileComparisons.Request(List.of(a,later)))).isInstanceOf(Rejected.class);
+        db.update("UPDATE document_import SET pool_id=? WHERE id=(SELECT import_id FROM candidate_profile WHERE id=?)",poolB,b);
+        assertThatThrownBy(()->comparisons.compare(alice,sid,request)).isInstanceOf(Rejected.class);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison",Integer.class)).isEqualTo(1);
+    }
+    @Test void comparisonRechecksRevocationExpiryAndCascadesAuditIdentifiers() throws Exception {
+        var a=comparisonCandidate("Java");var b=comparisonCandidate("Java");
+        var sid=scored.create(alice,scoredRequest(false,"Java")).metadata().searchId();
+        var request=new com.skillhunters.scoring.ProfileComparisons.Request(List.of(a,b));
+        comparisons.compare(alice,sid,request);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->comparisons.compare(alice,sid,request)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",alice,poolA);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=(SELECT import_id FROM candidate_profile WHERE id=?)",b);
+        assertThatThrownBy(()->comparisons.compare(alice,sid,request)).isInstanceOf(Rejected.class);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison",Integer.class)).isEqualTo(1);
+        scored.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison_member WHERE candidate_id=?",Integer.class,b)).isZero();
+        db.update("DELETE FROM candidate_profile WHERE id=?",a);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison_member",Integer.class)).isZero();
+        db.update("UPDATE scored_search SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");scored.cleanup();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison",Integer.class)).isZero();
+    }
 }
