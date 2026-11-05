@@ -20,6 +20,8 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'INVALID_COMPARISON') return 'Choisissez deux à quatre profils distincts du même classement.';
+    if (error.code === 'COMPARISON_QUOTA') return 'La limite de 100 comparaisons pour ce classement est atteinte.';
     if (error.code === 'TRACKING_CHANGED') return 'Votre suivi a été modifié dans une autre session. La saisie est conservée ; rechargez avant de recommencer.';
     if (error.code === 'INVALID_TRACKING') return 'Vérifiez le statut, les longueurs, les doublons de listes/tags et la confirmation des faits professionnels. Le balisage et les caractères de contrôle sont refusés.';
     if (error.code === 'TRACKING_UNCHANGED') return 'Aucun changement de suivi à enregistrer.';

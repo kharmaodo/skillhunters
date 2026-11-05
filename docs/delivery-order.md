@@ -39,4 +39,6 @@ Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles
 
 | SH-20 | Fusionnée, PR #21, CI réussie | Contestation, comparaison après correction et sélection humaine ; [périmètre](validation/sh-20.md) |
 
-| SH-21 | Développée, en validation PR | Listes personnelles, note factuelle versionnée, tags et statuts humains ; [périmètre](validation/sh-21.md) |
+| SH-21 | Fusionnée, PR #22, CI réussie | Listes personnelles, note factuelle versionnée, tags et statuts humains ; [périmètre](validation/sh-21.md) |
+
+| SH-22 | Développée, en validation PR | Comparaison de 2–4 profils figés ; [périmètre](validation/sh-22.md) |

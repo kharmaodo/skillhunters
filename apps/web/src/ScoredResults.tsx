@@ -1,3 +1,4 @@
+import { ProfileComparison } from './ProfileComparison';
 import { ScoreReview } from './ScoreReview';
 import { ScoringConfiguration } from './ScoringConfiguration';
 import { useState } from 'react';
@@ -28,6 +29,7 @@ export function ScoredResults({query,hybrid,minimumSimilarity,session,failed,ope
  <p className="fine">Référence {page.metadata.trace.referenceDate} · dictionnaire v{page.metadata.trace.dictionaryVersion} · règle {page.metadata.scoringRule} · poids {page.metadata.weightsVersion}. Calcul du {new Date(page.metadata.createdAt).toLocaleString()} ; expiration {new Date(page.metadata.expiresAt).toLocaleString()}. Les mises à jour ultérieures des fiches ne modifient pas ce snapshot.</p>
  <p>Ordre : score documenté décroissant, puis identifiant en cas d’égalité. Les profils supprimés, expirés ou devenus inaccessibles sont retirés ; des rangs peuvent manquer. {page.metadata.trace.strict?'Le mode strict confirmé est appliqué.':'Le mode exploratoire conserve les obligations à vérifier.'}</p>
  {page.items.length===0&&<p>Aucun profil encore accessible dans ce classement.</p>}
+ <ProfileComparison key={page.metadata.searchId} searchId={page.metadata.searchId} items={page.items} session={session} disabled={busy} failed={failed}/>
  {page.items.map(item=><article className="card" key={item.hit.candidateId}><h4>Rang {item.rank} · {item.hit.displayName||'Nom inconnu'} · {item.hit.professionalTitle||'Titre inconnu'}</h4>
  <p><strong>Score documenté : {number(item.score.documented)} / 100</strong> · Borne haute : {number(item.score.upper)} / 100</p>
  <p>{item.score.obligationsToVerify?'Obligations à vérifier':'Obligations documentées'} · Couverture des composantes connues : {number(item.score.evidenceCoverage)} %</p>
