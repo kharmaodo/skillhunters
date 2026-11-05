@@ -95,6 +95,12 @@ jobs:
               echo "Antivirus unavailable or signatures stale"
               exit 1
             fi
+            # Freshclam can finish before clamd creates its socket and miss NotifyClamd.
+            # SelfCheck may then report OK while VERSION still exposes the old database.
+            # Retry reload once per minute; only av_version() can release this gate.
+            if [ $((attempt % 12)) = 1 ]; then
+              docker compose --env-file .env -f infrastructure/compose.yml exec -T document-worker python -c 'from worker import connection, receive; s=connection(); s.sendall(b"zRELOAD\0"); print(receive(s)); s.close()' || true
+            fi
             sleep 5
           done
           set -a
