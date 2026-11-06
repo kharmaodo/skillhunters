@@ -1,0 +1,19 @@
+Proposition d’échange — {{jobTitle}} chez {{companyName}}
+Bonjour {{candidateFirstName}} {{candidateLastName}},
+
+Je suis {{recruiterName}}, en charge du recrutement pour {{companyName}}. Nous recherchons un profil pour le poste de {{jobTitle}}.
+
+Les expériences décrites dans votre CV, notamment autour de {{matchingSkills}}, m’amènent à vous proposer un premier échange afin de vérifier ensemble l’adéquation avec ce besoin.
+
+La mission : {{jobDescription}}
+Lieu ou organisation du travail : {{workLocation}}
+Type de contrat : {{contractType}}
+
+Seriez-vous disponible pour en discuter ? Vous pouvez me répondre à {{contactEmail}}.
+
+Si vous ne souhaitez plus être contacté dans ce cadre, vous pouvez nous le signaler ici : {{unsubscribeOrObjectionLink}}.
+
+Cordialement,
+{{recruiterName}}
+{{companyName}}
+{{contactEmail}}

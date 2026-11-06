@@ -610,4 +610,66 @@ class HumanReviewTest extends IdentityTestSupport {
         db.update("UPDATE scored_search SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");scored.cleanup();
         assertThat(db.queryForObject("SELECT COUNT(*) FROM profile_comparison",Integer.class)).isZero();
     }
+
+    @Autowired com.skillhunters.communication.ContactDrafts contactDrafts;
+    UUID contactPublication(){return db.queryForObject("SELECT id FROM candidate_revision WHERE status='PUBLISHED' ORDER BY version DESC LIMIT 1",UUID.class);}
+    com.skillhunters.communication.ContactDrafts.Input contactInput(String template,String subject,String body) {
+        var vars=new HashMap<String,String>();
+        for(String key:com.skillhunters.communication.ContactDrafts.VARIABLES)vars.put(key,"Synthétique");
+        vars.put("candidateFirstName","");vars.put("candidateLastName","");
+        vars.put("contactEmail","recruiter@example.com");vars.put("unsubscribeOrObjectionLink","https://example.com/objection");
+        vars.put("jobDescription","Projet <script>alert(1)</script> & équipe");
+        return new com.skillhunters.communication.ContactDrafts.Input(contactPublication(),template,vars,List.of(0),subject,body);
+    }
+    @Test void contactDraftsUsePublishedSkillsEscapeHtmlAndTrackEdits() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",alice,poolA);
+        db.update("UPDATE candidate_contact SET email='candidate@example.com' WHERE candidate_id=?",c.id());
+        assertThat(contactDrafts.context(alice,c.id()).templates()).hasSize(2);
+        for(String template:List.of("professional","direct")) {
+            var preview=contactDrafts.preview(alice,c.id(),contactInput(template,null,null));
+            assertThat(preview.matchingSkills().getFirst().value()).isEqualTo("Java");
+            assertThat(preview.body()).contains("Bonjour,","Java");
+            assertThat(preview.htmlBody()).doesNotContain("<script>").contains("&lt;script&gt;");
+            assertThat(preview.missingFields()).isEmpty();assertThat(preview.sendBlocked()).isTrue();
+        }
+        var saved=contactDrafts.save(alice,c.id(),"\"0\"",contactInput("professional",null,null));
+        var edited=contactDrafts.save(alice,c.id(),"\"1\"",contactInput("professional","Objet relu","Message édité"));
+        var staleInput=contactInput("professional",null,null);
+        reviews.save(alice,c.id(),"\"2\"",request(accepted(c.id())),true);
+        assertThatThrownBy(()->contactDrafts.preview(alice,c.id(),staleInput)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_PUBLICATION_CHANGED"));
+        var history=contactDrafts.history(alice,c.id(),0).items();
+        assertThat(history).hasSize(2);assertThat(history.getFirst()).isEqualTo(edited);assertThat(history.getLast()).isEqualTo(saved);
+        assertThatThrownBy(()->contactDrafts.save(alice,c.id(),"\"1\"",contactInput("direct",null,null)))
+            .isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_DRAFT_CHANGED"));
+        var route="/api/v1/candidates/"+c.id()+"/contact-draft";
+        mvc.perform(put(route).with(as("alice")).header("If-Match","\"2\"").contentType("application/json").content(json.writeValueAsString(contactInput("direct",null,null)))).andExpect(status().isForbidden());
+        mvc.perform(get(route).with(as("alice"))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+    }
+    @Test void contactDraftsBlockMissingVariablesAndRejectUnprovenSkillsAndHeaderInjection() {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",alice,poolA);
+        var missing=contactDrafts.preview(alice,c.id(),new com.skillhunters.communication.ContactDrafts.Input(contactPublication(),"professional",Map.of(),List.of(),null,null));
+        assertThat(missing.missingFields()).contains("jobTitle","matchingSkills","recipient","unsubscribeOrObjectionLink");assertThat(missing.sendBlocked()).isTrue();
+        var input=contactInput("professional",null,null);
+        assertThatThrownBy(()->contactDrafts.preview(alice,c.id(),new com.skillhunters.communication.ContactDrafts.Input(contactPublication(),"professional",input.variables(),List.of(999),null,null))).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->contactDrafts.preview(alice,c.id(),contactInput("professional","Sujet\r\nBcc: injected@example.com",null))).isInstanceOf(Rejected.class);
+        var vars=new HashMap<>(input.variables());vars.put("jobTitle","Poste\nBcc: injected@example.com");
+        assertThatThrownBy(()->contactDrafts.preview(alice,c.id(),new com.skillhunters.communication.ContactDrafts.Input(contactPublication(),"professional",vars,List.of(0),null,null))).isInstanceOf(Rejected.class);
+        var unresolved=contactDrafts.preview(alice,c.id(),contactInput("professional",null,"Bonjour {{invented}}"));assertThat(unresolved.missingFields()).contains("unresolvedVariables");
+    }
+    @Test void contactDraftsRecheckContactRoleOwnershipRetentionAndCascade() {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        assertThatThrownBy(()->contactDrafts.context(alice,c.id())).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",alice,poolA);
+        contactDrafts.save(alice,c.id(),"\"0\"",contactInput("professional",null,null));
+        assertThatThrownBy(()->contactDrafts.history(admin,c.id(),0)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",admin,poolA);
+        assertThat(contactDrafts.history(admin,c.id(),0).items()).isEmpty();
+        db.update("DELETE FROM membership WHERE user_id=? AND role='RECRUITMENT_LEAD'",alice);
+        assertThatThrownBy(()->contactDrafts.history(alice,c.id(),0)).isInstanceOf(Rejected.class);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        assertThatThrownBy(()->contactDrafts.history(admin,c.id(),0)).isInstanceOf(Rejected.class);
+        contactDrafts.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_draft_revision",Integer.class)).isZero();
+    }
 }

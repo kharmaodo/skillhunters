@@ -132,3 +132,7 @@ V18 ajoute candidate_tracking (compte/candidat, version indépendante et état),
 ## Comparaisons SH-22
 
 profile_comparison référence le classement privé et une date. profile_comparison_member référence les lignes comparées avec cascades vers scored_search_item. Auteur, vivier et échéance hérités du classement, aucune copie de texte. Maximum 100 comparaisons par classement.
+
+## Brouillons SH-24 (V20)
+
+`contact_draft_revision` : clef (candidate_id, actor_id, version), publication_id, created_at, payload_json. Révisions immuables, FK composite candidat/publication et cascades candidat/acteur/publication. Payload : version du modèle, variables, compétences publiées sourcées, destinataire et texte proposés, champs manquants. Accès privé et permission coordonnées ; purge à expiration de la source.

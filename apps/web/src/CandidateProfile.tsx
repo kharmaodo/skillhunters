@@ -1,3 +1,4 @@
+import { ContactDraft } from './ContactDraft';
 import { TrackingEditor, TrackingLists } from './CandidateTracking';
 import { WordExport } from './WordExport';
 import { SkillPeriods } from './SkillPeriods';
@@ -86,6 +87,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
     <TrackingEditor candidateId={saved.id} session={session} failed={failed}/>
     <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <SkillPeriods candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
+    <ContactDraft key={saved.id} candidateId={saved.id} session={session} failed={failed}/>
     <WordExport candidateId={saved.id} session={session} failed={failed}/>
   </section>;
 }

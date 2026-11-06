@@ -56,3 +56,5 @@ SH-21 remplace les routes planifiées /shortlists et /candidates/{id}/notes par 
 ## Comparaisons SH-22
 
 POST /search/scored/{id}/comparisons : CSRF et 2–4 UUID distincts. Réponse 200 no-store avec métadonnées communes, snapshots vérifiés et expériences déclarées. 400 sélection invalide, 404 accès refusé sans réponse partielle, 409 empreinte incohérente, 429 quota.
+
+SH-24 : GET `/candidates/{id}/contact-draft/context` expose les deux modèles et les compétences publiées autorisées ; POST `.../preview` génère le brouillon ; PUT `.../contact-draft` sauvegarde sous If-Match ; GET pagine les révisions personnelles (25, cursor entier). Les mutations exigent CSRF ; tous les retours sont no-store. `publicationId` protège d'un changement de preuves (409) ; `missingFields` signale les champs incomplets ; `sendBlocked` reste vrai jusqu'à SH-25/31. Les routes génériques `/contact-drafts` et `/email-templates` antérieures restent planifiées.
