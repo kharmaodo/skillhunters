@@ -251,7 +251,6 @@ for (const width of [1280, 320]) {
     await adminPage.getByLabel('Rôle dans ce vivier', { exact: true }).selectOption('RECRUITER');
     await adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true }).click();
     await expect(adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true })).toBeEnabled();
-    await adminContext.close();
     // SH-21: personal organization is explicit and unaffected by searches.
     // The import-scoped fiche was unmounted by page.reload(); use the reopened fiche.
     const currentCandidate = page.getByRole('region', { name: 'Fiche candidat', exact: true });
@@ -314,6 +313,7 @@ for (const width of [1280, 320]) {
     await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
     await expect(contact.getByRole('alert')).toBeVisible();
     await expect(contact.getByLabel('Texte du brouillon')).toHaveCount(0);
+    await adminContext.close();
 
 
     if (width === 320) {
