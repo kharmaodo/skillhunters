@@ -1,0 +1,15 @@
+{{candidateFirstName}}, un échange au sujet de {{jobTitle}} ?
+Bonjour {{candidateFirstName}} {{candidateLastName}},
+
+Je vous contacte pour une opportunité de {{jobTitle}} chez {{companyName}}. Votre expérience mentionnant {{matchingSkills}} semble correspondre à plusieurs aspects du projet ; j’aimerais en parler avec vous pour le confirmer.
+
+{{jobDescription}}
+Organisation du travail : {{workLocation}} — Contrat : {{contractType}}.
+
+Cette opportunité pourrait-elle vous intéresser ? Vous pouvez répondre à {{contactEmail}} avec vos disponibilités, si vous souhaitez échanger.
+
+Vous préférez ne plus recevoir de sollicitation de notre part ? {{unsubscribeOrObjectionLink}}
+
+Bonne journée,
+{{recruiterName}}
+{{companyName}}

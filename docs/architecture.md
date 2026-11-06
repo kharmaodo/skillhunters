@@ -125,3 +125,7 @@ CandidateTracking contrôle le compte, le vivier et la source via CandidateServi
 ## Comparaisons SH-22
 
 ProfileComparisons réutilise le rejeu SH-18 sous verrou acteur, puis les expériences de la publication historique. Aucun mélange de critères ni de versions. V19 conserve seulement date et références autorisées.
+
+## Brouillons SH-24
+
+Le module `communication` prépare des messages texte à partir de deux ressources immuables v1 et des compétences de la publication humaine. `ContactDrafts` contrôle les coordonnées, l'acteur et la rétention, puis enregistre des révisions personnelles sous If-Match. Aucun transport externe ni interprétation HTML. SH-25 assurera l'approbation et l'envoi après SH-31.

@@ -251,7 +251,6 @@ for (const width of [1280, 320]) {
     await adminPage.getByLabel('Rôle dans ce vivier', { exact: true }).selectOption('RECRUITER');
     await adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true }).click();
     await expect(adminPage.getByRole('button', { name: 'Enregistrer l’habilitation', exact: true })).toBeEnabled();
-    await adminContext.close();
     // SH-21: personal organization is explicit and unaffected by searches.
     // The import-scoped fiche was unmounted by page.reload(); use the reopened fiche.
     const currentCandidate = page.getByRole('region', { name: 'Fiche candidat', exact: true });
@@ -285,6 +284,37 @@ for (const width of [1280, 320]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true);
     await follow.screenshot({ path: `test-results/candidate-tracking-${width}.png` });
     await lists.screenshot({ path: `test-results/candidate-lists-${width}.png` });
+    // SH-24: drafts require the same contact permission as candidate coordinates.
+    const contact=currentCandidate.getByRole('region',{name:'Brouillon de contact',exact:true});
+    await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
+    await expect(contact.getByRole('alert')).toBeVisible();
+    await adminPage.getByLabel('Rôle dans ce vivier',{exact:true}).selectOption('RECRUITMENT_LEAD');
+    await adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true}).click();
+    await expect(adminPage.getByText('Habilitation enregistrée.',{exact:false})).toBeVisible();
+    await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
+    await contact.getByRole('button',{name:'Générer un aperçu du message'}).click();
+    await expect(contact.getByRole('alert')).toContainText('Champs à compléter');
+    for(const [label,value] of Object.entries({'Nom du recruteur':'Recruteur synthétique','Entreprise':'Société exemple','Poste proposé':'Développeur Java','Description du poste':'Mission <script>alert(1)</script> synthétique','Organisation du travail':'À distance','Type de contrat':'CDI','E-mail de réponse':'recruiter@example.com','Lien HTTPS d’opposition':'https://example.com/objection'}))await contact.getByLabel(label,{exact:true}).fill(value);
+    await contact.getByRole('checkbox',{name:'Java',exact:true}).check();
+    await contact.getByRole('button',{name:'Générer un aperçu du message'}).click();
+    expect(await contact.getByLabel('Texte du brouillon').inputValue()).toContain('Java');
+    await contact.getByLabel('Objet du brouillon').fill('Échange professionnel — relu');
+    await contact.getByRole('button',{name:'Enregistrer le brouillon de contact'}).click();
+    await expect(contact.getByRole('status')).toContainText('version 1');
+    await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
+    await expect(contact.getByLabel('Objet du brouillon')).toHaveValue('Échange professionnel — relu');
+    await contact.getByText('Historique des brouillons',{exact:true}).click();
+    await expect(contact.locator('article')).toHaveCount(1);
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+    await contact.screenshot({path:`test-results/contact-draft-${width}.png`});
+    await adminPage.getByLabel('Rôle dans ce vivier',{exact:true}).selectOption('RECRUITER');
+    await adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true}).click();
+    await expect(adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true})).toBeEnabled();
+    await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
+    await expect(contact.getByRole('alert')).toBeVisible();
+    await expect(contact.getByLabel('Texte du brouillon')).toHaveCount(0);
+    await adminContext.close();
+
 
     if (width === 320) {
       await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
