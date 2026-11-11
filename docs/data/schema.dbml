@@ -327,3 +327,31 @@ Table governance_audit {
   occurred_at timestamptz [not null]
   Note: 'Append-only PostgreSQL ; références sans FK pour survivre aux suppressions sources.'
 }
+
+Table candidate_governance {
+ candidate_id uuid [pk, ref: > candidate_profile.id]
+ version bigint [not null]
+ policy_id uuid [ref: > import_policy.id]
+ source varchar(200)
+ purpose varchar(200)
+ basis_code varchar(80)
+ justification varchar(1000)
+ notice_version varchar(80)
+ notice_evidence varchar(500)
+ notified_at timestamptz
+ opposed boolean [not null]
+}
+Table candidate_governance_revision {
+ candidate_id uuid [ref: > candidate_profile.id]
+ version bigint
+ actor_id uuid
+ payload_json text [not null]
+ occurred_at timestamptz [not null]
+ indexes { (candidate_id, version) [pk] }
+}
+Table contact_opposition_token {
+ token_hash varchar(64) [pk]
+ candidate_id uuid [not null, ref: > candidate_profile.id]
+ expires_at timestamptz [not null]
+ used boolean [not null]
+}

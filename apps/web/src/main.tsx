@@ -1,3 +1,4 @@
+import { PublicOpposition } from './Governance';
 import { AuditLog } from './AuditLog';
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -104,4 +105,4 @@ function Access({ session, failed }: { session: Session; failed: (e: unknown) =>
       <button type="button" className="button" onClick={() => void saveExport()}>Enregistrer la permission d’export</button>
     </fieldset>{notice && <p className="success" role="status">{notice}</p>}</section><aside className="card"><h2>Accès actuels</h2>{pending ? <p role="status">Chargement…</p> : members.length ? <ul className="grants">{members.map(m => <li key={m.poolId+m.role}><strong>{pools.find(p => p.id === m.poolId)?.name || 'Vivier'}</strong><span>{m.role === 'RECRUITER' ? 'Recruteur' : 'Responsable recrutement'}</span></li>)}</ul> : <p className="muted">Aucun vivier attribué à ce membre.</p>}<hr/><p className="fine">Les rôles globaux d’administration et de conformité ne sont pas attribués depuis ce formulaire. Ils ne donnent pas de droit implicite de consultation des CV.</p><p className="fine">Cette première version affiche au maximum 100 membres et 100 viviers.</p></aside></div></>;
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode>{window.location.hash.startsWith('#opposition=')?<PublicOpposition/>:<App/>}</React.StrictMode>);

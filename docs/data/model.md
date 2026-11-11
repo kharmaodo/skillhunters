@@ -140,3 +140,7 @@ profile_comparison référence le classement privé et une date. profile_compari
 ## Journal de conformité (SH-30)
 
 `governance_audit` (V21/V22) est un journal central append-only : séquence BIGINT, UUID unique, actor_id, action, object_id/pool_id facultatifs, purpose (200 caractères) et occurred_at. Aucun lien FK vers les objets supprimables ; aucune donnée de CV ou de brouillon. Index `(pool_id, sequence)` pour consultation filtrée. PostgreSQL refuse UPDATE/DELETE/TRUNCATE ; accès API réservé à COMPLIANCE, lui-même journalisé. Voir [les limites et la recette](../validation/sh-30.md).
+
+## Dossier de traitement et opposition (SH-31)
+
+V23 ajoute `candidate_governance` (état/version, politique et déclaration figées, provenance, justification, preuve de notice et opposition), `candidate_governance_revision` (historique privé avec auteur/date) et `contact_opposition_token` (empreinte SHA-256, échéance et consommation). Les trois tables sont rattachées au candidat avec suppression en cascade. Les oppositions et le garde du futur envoi sérialisent leurs accès sur la ligne candidat. Aucun jeton brut en base ni dans le journal central. Les détails de finalité, rétention et limites figurent dans [SH-31](../validation/sh-31.md).

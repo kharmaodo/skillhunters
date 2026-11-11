@@ -687,4 +687,64 @@ class HumanReviewTest extends IdentityTestSupport {
         db.update("DELETE FROM document_import WHERE id=?",id);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=?",Long.class,c.id())).isEqualTo(count);
     }
+
+    @Autowired com.skillhunters.governance.CandidateGovernance governance;
+    @Autowired org.springframework.transaction.support.TransactionTemplate transaction;
+    private com.skillhunters.governance.CandidateGovernance.Edit legalEdit() {
+        var policy=db.queryForObject("SELECT id FROM import_policy LIMIT 1",UUID.class);
+        return new com.skillhunters.governance.CandidateGovernance.Edit(policy,"Import synthétique","Justification vérifiée par conformité","notice-1","preuve-synthetique-1",java.time.OffsetDateTime.now().minusDays(1));
+    }
+    private void complianceRole() { db.update("INSERT INTO global_role(user_id,role) VALUES (?,'COMPLIANCE')",alice); }
+    private void contactRole() { db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",alice,poolA); }
+    @Test void governanceRequiresComplianceAndMembershipAndVersionedEvidence() throws Exception {
+        var c=create();
+        assertThatThrownBy(()->governance.get(alice,c.id())).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO global_role(user_id,role) VALUES (?,'COMPLIANCE')",admin);
+        assertThatThrownBy(()->governance.get(admin,c.id())).isInstanceOf(Rejected.class);
+        complianceRole();contactRole();
+        assertThat(governance.get(alice,c.id()).justification()).isNull();
+        assertThat(governance.eligibility(alice,c.id()).allowed()).isFalse();
+        var state=governance.save(alice,c.id(),"\"0\"",legalEdit());
+        assertThat(state.version()).isEqualTo(1);assertThat(state.opposed()).isFalse();
+        assertThat(governance.eligibility(alice,c.id()).allowed()).isTrue();
+        assertThatThrownBy(()->governance.save(alice,c.id(),"\"0\"",legalEdit())).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->governance.save(alice,c.id(),"\"1\"",new com.skillhunters.governance.CandidateGovernance.Edit(state.policyId(),"Source","","v1","preuve",java.time.OffsetDateTime.now().minusDays(1)))).isInstanceOf(Rejected.class);
+        mvc.perform(post("/api/v1/candidates/"+c.id()+"/governance/opposition").with(as("alice")).header("If-Match","\"1\"")).andExpect(status().isForbidden());
+        governance.oppose(alice,c.id(),"\"1\"");
+        assertThat(governance.save(alice,c.id(),"\"2\"",legalEdit()).opposed()).isTrue();
+        assertThat(governance.history(alice,c.id(),3L).items()).extracting(com.skillhunters.governance.CandidateGovernance.State::version).containsExactly(2L,1L);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->governance.get(alice,c.id())).isInstanceOf(Rejected.class);
+    }
+    @Test void opaqueOppositionBlocksExistingDraftAndIsIdempotentWithoutDisclosingCandidate() throws Exception {
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);contactRole();complianceRole();
+        contactDrafts.save(alice,c.id(),"\"0\"",contactInput("professional",null,null));
+        governance.save(alice,c.id(),"\"0\"",legalEdit());
+        transaction.executeWithoutResult(t->governance.requireContactAllowed(alice,c.id()));
+        var link=governance.issue(alice,c.id());String token=link.url().split("#opposition=")[1];
+        assertThat(token).hasSize(43);assertThat(link.url()).doesNotContain(c.id().toString());
+        assertThat(db.queryForObject("SELECT token_hash FROM contact_opposition_token WHERE candidate_id=?",String.class,c.id())).doesNotContain(token).hasSize(64);
+        mvc.perform(get("/api/v1/public/contact-opposition")).andExpect(status().isUnauthorized());
+        assertThat(governance.get(alice,c.id()).opposed()).isFalse();
+        for(int i=0;i<2;i++)mvc.perform(post("/api/v1/public/contact-opposition").contentType("application/json").content("{\"token\":\""+token+"\"}")).andExpect(status().isNoContent()).andExpect(content().string("")).andExpect(header().string("Cache-Control","no-store"));
+        assertThat(governance.get(alice,c.id()).opposed()).isTrue();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=? AND action='CONTACT_OPPOSED'",Integer.class,c.id())).isEqualTo(1);
+        assertThatThrownBy(()->transaction.executeWithoutResult(t->governance.requireContactAllowed(alice,c.id()))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_OPPOSED"));
+        assertThatThrownBy(()->contactDrafts.history(alice,c.id(),0)).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->contactDrafts.save(alice,c.id(),"\"1\"",contactInput("professional",null,null))).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->governance.issue(alice,c.id())).isInstanceOf(Rejected.class);
+    }
+    @Test void oppositionLinksExpireAndDisabledPolicyOrDeletedSourceFailClosed() throws Exception {
+        var c=create();contactRole();complianceRole();governance.save(alice,c.id(),"\"0\"",legalEdit());
+        var token=governance.issue(alice,c.id()).url().split("#opposition=")[1];
+        db.update("UPDATE contact_opposition_token SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE candidate_id=?",c.id());
+        mvc.perform(post("/api/v1/public/contact-opposition").contentType("application/json").content("{\"token\":\""+token+"\"}")).andExpect(status().isGone());
+        assertThat(governance.get(alice,c.id()).opposed()).isFalse();
+        db.update("UPDATE import_policy SET enabled=FALSE");assertThat(governance.eligibility(alice,c.id()).reason()).isEqualTo("GOVERNANCE_POLICY_DISABLED");
+        assertThatThrownBy(()->governance.issue(alice,c.id())).isInstanceOf(Rejected.class);
+        db.update("UPDATE import_policy SET enabled=TRUE");var active=governance.issue(alice,c.id()).url().split("#opposition=")[1];
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThatThrownBy(()->governance.redeem(active)).isInstanceOf(Rejected.class);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_opposition_token WHERE candidate_id=?",Integer.class,c.id())).isZero();
+    }
 }

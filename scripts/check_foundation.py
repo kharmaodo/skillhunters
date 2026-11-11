@@ -49,10 +49,15 @@ def check_contract():
             parameters = operation.get('parameters', [])
             actual_parameters = {p['name'] for p in parameters if p.get('in') == 'path'}
             require(expected_parameters == actual_parameters, f'Path parameters: {path}')
-            require('401' in operation['responses'] and '403' in operation['responses'],
+            public_opposition = path == '/public/contact-opposition' and method == 'post'
+            if public_opposition:
+                require(operation.get('security') == [], 'Opposition uses a capability, not a session')
+                require(operation['requestBody']['content']['application/json']['schema']['$ref'].endswith('/OppositionRedemption'), 'Opaque token body required')
+                require('410' in operation['responses'], 'Expired token response required')
+            require(public_opposition or ('401' in operation['responses'] and '403' in operation['responses']),
                     f'Missing authorization errors: {path}')
             require(any(code.startswith('2') for code in operation['responses']), 'Missing success')
-            if method not in ('get', 'head'):
+            if method not in ('get', 'head') and not public_opposition:
                 require(any(p.get('$ref', '').endswith('/CsrfToken') for p in parameters),
                         f'Missing CSRF requirement: {path}')
             if any(p.get('$ref', '').endswith('/IfMatch') for p in parameters):
