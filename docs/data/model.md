@@ -136,3 +136,7 @@ profile_comparison référence le classement privé et une date. profile_compari
 ## Brouillons SH-24 (V20)
 
 `contact_draft_revision` : clef (candidate_id, actor_id, version), publication_id, created_at, payload_json. Révisions immuables, FK composite candidat/publication et cascades candidat/acteur/publication. Payload : version du modèle, variables, compétences publiées sourcées, destinataire et texte proposés, champs manquants. Accès privé et permission coordonnées ; purge à expiration de la source.
+
+## Journal de conformité (SH-30)
+
+`governance_audit` (V21/V22) est un journal central append-only : séquence BIGINT, UUID unique, actor_id, action, object_id/pool_id facultatifs, purpose (200 caractères) et occurred_at. Aucun lien FK vers les objets supprimables ; aucune donnée de CV ou de brouillon. Index `(pool_id, sequence)` pour consultation filtrée. PostgreSQL refuse UPDATE/DELETE/TRUNCATE ; accès API réservé à COMPLIANCE, lui-même journalisé. Voir [les limites et la recette](../validation/sh-30.md).

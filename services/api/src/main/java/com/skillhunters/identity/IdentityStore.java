@@ -10,11 +10,12 @@ import com.skillhunters.shared.ApiProblem.Rejected;
 
 @Repository
 public class IdentityStore {
+    private final com.skillhunters.governance.AuditTrail trail;
     public record Account(UUID id, String displayName, boolean enabled) {}
     public record Pool(UUID id, String name) {}
     public record Membership(UUID userId, UUID poolId, String role) {}
     private final JdbcClient db;
-    public IdentityStore(JdbcClient db) { this.db = db; }
+    public IdentityStore(JdbcClient db,com.skillhunters.governance.AuditTrail trail) {this.trail=trail; this.db = db; }
 
     public Account find(String issuer, String subject) {
         return db.sql("SELECT id, display_name, enabled FROM app_user WHERE issuer = :issuer AND subject = :subject")
@@ -69,12 +70,14 @@ public class IdentityStore {
             db.sql("INSERT INTO membership(user_id,pool_id,role) VALUES (:user,:pool,:role)")
                     .param("user", user).param("pool", pool).param("role", role).update();
         }
+        trail.record(actor,"MEMBERSHIP_REPLACED",user,pool,null);
         db.sql("INSERT INTO identity_audit(id,actor_id,action,target_id,pool_id,before_roles,after_roles) VALUES (:id,:actor,'MEMBERSHIP_REPLACED',:user,:pool,:before,:after)")
                 .param("id", UUID.randomUUID()).param("actor", actor).param("user", user).param("pool", pool)
                 .param("before", String.join(",", before)).param("after", String.join(",", after)).update();
     }
 
     public void audit(UUID user, String action) {
+        trail.record(user,action,user,null,null);
         db.sql("INSERT INTO identity_audit(id,actor_id,action) VALUES (:id,:user,:action)")
                 .param("id", UUID.randomUUID()).param("user", user).param("action", action).update();
     }

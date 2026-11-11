@@ -13,6 +13,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class CandidateTracking {
+    private final com.skillhunters.governance.AuditTrail trail;
     public enum Status { NEW, TO_REVIEW, SHORTLISTED, CONTACTED, INTERVIEW, CLOSED }
     public record Values(Status status,String note,List<String> tags,List<String> lists) {}
     public record Edit(Status status,String note,List<String> tags,List<String> lists,String reason,boolean professionalOnly) {}
@@ -20,7 +21,7 @@ public class CandidateTracking {
     public record Event(int version,UUID actorId,OffsetDateTime occurredAt,String reason,Values before,Values after) {}
     public record Row(UUID candidateId,String displayName,String professionalTitle,State tracking) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;private final CandidateService candidates;
-    public CandidateTracking(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates){this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;}
+    public CandidateTracking(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,com.skillhunters.governance.AuditTrail trail){this.trail=trail;this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;}
     public State get(UUID actor,UUID id){return tx.execute(t->{candidates.get(actor,id);return state(actor,id);});}
     private State state(UUID actor,UUID id){return db.sql("SELECT state_json FROM candidate_tracking WHERE actor_id=:a AND candidate_id=:c").param("a",actor).param("c",id).query(String.class).optional().map(s->read(s,State.class)).orElseGet(()->new State(id,0,new Values(Status.NEW,"",List.of(),List.of())));}
     public State save(UUID actor,UUID id,String etag,Edit edit){return tx.execute(t->{
@@ -41,6 +42,7 @@ public class CandidateTracking {
             db.sql("INSERT INTO candidate_tracking_label(actor_id,candidate_id,kind,label) VALUES (:a,:c,:k,:l)").param("a",actor).param("c",id).param("k",kind).param("l",label).update();
         var event=new Event(current.version(),actor,OffsetDateTime.now(ZoneOffset.UTC),reason,old.values(),values);
         db.sql("INSERT INTO candidate_tracking_event(actor_id,candidate_id,version,event_json) VALUES (:a,:c,:v,:j)").param("a",actor).param("c",id).param("v",event.version()).param("j",write(event)).update();
+        trail.candidate(actor,id,"CANDIDATE_TRACKING_CHANGED");
         return current;
     });}
     public CandidateService.Page<Event> history(UUID actor,UUID id,int cursor){bounds(cursor);return tx.execute(t->{

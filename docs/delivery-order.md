@@ -43,4 +43,8 @@ Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles
 
 | SH-22 | Fusionnée, PR #23, CI réussie | Comparaison de 2–4 profils figés ; [périmètre](validation/sh-22.md) |
 
-| SH-24 | Implémentée, validation en cours | Deux modèles, brouillons privés versionnés et compétences publiées ; [périmètre](validation/sh-24.md). SH-23 reste Should/R1. |
+| SH-24 | Fusionnée, PR #24, CI réussie | Deux modèles, brouillons privés versionnés et compétences publiées ; [périmètre](validation/sh-24.md). SH-23 reste Should/R1. |
+
+| SH-30 | Implémentée, validation en cours | Journal central minimisé, accès COMPLIANCE et protection PostgreSQL ; [périmètre](validation/sh-30.md) |
+
+Suite des dépendances Must : SH-30 → SH-31 (provenance et opposition) → SH-25 (validation et envoi de contact).

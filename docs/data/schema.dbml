@@ -315,3 +315,15 @@ Table profile_comparison_member {
 }
 Ref: profile_comparison_member.(comparison_id,search_id) > profile_comparison.(id,search_id)
 Ref: profile_comparison_member.(search_id,candidate_id) > scored_search_item.(search_id,candidate_id)
+
+Table governance_audit {
+  sequence bigint [pk, increment]
+  id uuid [not null, unique]
+  actor_id uuid
+  action varchar(80) [not null]
+  object_id uuid
+  pool_id uuid
+  purpose varchar(200)
+  occurred_at timestamptz [not null]
+  Note: 'Append-only PostgreSQL ; références sans FK pour survivre aux suppressions sources.'
+}

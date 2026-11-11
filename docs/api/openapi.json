@@ -1578,29 +1578,40 @@
         "tags": [
           "Governance"
         ],
-        "summary": "Lire les événements autorisés",
+        "summary": "Consulter le journal minimisé (COMPLIANCE)",
         "parameters": [
           {
-            "name": "cursor",
+            "name": "poolId",
             "in": "query",
+            "required": false,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             }
           },
           {
-            "name": "limit",
+            "name": "action",
             "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z_]{1,80}$"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "required": false,
             "schema": {
               "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 25
+              "format": "int64",
+              "minimum": 1
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
+            "description": "Page des événements autorisés",
             "content": {
               "application/json": {
                 "schema": {
@@ -1610,25 +1621,17 @@
             }
           },
           "400": {
-            "$ref": "#/components/responses/Problem"
+            "description": "Filtre invalide"
           },
           "401": {
-            "$ref": "#/components/responses/Problem"
+            "description": "Session requise"
           },
           "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
+            "description": "Rôle COMPLIANCE requis"
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented",
+        "description": "Rôle global COMPLIANCE obligatoire, ADMIN seul refusé. Chaque lecture réussie ajoute AUDIT_READ. Pagination descendante de 50 événements au maximum. Aucun contenu de CV ou brouillon. Cache-Control: no-store."
       }
     },
     "/rights-requests": {
@@ -7369,25 +7372,26 @@
       },
       "AuditPage": {
         "type": "object",
-        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
         "properties": {
           "items": {
             "type": "array",
+            "maxItems": 50,
             "items": {
-              "$ref": "#/components/schemas/AuditEvent"
+              "$ref": "#/components/schemas/GovernanceAuditEvent"
             }
           },
           "nextCursor": {
             "type": [
-              "string",
+              "integer",
               "null"
-            ]
+            ],
+            "format": "int64"
           }
-        },
-        "required": [
-          "items",
-          "nextCursor"
-        ]
+        }
       },
       "RightsRequestInput": {
         "type": "object",
@@ -11554,6 +11558,64 @@
           "items",
           "nextCursor"
         ]
+      },
+      "GovernanceAuditEvent": {
+        "type": "object",
+        "required": [
+          "id",
+          "actorId",
+          "objectId",
+          "poolId",
+          "sequence",
+          "action",
+          "purpose",
+          "occurredAt"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "objectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "poolId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "action": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
       }
     }
   }
