@@ -672,4 +672,19 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThatThrownBy(()->contactDrafts.history(admin,c.id(),0)).isInstanceOf(Rejected.class);
         contactDrafts.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_draft_revision",Integer.class)).isZero();
     }
+
+    @Test void candidateReadAndMutationAuditContainsPurposeWithoutCvText() throws Exception {
+        var c=create();
+        long before=db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=? AND action='CANDIDATE_READ'",Long.class,c.id());
+        mvc.perform(get("/api/v1/candidates/"+c.id()).with(as("alice"))).andExpect(status().isOk());
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=? AND action='CANDIDATE_READ'",Long.class,c.id())).isEqualTo(before+1);
+        var event=db.queryForMap("SELECT actor_id,pool_id,purpose,action FROM governance_audit WHERE object_id=? AND action='CANDIDATE_CREATED'",c.id());
+        assertThat(event.get("purpose")).isEqualTo("Test");assertThat(event.get("actor_id")).isEqualTo(alice);assertThat(event.get("pool_id")).isEqualTo(poolA);
+        long count=db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=?",Long.class,c.id());
+        mvc.perform(get("/api/v1/candidates/"+c.id()).with(as("admin"))).andExpect(status().isNotFound());
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=?",Long.class,c.id())).isEqualTo(count);
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);
+        db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=?",Long.class,c.id())).isEqualTo(count);
+    }
 }

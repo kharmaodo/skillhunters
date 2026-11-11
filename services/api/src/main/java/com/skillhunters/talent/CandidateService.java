@@ -14,6 +14,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class CandidateService {
+    private final com.skillhunters.governance.AuditTrail trail;
     public record Availability(String status, LocalDate availableFrom, LocalDate declaredOn, String declaration) {}
     public record Profile(String displayName, String professionalTitle, Availability availability) {}
     public record Contact(String email, String phone) {}
@@ -26,7 +27,7 @@ public class CandidateService {
     private final TransactionTemplate tx;
     private final ObjectMapper json;
     private final ExtractionService extraction;
-    public CandidateService(JdbcClient db, TransactionTemplate tx, ObjectMapper json, ExtractionService extraction) {
+    public CandidateService(JdbcClient db, TransactionTemplate tx, ObjectMapper json, ExtractionService extraction,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
         this.db=db;this.tx=tx;this.json=json;this.extraction=extraction;
     }
     // Same actor lock as membership replacement: a revocation cannot race a write.
@@ -62,7 +63,7 @@ public class CandidateService {
             .query((rs,n)->new Contact(rs.getString(1),rs.getString(2))).single():null;
         return new Candidate(r.id(),r.pool(),r.source(),r.revision(),r.version(),read(r.profile(),Profile.class),contact,visible,r.expires());
     }
-    public Candidate get(UUID actor, UUID id) { return tx.execute(s->{actor(actor);return view(actor,row(actor,id));}); }
+    public Candidate get(UUID actor, UUID id) { return tx.execute(s->{actor(actor);var value=view(actor,row(actor,id));trail.candidate(actor,id,"CANDIDATE_READ");return value;}); }
     public Candidate create(UUID actor, UUID source, UUID revisionId) {
         return tx.execute(s->{
             actor(actor);
@@ -94,7 +95,7 @@ public class CandidateService {
                 SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id
                 WHERE d.pool_id=:pool AND d.expires_at>:now ORDER BY c.id LIMIT :limit OFFSET :offset
                 """).param("pool",pool).param("now",OffsetDateTime.now(ZoneOffset.UTC)).param("limit",limit+1).param("offset",offset).query(UUID.class).list();
-            return new Page<>(ids.stream().limit(limit).map(id->view(actor,row(actor,id))).toList(),ids.size()>limit?""+(offset+limit):null);
+            return new Page<>(ids.stream().limit(limit).map(id->{var result=view(actor,row(actor,id));trail.candidate(actor,id,"CANDIDATE_READ");return result;}).toList(),ids.size()>limit?""+(offset+limit):null);
         });
     }
     public Page<Edit> history(UUID actor, UUID id, int offset, int limit) {
@@ -183,6 +184,7 @@ public class CandidateService {
     }
     private static void bounds(int offset,int limit) {if(offset<0||offset>100000||limit<1||limit>100) invalid();}
     private void audit(UUID actor,UUID id,long version,List<String> fields,String provenance) {
+        trail.candidate(actor,id,version==1?"CANDIDATE_CREATED":"CANDIDATE_CHANGED");
         db.sql("INSERT INTO candidate_edit(id,candidate_id,version,actor_id,fields_json,provenance) VALUES (:event,:id,:version,:actor,:fields,:provenance)")
             .param("event",UUID.randomUUID()).param("id",id).param("version",version).param("actor",actor).param("fields",write(fields))
             .param("provenance",provenance).update();

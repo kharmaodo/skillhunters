@@ -66,6 +66,10 @@ class WordExportTest extends IdentityTestSupport {
         var first=exports.create(alice,c.id(),pub.id());
         assertThat(exports.create(alice,c.id(),pub.id())).isEqualTo(first);
         var file=exports.download(alice,first.id());
+        var event=db.queryForMap("SELECT actor_id,pool_id,purpose FROM governance_audit WHERE object_id=? AND action='EXPORT_DOWNLOAD_PREPARED'",c.id());
+        assertThat(event.get("actor_id")).isEqualTo(alice);
+        assertThat(event.get("pool_id")).isEqualTo(poolA);
+        assertThat(event.get("purpose")).isEqualTo("Test");
         assertThat(com.skillhunters.exports.WordRenderer.sha(file.content())).isEqualTo(first.sha256());
         assertThat(file.filename()).isEqualTo("cv-"+first.id()+".docx");
         assertThat(first.templateSha256()).hasSize(64);

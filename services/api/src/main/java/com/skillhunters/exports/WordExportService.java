@@ -13,12 +13,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class WordExportService {
+    private final com.skillhunters.governance.AuditTrail trail;
     public record Options(boolean canExport,UUID publishedRevisionId,String templateVersion) {}
     public record Receipt(UUID id,UUID candidateId,UUID revisionId,String templateVersion,String templateSha256,String rendererVersion,String sha256,OffsetDateTime createdAt) {}
     public record Download(String filename,byte[] content) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final CandidateService candidates;
     private final ReviewService reviews;private final ExportPermissions permissions;private final WordRenderer renderer;
-    public WordExportService(JdbcClient db,TransactionTemplate tx,CandidateService candidates,ReviewService reviews,ExportPermissions permissions,WordRenderer renderer) {
+    public WordExportService(JdbcClient db,TransactionTemplate tx,CandidateService candidates,ReviewService reviews,ExportPermissions permissions,WordRenderer renderer,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
         this.db=db;this.tx=tx;this.candidates=candidates;this.reviews=reviews;this.permissions=permissions;this.renderer=renderer;
     }
     public Options options(UUID actor,UUID id) {
@@ -37,7 +38,7 @@ public class WordExportService {
             if(!"PUBLISHED".equals(revision.status())) throw new Rejected(HttpStatus.CONFLICT,"REVISION_NOT_PUBLISHED");
             var existing=db.sql("SELECT id FROM candidate_export WHERE candidate_id=:candidate AND revision_id=:revision AND template_version=:template AND template_sha256=:hash AND renderer_version=:renderer")
                 .param("candidate",candidate).param("revision",revisionId).param("template",WordRenderer.TEMPLATE).param("hash",renderer.templateHash()).param("renderer",WordRenderer.VERSION).query(UUID.class).optional();
-            if(existing.isPresent()) return receipt(existing.get());
+            if(existing.isPresent()) {trail.candidate(actor,candidate,"EXPORT_REUSED");return receipt(existing.get());}
             ExtractionService.Revision source=state.source();
             if(!source.id().equals(revision.sourceRevisionId())) throw new Rejected(HttpStatus.CONFLICT,"EXPORT_SOURCE_CHANGED");
             byte[] bytes=renderer.render(source,revision);
@@ -62,6 +63,7 @@ public class WordExportService {
             .optional().orElseThrow(()->new Rejected(HttpStatus.NOT_FOUND,"EXPORT_NOT_FOUND"));
     }
     private void audit(UUID actor,UUID id,String action) {
+        trail.candidate(actor,receipt(id).candidateId(),"EXPORT_"+action);
         db.sql("INSERT INTO candidate_export_event(id,export_id,actor_id,action) VALUES (:event,:id,:actor,:action)")
             .param("event",UUID.randomUUID()).param("id",id).param("actor",actor).param("action",action).update();
     }

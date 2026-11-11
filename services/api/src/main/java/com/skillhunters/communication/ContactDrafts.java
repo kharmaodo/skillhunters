@@ -19,6 +19,7 @@ import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class ContactDrafts {
+    private final com.skillhunters.governance.AuditTrail trail;
     public static final List<String> VARIABLES=List.of("candidateFirstName","candidateLastName","recruiterName","companyName","jobTitle","jobDescription","workLocation","contractType","contactEmail","unsubscribeOrObjectionLink");
     private static final Set<String> OPTIONAL=Set.of("candidateFirstName","candidateLastName");
     private static final Pattern PLACEHOLDER=Pattern.compile("\\{\\{([a-zA-Z]+)}}");
@@ -33,7 +34,7 @@ public class ContactDrafts {
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;
     private final CandidateService candidates;private final ReviewService reviews;
     private final List<Template> templates;
-    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews) {
+    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
         this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.reviews=reviews;
         templates=List.of(template("professional","Premier contact professionnel"),template("direct","Prise de contact directe"));
     }
@@ -102,7 +103,7 @@ public class ContactDrafts {
         var draft=render(actor,candidate,input,version+1);
         db.sql("INSERT INTO contact_draft_revision(candidate_id,actor_id,version,publication_id,created_at,payload_json) VALUES (:candidate,:actor,:version,:publication,:now,:json)")
             .param("candidate",candidate).param("actor",actor).param("version",draft.version()).param("publication",draft.publicationId())
-            .param("now",draft.createdAt()).param("json",write(draft)).update();return draft;
+            .param("now",draft.createdAt()).param("json",write(draft)).update();trail.candidate(actor,candidate,"CONTACT_DRAFT_SAVED");return draft;
     });}
     public History history(UUID actor,UUID candidate,int cursor) {return tx.execute(t->{
         access(actor,candidate);if(cursor<0||cursor>100)invalid();

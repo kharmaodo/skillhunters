@@ -19,6 +19,7 @@ import com.skillhunters.shared.ApiProblem.Rejected;
 
 @Service
 public class ImportService {
+    private final com.skillhunters.governance.AuditTrail trail;
     public record Basis(@NotBlank @Size(max=200) String source, @NotBlank @Size(max=200) String purpose,
             @NotBlank @Size(max=80) String basisCode, @Size(max=80) String noticeVersion, @NotNull UUID retentionPolicyId) {}
     public record Policy(UUID id, String label, String purpose, String basisCode, int retentionDays) {}
@@ -32,7 +33,7 @@ public class ImportService {
     private final QuarantineStorage storage;
     private final ImportQuota quota;
 
-    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota) {
+    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
         this.quota = quota; this.db = db; this.identity = identity; this.tx = tx; this.storage = storage;
     }
 
@@ -136,6 +137,7 @@ public class ImportService {
     private record Stored(String objectKey, String state, OffsetDateTime expiresAt) {}
 
     private void audit(UUID id, UUID actor, String action) {
+        trail.document(actor,id,action);
         db.sql("INSERT INTO document_audit(id,import_id,actor_id,action) VALUES (:audit,:id,:actor,:action)")
             .param("audit", UUID.randomUUID()).param("id", id).param("actor", actor).param("action", action).update();
     }
