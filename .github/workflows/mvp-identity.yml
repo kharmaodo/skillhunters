@@ -27,6 +27,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false, fetch-depth: 2}
+      - name: Use official Ubuntu package mirrors
+        run: |
+          sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          replacements = {
+              'mirror+file:/etc/apt/apt-mirrors.txt': 'https://archive.ubuntu.com/ubuntu',
+              'mirror+file:/etc/apt/apt-mirrors-security.txt': 'https://security.ubuntu.com/ubuntu',
+              'http://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
+              'https://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
+          }
+          sources = [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.sources'), *Path('/etc/apt/sources.list.d').glob('*.list')]
+          for path in sources:
+              if not path.is_file():
+                  continue
+              original = path.read_text()
+              content = original
+              for old, new in replacements.items():
+                  content = content.replace(old, new)
+              if content != original:
+                  path.write_text(content)
+          Path('/etc/apt/apt.conf.d/80-ci-downloads').write_text('Acquire::Retries "2";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n')
+          PYTHON
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '21', cache: maven}
       - uses: actions/setup-node@v4
@@ -72,6 +94,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
+      - name: Use official Ubuntu package mirrors
+        run: |
+          sudo python3 - <<'PYTHON'
+          from pathlib import Path
+          replacements = {
+              'mirror+file:/etc/apt/apt-mirrors.txt': 'https://archive.ubuntu.com/ubuntu',
+              'mirror+file:/etc/apt/apt-mirrors-security.txt': 'https://security.ubuntu.com/ubuntu',
+              'http://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
+              'https://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
+          }
+          sources = [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.sources'), *Path('/etc/apt/sources.list.d').glob('*.list')]
+          for path in sources:
+              if not path.is_file():
+                  continue
+              original = path.read_text()
+              content = original
+              for old, new in replacements.items():
+                  content = content.replace(old, new)
+              if content != original:
+                  path.write_text(content)
+          Path('/etc/apt/apt.conf.d/80-ci-downloads').write_text('Acquire::Retries "2";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n')
+          PYTHON
       - name: Generate local-only configuration
         run: python3 scripts/init_local.py
       - name: Build and start the local stack
