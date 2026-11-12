@@ -1191,387 +1191,6 @@
         "x-implementation-status": "planned"
       }
     },
-    "/contact-drafts": {
-      "post": {
-        "operationId": "createDraft",
-        "tags": [
-          "Communication"
-        ],
-        "summary": "Préparer un message sans envoyer",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContactDraft"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DraftInput"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/contact-drafts/{id}": {
-      "get": {
-        "operationId": "getDraft",
-        "tags": [
-          "Communication"
-        ],
-        "summary": "Relire le message exact",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContactDraft"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "x-implementation-status": "planned"
-      },
-      "patch": {
-        "operationId": "updateDraft",
-        "tags": [
-          "Communication"
-        ],
-        "summary": "Modifier le message et invalider son approbation",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IfMatch"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContactDraft"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "412": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "428": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DraftUpdate"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/contact-drafts/{id}/approve": {
-      "post": {
-        "operationId": "approveDraft",
-        "tags": [
-          "Communication"
-        ],
-        "summary": "Approuver le contenu exact",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IfMatch"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContactDraft"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "412": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "428": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ApprovalRequest"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
-    "/contact-drafts/{id}/send": {
-      "post": {
-        "operationId": "sendDraft",
-        "tags": [
-          "Communication"
-        ],
-        "summary": "Envoyer uniquement le message approuvé",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IfMatch"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ContactDraft"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "412": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "428": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SendRequest"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
     "/audit-events": {
       "get": {
         "operationId": "listAuditEvents",
@@ -6206,6 +5825,196 @@
             }
           }
         }
+      }
+    },
+    "/candidates/{candidate}/contact-deliveries": {
+      "post": {
+        "operationId": "approveExactContact",
+        "tags": [
+          "Communication"
+        ],
+        "summary": "Approuver le destinataire et le contenu exacts du dernier brouillon",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État du message ; no-store. ACCEPTED signifie accepté par SMTP, pas livré/lu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDeliveryReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Rôle contact dans le vivier, compte actif et rétention vérifiés. Approbation et envoi recontrôlent SH-31, publication, destinataire et lien actif. Une demande répétée ne relance pas SMTP ; résultat ambigu sans renvoi automatique.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactApproval"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/contact-deliveries/{id}": {
+      "get": {
+        "operationId": "getContactDelivery",
+        "tags": [
+          "Communication"
+        ],
+        "summary": "Consulter le résultat privé sans renvoyer",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État du message ; no-store. ACCEPTED signifie accepté par SMTP, pas livré/lu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDeliveryReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Rôle contact dans le vivier, compte actif et rétention vérifiés. Approbation et envoi recontrôlent SH-31, publication, destinataire et lien actif. Une demande répétée ne relance pas SMTP ; résultat ambigu sans renvoi automatique."
+      }
+    },
+    "/candidates/{candidate}/contact-deliveries/{id}/send": {
+      "post": {
+        "operationId": "sendApprovedContact",
+        "tags": [
+          "Communication"
+        ],
+        "summary": "Effectuer au plus une tentative SMTP pour cette approbation",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État du message ; no-store. ACCEPTED signifie accepté par SMTP, pas livré/lu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDeliveryReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Rôle contact dans le vivier, compte actif et rétention vérifiés. Approbation et envoi recontrôlent SH-31, publication, destinataire et lien actif. Une demande répétée ne relance pas SMTP ; résultat ambigu sans renvoi automatique."
       }
     }
   },
@@ -12112,6 +11921,128 @@
           "token": {
             "type": "string",
             "pattern": "^[A-Za-z0-9_-]{43}$"
+          }
+        }
+      },
+      "ContactApproval": {
+        "type": "object",
+        "required": [
+          "draftVersion",
+          "recipient",
+          "subject",
+          "body",
+          "confirmed"
+        ],
+        "properties": {
+          "draftVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "recipient": {
+            "type": "string",
+            "maxLength": 254
+          },
+          "subject": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 12000
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "ContactDeliveryReceipt": {
+        "type": "object",
+        "required": [
+          "id",
+          "draftVersion",
+          "contentHash",
+          "sender",
+          "recipient",
+          "replyTo",
+          "subject",
+          "body",
+          "messageId",
+          "status",
+          "approvedAt",
+          "expiresAt",
+          "attemptedAt",
+          "completedAt",
+          "resultCode"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "draftVersion": {
+            "type": "integer"
+          },
+          "contentHash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "INVALIDATED",
+              "SENDING",
+              "ACCEPTED",
+              "UNCERTAIN",
+              "FAILED"
+            ]
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "resultCode": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }

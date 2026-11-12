@@ -303,6 +303,13 @@ for (const width of [1280, 320]) {
     await expect(contact.getByRole('status')).toContainText('version 1');
     await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
     await expect(contact.getByLabel('Objet du brouillon')).toHaveValue('Échange professionnel — relu');
+    const delivery=contact.getByRole('region',{name:'Validation et envoi du contact',exact:true});
+    await expect(delivery.getByRole('button',{name:'Approuver ce message exact'})).toBeDisabled();
+    await contact.getByLabel('Objet du brouillon').fill('Modification après relecture');
+    await expect(delivery).toHaveCount(0);
+    await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
+    await expect(delivery).toBeVisible();
+    await expect(delivery.getByRole('checkbox')).not.toBeChecked();
     await contact.getByText('Historique des brouillons',{exact:true}).click();
     await expect(contact.locator('article')).toHaveCount(1);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);

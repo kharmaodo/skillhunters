@@ -60,6 +60,14 @@ management:
         readiness:
           include: readinessState,db
 app:
+  smtp:
+    enabled: ${SMTP_ENABLED:false}
+    host: ${SMTP_HOST:localhost}
+    port: ${SMTP_PORT:1025}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    sender: ${SMTP_SENDER:no-reply@example.com}
+    starttls: ${SMTP_STARTTLS:true}
   embeddings:
     endpoint: ${EMBEDDING_ENDPOINT:http://localhost:8091/embed}
     token: ${WORKER_TOKEN:}

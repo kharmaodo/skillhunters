@@ -103,6 +103,8 @@ public class ContactDrafts {
         if(!etag.equals("\""+version+"\""))throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CONTACT_DRAFT_CHANGED");
         if(version>=100)throw new Rejected(HttpStatus.TOO_MANY_REQUESTS,"CONTACT_DRAFT_QUOTA");
         var draft=render(actor,candidate,input,version+1);
+        int invalidated=db.sql("UPDATE contact_delivery SET status='INVALIDATED',result_code='DRAFT_CHANGED' WHERE actor_id=:actor AND candidate_id=:candidate AND status='APPROVED'").param("actor",actor).param("candidate",candidate).update();
+        if(invalidated>0)trail.candidate(actor,candidate,"CONTACT_APPROVAL_INVALIDATED");
         db.sql("INSERT INTO contact_draft_revision(candidate_id,actor_id,version,publication_id,created_at,payload_json) VALUES (:candidate,:actor,:version,:publication,:now,:json)")
             .param("candidate",candidate).param("actor",actor).param("version",draft.version()).param("publication",draft.publicationId())
             .param("now",draft.createdAt()).param("json",write(draft)).update();trail.candidate(actor,candidate,"CONTACT_DRAFT_SAVED");return draft;

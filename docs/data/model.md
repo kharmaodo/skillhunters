@@ -144,3 +144,7 @@ profile_comparison référence le classement privé et une date. profile_compari
 ## Dossier de traitement et opposition (SH-31)
 
 V23 ajoute `candidate_governance` (état/version, politique et déclaration figées, provenance, justification, preuve de notice et opposition), `candidate_governance_revision` (historique privé avec auteur/date) et `contact_opposition_token` (empreinte SHA-256, échéance et consommation). Les trois tables sont rattachées au candidat avec suppression en cascade. Les oppositions et le garde du futur envoi sérialisent leurs accès sur la ligne candidat. Aucun jeton brut en base ni dans le journal central. Les détails de finalité, rétention et limites figurent dans [SH-31](../validation/sh-31.md).
+
+## Approbation et livraison SMTP (SH-25)
+
+V24 ajoute `contact_delivery` : identifiant, candidature/acteur/vivier, version de brouillon unique par acteur/candidat, empreinte SHA-256, enveloppe et texte exacts privés, Message-ID, approbation/échéance/tentative/résultat. États APPROVED, INVALIDATED, SENDING, ACCEPTED, UNCERTAIN, FAILED. Le marqueur de tentative est commité avant SMTP ; aucune reprise automatique. Suppression en cascade avec la candidature. Voir [SH-25](../validation/sh-25.md).

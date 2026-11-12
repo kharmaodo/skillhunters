@@ -1,5 +1,10 @@
 # Local development only. All exposed ports are bound to loopback.
 services:
+  mailpit:
+    image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+    ports: ["127.0.0.1:1025:1025", "127.0.0.1:8025:8025"]
+    environment:
+      MP_MAX_MESSAGES: "100"
   postgres:
     image: pgvector/pgvector:0.8.7-pg17-bookworm@sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
     environment:
@@ -119,6 +124,11 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:?Run init_local.py}
       OIDC_ISSUER: http://localhost:8081/realms/skillhunters
       OIDC_BACKCHANNEL: http://keycloak:8080/realms/skillhunters
+      SMTP_ENABLED: "true"
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_STARTTLS: "false"
+      SMTP_SENDER: no-reply@example.com
       APP_ORIGIN: http://localhost:8080
       COOKIE_SECURE: "false"
       S3_ENDPOINT: http://s3:9000
@@ -128,6 +138,7 @@ services:
     networks: [default, analysis]
     ports: ["127.0.0.1:8080:8080"]
     depends_on:
+      mailpit: {condition: service_started}
       postgres: {condition: service_healthy}
       keycloak: {condition: service_healthy}
       s3: {condition: service_healthy}

@@ -49,4 +49,8 @@ Recall@20/nDCG@10 seront évalués avec le classement SH-18/19 et les contrôles
 
 Suite des dépendances Must : SH-30 → SH-31 (provenance et opposition) → SH-25 (validation et envoi de contact).
 
-| SH-31 | Implémentée, validation en cours | Traitement versionné, preuve de notice, opposition et liens opaques ; [périmètre](validation/sh-31.md). Envoi SMTP et garde au moment de l’envoi : SH-25. |
+| SH-31 | Fusionnée, PR #26, CI réussie | Traitement versionné, preuve de notice, opposition et liens opaques ; [périmètre](validation/sh-31.md). Envoi SMTP et garde au moment de l’envoi : SH-25. |
+
+| SH-25 | Implémentée, validation en cours | Validation du message exact et tentative SMTP unitaire ; suivi dans validation/sh-25.md |
+
+Recensement complet : [tickets MVP restants](mvp-remaining.md).
