@@ -54,8 +54,9 @@ public class SecurityConfiguration {
         http.authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/index.html", "/assets/**", "/favicon.svg", "/error", "/actuator/health", "/actuator/health/**",
                         "/oauth2/authorization/**", "/login/oauth2/code/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST,"/api/v1/public/contact-opposition").permitAll()
                 .requestMatchers("/api/**").authenticated().anyRequest().denyAll())
-            .csrf(c -> c.csrfTokenRepository(csrf))
+            .csrf(c -> c.csrfTokenRepository(csrf).ignoringRequestMatchers(new org.springframework.security.web.util.matcher.AntPathRequestMatcher("/api/v1/public/contact-opposition","POST")))
             .requestCache(c -> c.requestCache(new NullRequestCache()))
             .sessionManagement(s -> s.sessionFixation(f -> f.changeSessionId()))
             .exceptionHandling(e -> e.authenticationEntryPoint((req, res, ex) -> error(res, HttpStatus.UNAUTHORIZED, "SESSION_REQUIRED"))

@@ -1828,67 +1828,6 @@
         "x-implementation-status": "planned"
       }
     },
-    "/objections": {
-      "post": {
-        "operationId": "recordObjection",
-        "tags": [
-          "Governance"
-        ],
-        "summary": "Enregistrer une opposition vérifiée",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/CsrfToken"
-          },
-          {
-            "$ref": "#/components/parameters/IdempotencyKey"
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperationResult"
-                }
-              }
-            }
-          },
-          "400": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "401": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "403": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "404": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "429": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "500": {
-            "$ref": "#/components/responses/Problem"
-          },
-          "409": {
-            "$ref": "#/components/responses/Problem"
-          }
-        },
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ObjectionInput"
-              }
-            }
-          }
-        },
-        "x-implementation-status": "planned"
-      }
-    },
     "/exports": {
       "post": {
         "operationId": "createExport",
@@ -5880,6 +5819,389 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CandidateContactInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/governance": {
+      "get": {
+        "operationId": "getCandidateGovernance",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Dossier de traitement : COMPLIANCE et appartenance au vivier",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceState"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      },
+      "put": {
+        "operationId": "saveCandidateGovernance",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Versionner provenance, politique, justification et preuve de notice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceState"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceEdit"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{id}/governance/history": {
+      "get": {
+        "operationId": "listGovernanceHistory",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Historique privé des déclarations de traitement",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/candidates/{id}/governance/opposition": {
+      "post": {
+        "operationId": "opposeCandidateContact",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Enregistrer une opposition au contact, sans levée implicite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GovernanceState"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/candidates/{id}/contact-eligibility": {
+      "get": {
+        "operationId": "getContactEligibility",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Recontrôler le dossier actuel et l’opposition ; ne constitue pas une approbation d’envoi",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactEligibility"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/candidates/{id}/opposition-links": {
+      "post": {
+        "operationId": "createOppositionLink",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Créer un lien opaque valable sept jours ; rôle contact et traitement complet requis",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Succès ; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OppositionLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/public/contact-opposition": {
+      "post": {
+        "operationId": "redeemOppositionLink",
+        "tags": [
+          "Governance"
+        ],
+        "summary": "Confirmer une opposition sans session",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "Opposition enregistrée sans données candidat"
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "410": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "security": [],
+        "description": "Jeton opaque 256 bits dans le corps ; aucune authentification par cookie ni CSRF. Confirmation explicite uniquement, jamais de mutation GET. Rejeu idempotent pendant 7 jours, réponse vide, aucune divulgation du CV.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OppositionRedemption"
               }
             }
           }
@@ -11614,6 +11936,182 @@
           "occurredAt": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "GovernanceState": {
+        "type": "object",
+        "required": [
+          "candidateId",
+          "version",
+          "policyId",
+          "source",
+          "purpose",
+          "basisCode",
+          "justification",
+          "noticeVersion",
+          "noticeEvidence",
+          "notifiedAt",
+          "opposed"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "policyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "purpose": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "basisCode": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "justification": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 1000
+          },
+          "noticeVersion": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 80
+          },
+          "noticeEvidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          },
+          "notifiedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "opposed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "GovernanceEdit": {
+        "type": "object",
+        "required": [
+          "policyId",
+          "source",
+          "justification",
+          "noticeVersion",
+          "noticeEvidence",
+          "notifiedAt"
+        ],
+        "properties": {
+          "policyId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "justification": {
+            "type": "string",
+            "maxLength": 1000
+          },
+          "noticeVersion": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "noticeEvidence": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "notifiedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "GovernanceHistory": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/GovernanceState"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "ContactEligibility": {
+        "type": "object",
+        "required": [
+          "allowed",
+          "reason"
+        ],
+        "properties": {
+          "allowed": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "OppositionLink": {
+        "type": "object",
+        "required": [
+          "url",
+          "expiresAt"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OppositionRedemption": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
           }
         }
       }

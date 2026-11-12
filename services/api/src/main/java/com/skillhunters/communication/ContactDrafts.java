@@ -20,6 +20,7 @@ import org.springframework.web.util.HtmlUtils;
 @Service
 public class ContactDrafts {
     private final com.skillhunters.governance.AuditTrail trail;
+    private final com.skillhunters.governance.CandidateGovernance governance;
     public static final List<String> VARIABLES=List.of("candidateFirstName","candidateLastName","recruiterName","companyName","jobTitle","jobDescription","workLocation","contractType","contactEmail","unsubscribeOrObjectionLink");
     private static final Set<String> OPTIONAL=Set.of("candidateFirstName","candidateLastName");
     private static final Pattern PLACEHOLDER=Pattern.compile("\\{\\{([a-zA-Z]+)}}");
@@ -34,7 +35,7 @@ public class ContactDrafts {
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;
     private final CandidateService candidates;private final ReviewService reviews;
     private final List<Template> templates;
-    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
+    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,com.skillhunters.governance.AuditTrail trail,com.skillhunters.governance.CandidateGovernance governance) {this.trail=trail;this.governance=governance;
         this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.reviews=reviews;
         templates=List.of(template("professional","Premier contact professionnel"),template("direct","Prise de contact directe"));
     }
@@ -47,6 +48,7 @@ public class ContactDrafts {
     private CandidateService.Candidate access(UUID actor,UUID candidate) {
         var c=candidates.get(actor,candidate);
         if(!c.contactsVisible()) throw new Rejected(HttpStatus.FORBIDDEN,"CONTACT_ACCESS_REQUIRED");
+        governance.ensureNotOpposed(candidate);
         return c;
     }
     public Context context(UUID actor,UUID candidate) {return tx.execute(t->{
@@ -71,7 +73,7 @@ public class ContactDrafts {
         String email=variables.get("contactEmail"),link=variables.get("unsubscribeOrObjectionLink");
         if(!email.isEmpty()&&!email.matches("[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+"))invalid();
         if(!link.isEmpty()) {
-            try {var uri=java.net.URI.create(link);if(!"https".equals(uri.getScheme())||uri.getHost()==null||uri.getUserInfo()!=null)invalid();}
+            try {var uri=java.net.URI.create(link);if((!"https".equals(uri.getScheme())&&!governance.validIssuedLink(candidate,link))||uri.getHost()==null||uri.getUserInfo()!=null)invalid();}
             catch(IllegalArgumentException e){invalid();}
         }
         var selected=new ArrayList<Skill>();

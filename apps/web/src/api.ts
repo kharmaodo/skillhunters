@@ -20,6 +20,13 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'CONTACT_OPPOSED') return 'Une opposition au contact est enregistrée. Les anciens brouillons sont également bloqués.';
+    if (error.code === 'GOVERNANCE_INCOMPLETE') return 'La justification du traitement et la preuve de notice doivent être complétées par la conformité.';
+    if (error.code === 'GOVERNANCE_CHANGED') return 'Le dossier a changé. Rechargez sa dernière version avant de modifier.';
+    if (error.code === 'INVALID_GOVERNANCE') return 'Complétez la provenance, la justification, la notice, sa preuve et une date de notification passée.';
+    if (error.code === 'GOVERNANCE_POLICY_DISABLED' || error.code === 'GOVERNANCE_POLICY_REQUIRED') return 'Une politique de traitement active est requise.';
+    if (error.code === 'COMPLIANCE_REQUIRED') return 'Le rôle conformité est requis pour ce dossier.';
+
     if (error.code === 'INVALID_COMPARISON') return 'Choisissez deux à quatre profils distincts du même classement.';
     if (error.code === 'COMPARISON_QUOTA') return 'La limite de 100 comparaisons pour ce classement est atteinte.';
     if (error.code === 'TRACKING_CHANGED') return 'Votre suivi a été modifié dans une autre session. La saisie est conservée ; rechargez avant de recommencer.';
