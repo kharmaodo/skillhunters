@@ -355,3 +355,25 @@ Table contact_opposition_token {
  expires_at timestamptz [not null]
  used boolean [not null]
 }
+
+Table contact_delivery {
+ id uuid [pk]
+ candidate_id uuid [not null, ref: > candidate_profile.id]
+ actor_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null]
+ draft_version bigint [not null]
+ content_hash varchar(64) [not null]
+ sender varchar(254) [not null]
+ recipient varchar(254) [not null]
+ reply_to varchar(254) [not null]
+ subject varchar(500) [not null]
+ body text [not null]
+ message_id varchar(150) [not null]
+ status varchar(20) [not null]
+ approved_at timestamptz [not null]
+ expires_at timestamptz [not null]
+ attempted_at timestamptz
+ completed_at timestamptz
+ result_code varchar(80)
+ indexes { (candidate_id, actor_id, draft_version) [unique] }
+}

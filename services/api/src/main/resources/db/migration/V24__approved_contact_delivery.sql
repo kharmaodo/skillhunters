@@ -1,0 +1,21 @@
+CREATE TABLE contact_delivery (
+ id UUID PRIMARY KEY,
+ candidate_id UUID NOT NULL REFERENCES candidate_profile(id) ON DELETE CASCADE,
+ actor_id UUID NOT NULL REFERENCES app_user(id),
+ pool_id UUID NOT NULL,
+ draft_version BIGINT NOT NULL,
+ content_hash VARCHAR(64) NOT NULL,
+ sender VARCHAR(254) NOT NULL,
+ recipient VARCHAR(254) NOT NULL,
+ reply_to VARCHAR(254) NOT NULL,
+ subject VARCHAR(500) NOT NULL,
+ body TEXT NOT NULL,
+ message_id VARCHAR(150) NOT NULL,
+ status VARCHAR(20) NOT NULL CHECK(status IN ('APPROVED','INVALIDATED','SENDING','ACCEPTED','UNCERTAIN','FAILED')),
+ approved_at TIMESTAMP WITH TIME ZONE NOT NULL,
+ expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+ attempted_at TIMESTAMP WITH TIME ZONE,
+ completed_at TIMESTAMP WITH TIME ZONE,
+ result_code VARCHAR(80),
+ UNIQUE(candidate_id,actor_id,draft_version)
+);

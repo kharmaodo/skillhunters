@@ -747,4 +747,94 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThatThrownBy(()->governance.redeem(active)).isInstanceOf(Rejected.class);
         assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_opposition_token WHERE candidate_id=?",Integer.class,c.id())).isZero();
     }
+
+    @Autowired com.skillhunters.communication.ContactDelivery deliveries;
+    @MockitoBean com.skillhunters.communication.ContactTransport smtp;
+    @BeforeEach void syntheticSmtp(){when(smtp.sender()).thenReturn("no-reply@example.com");when(smtp.enabled()).thenReturn(true);when(smtp.send(any())).thenReturn(new com.skillhunters.communication.ContactTransport.Result("ACCEPTED","SMTP_ACCEPTED"));}
+    record ReadyContact(UUID candidate,com.skillhunters.communication.ContactDrafts.Draft draft) {}
+    ReadyContact readyContact(){
+        var c=create();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);contactRole();complianceRole();
+        db.update("UPDATE candidate_contact SET email='candidate@example.com' WHERE candidate_id=?",c.id());
+        governance.save(alice,c.id(),"\"0\"",legalEdit());
+        var input=contactInput("professional",null,null);var vars=new HashMap<>(input.variables());vars.put("unsubscribeOrObjectionLink",governance.issue(alice,c.id()).url());
+        var d=contactDrafts.save(alice,c.id(),"\"0\"",new com.skillhunters.communication.ContactDrafts.Input(input.publicationId(),input.templateId(),vars,input.skillIndices(),null,null));return new ReadyContact(c.id(),d);
+    }
+    com.skillhunters.communication.ContactDelivery.Approval approval(com.skillhunters.communication.ContactDrafts.Draft d){return new com.skillhunters.communication.ContactDelivery.Approval(d.version(),d.recipient(),d.subject(),d.body(),true);}
+    @Test void exactApprovalAndRepeatedSendProduceOneSmtpAttempt() throws Exception {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        assertThat(a.contentHash()).hasSize(64);assertThat(a.status()).isEqualTo("APPROVED");
+        mvc.perform(post("/api/v1/candidates/"+f.candidate()+"/contact-deliveries/"+a.id()+"/send").with(as("alice"))).andExpect(status().isForbidden());
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("ACCEPTED");
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("ACCEPTED");
+        verify(smtp,times(1)).send(argThat(e->e.recipient().equals(f.draft().recipient())&&e.body().equals(f.draft().body())&&e.subject().equals(f.draft().subject())&&e.messageId().equals(a.messageId())));
+        assertThat(deliveries.approve(alice,f.candidate(),approval(f.draft())).id()).isEqualTo(a.id());
+        assertThatThrownBy(()->deliveries.get(admin,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+    }
+    @Test void draftEditInvalidatesPriorApprovalAndRequiresExactFreshReview(){
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        var d=f.draft();var edited=contactDrafts.save(alice,f.candidate(),"\"1\"",new com.skillhunters.communication.ContactDrafts.Input(d.publicationId(),d.templateId(),d.variables(),List.of(0),"Objet relu modifié",d.body()));
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("INVALIDATED");verify(smtp,never()).send(any());
+        assertThatThrownBy(()->deliveries.approve(alice,f.candidate(),approval(d))).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->deliveries.approve(alice,f.candidate(),new com.skillhunters.communication.ContactDelivery.Approval(edited.version(),edited.recipient(),edited.subject(),edited.body(),false))).isInstanceOf(Rejected.class);
+        var next=deliveries.approve(alice,f.candidate(),approval(edited));assertThat(next.contentHash()).isNotEqualTo(a.contentHash());
+    }
+    @Test void oppositionAndChangedRecipientAreRecheckedAtSend(){
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        governance.oppose(alice,f.candidate(),"\"1\"");
+        assertThatThrownBy(()->deliveries.send(alice,f.candidate(),a.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_OPPOSED"));
+        verify(smtp,never()).send(any());assertThat(deliveries.get(alice,f.candidate(),a.id()).status()).isEqualTo("INVALIDATED");
+    }
+    @Test void changedRecipientExpiresApprovalBeforeTransmission(){
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        db.update("UPDATE candidate_contact SET email='changed@example.com' WHERE candidate_id=?",f.candidate());
+        assertThatThrownBy(()->deliveries.send(alice,f.candidate(),a.id())).isInstanceOf(Rejected.class);verify(smtp,never()).send(any());
+    }
+    @Test void timeoutOrInterruptedAttemptNeverTriggersAutomaticResend(){
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        when(smtp.send(any())).thenThrow(new IllegalStateException("simulated timeout"));
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("UNCERTAIN");
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("UNCERTAIN");verify(smtp,times(1)).send(any());
+        db.update("UPDATE contact_delivery SET status='SENDING',attempted_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",a.id());
+        assertThat(deliveries.get(alice,f.candidate(),a.id()).status()).isEqualTo("UNCERTAIN");
+        deliveries.send(alice,f.candidate(),a.id());verify(smtp,times(1)).send(any());
+    }
+    @Test void expiredLinkAndRevokedAccessPreventSmtp(){
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        db.update("UPDATE contact_opposition_token SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE candidate_id=?",f.candidate());
+        assertThatThrownBy(()->deliveries.send(alice,f.candidate(),a.id())).isInstanceOf(Rejected.class);verify(smtp,never()).send(any());
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->deliveries.get(alice,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+    }
+    @Test void simultaneousRequestsDoNotDuplicateSmtp() throws Exception {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+            var one=executor.submit(()->deliveries.send(alice,f.candidate(),a.id()));var two=executor.submit(()->deliveries.send(alice,f.candidate(),a.id()));
+            assertThat(one.get(15,java.util.concurrent.TimeUnit.SECONDS).status()).isIn("ACCEPTED","SENDING");assertThat(two.get(15,java.util.concurrent.TimeUnit.SECONDS).status()).isIn("ACCEPTED","SENDING");
+        }
+        verify(smtp,times(1)).send(any());
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="SH25_SMTP_TEST_HOST",matches=".+")
+    void approvedMessageReallyReachesMailpitOnce() throws Exception {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        var real=new com.skillhunters.communication.SmtpContactTransport(true,System.getenv("SH25_SMTP_TEST_HOST"),1025,"","",false,"no-reply@example.com");
+        when(smtp.send(any())).thenAnswer(invocation->real.send(invocation.getArgument(0)));
+        assertThat(deliveries.send(alice,f.candidate(),a.id()).status()).isEqualTo("ACCEPTED");
+        deliveries.send(alice,f.candidate(),a.id());verify(smtp,times(1)).send(any());
+        var client=java.net.http.HttpClient.newHttpClient();String base=System.getenv("SH25_SMTP_TEST_HTTP");
+        var list=client.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base+"/api/v1/messages")).GET().build(),java.net.http.HttpResponse.BodyHandlers.ofString());
+        assertThat(list.statusCode()).isEqualTo(200);var messages=json.readTree(list.body()).get("messages");
+        int count=0;
+        for(var m:messages){
+            var response=client.send(java.net.http.HttpRequest.newBuilder(java.net.URI.create(base+"/api/v1/message/"+m.get("ID").asText())).GET().build(),java.net.http.HttpResponse.BodyHandlers.ofString());
+            var body=json.readTree(response.body());if(body.get("MessageID").asText().replace("<","").replace(">","").equals(a.messageId().replace("<","").replace(">",""))){
+                count++;assertThat(body.get("Text").asText().replace("\r\n","\n").stripTrailing()).isEqualTo(f.draft().body().stripTrailing());
+                assertThat(body.get("Subject").asText()).isEqualTo(f.draft().subject());
+                assertThat(body.get("To").get(0).get("Address").asText()).isEqualTo(f.draft().recipient());
+                assertThat(body.get("HTML").asText()).isEmpty();
+            }
+        }
+        assertThat(count).isEqualTo(1);
+    }
 }

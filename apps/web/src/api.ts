@@ -20,6 +20,13 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'SMTP_DISABLED') return 'L’envoi SMTP est désactivé. Contactez l’administrateur.';
+    if (['CONTACT_APPROVAL_CHANGED','CONTACT_NEW_DRAFT_REQUIRED'].includes(error.code)) return 'L’approbation n’est plus valable. Enregistrez une nouvelle version et relisez-la.';
+    if (error.code === 'CONTACT_EXACT_REVIEW_REQUIRED') return 'Confirmez le destinataire, l’objet et le texte exacts de la dernière version enregistrée.';
+    if (error.code === 'CONTACT_OPPOSITION_LINK_REQUIRED') return 'Insérez dans le message un lien d’opposition actif créé pour cette candidature.';
+    if (error.code === 'CONTACT_DRAFT_INCOMPLETE' || error.code === 'CONTACT_SAVED_DRAFT_REQUIRED') return 'Enregistrez un brouillon complet avant de l’approuver.';
+    if (error.code === 'CONTACT_ADDRESS_INVALID') return 'Une adresse d’expédition, de réponse ou de destinataire est invalide.';
+
     if (error.code === 'CONTACT_OPPOSED') return 'Une opposition au contact est enregistrée. Les anciens brouillons sont également bloqués.';
     if (error.code === 'GOVERNANCE_INCOMPLETE') return 'La justification du traitement et la preuve de notice doivent être complétées par la conformité.';
     if (error.code === 'GOVERNANCE_CHANGED') return 'Le dossier a changé. Rechargez sa dernière version avant de modifier.';

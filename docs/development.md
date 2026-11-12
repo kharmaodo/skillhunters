@@ -191,3 +191,7 @@ docker compose --env-file .env -f infrastructure/compose.yml --profile app up -d
 ```
 
 Flyway crée l’extension et les tables V14. Hors Compose, pgvector 0.8.7 doit être installé dans PostgreSQL. Ne pas supprimer le volume pour appliquer cette migration. Les vieux curseurs hybrides doivent être abandonnés. Voir `validation/sh-16-index.md` pour lancer le corpus annoté et interpréter le rapport.
+
+## Recette de contact SMTP (SH-25)
+
+Le profil applicatif Docker inclut Mailpit, boîte de capture sans relais sortant : interface `http://localhost:8025`. Le parcours exige un dossier de traitement complet (COMPLIANCE et appartenance au vivier), un lien d’opposition émis pour le candidat et une approbation humaine exacte avant envoi. [Configuration et garanties](validation/sh-25.md).

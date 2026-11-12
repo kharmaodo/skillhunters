@@ -14,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
+      mailpit:
+        image: axllent/mailpit:v1.33.1@sha256:aef2aacc11f075ec0fb6874275ee4a421e688e11a96ebb296134d1735c7761ce
+        ports: ['1025:1025', '8025:8025']
       postgres:
         image: pgvector/pgvector:0.8.7-pg17-bookworm@sha256:ac08538c6f8b9904c33c8224c5e5706dbe760aca29db1d096972b4052c22a75d
         env:
@@ -56,6 +59,8 @@ jobs:
       - name: Test API with PostgreSQL migrations
         working-directory: services/api
         env:
+          SH25_SMTP_TEST_HOST: localhost
+          SH25_SMTP_TEST_HTTP: http://localhost:8025
           TEST_DB_URL: jdbc:postgresql://localhost:5432/skillhunters_test
           TEST_DB_USER: test
           TEST_DB_PASSWORD: local-test-only
