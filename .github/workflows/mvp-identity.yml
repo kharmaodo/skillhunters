@@ -27,28 +27,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false, fetch-depth: 2}
-      - name: Use official Ubuntu package mirrors
-        run: |
-          sudo python3 - <<'PYTHON'
-          from pathlib import Path
-          replacements = {
-              'mirror+file:/etc/apt/apt-mirrors.txt': 'https://archive.ubuntu.com/ubuntu',
-              'mirror+file:/etc/apt/apt-mirrors-security.txt': 'https://security.ubuntu.com/ubuntu',
-              'http://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
-              'https://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
-          }
-          sources = [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.sources'), *Path('/etc/apt/sources.list.d').glob('*.list')]
-          for path in sources:
-              if not path.is_file():
-                  continue
-              original = path.read_text()
-              content = original
-              for old, new in replacements.items():
-                  content = content.replace(old, new)
-              if content != original:
-                  path.write_text(content)
-          Path('/etc/apt/apt.conf.d/80-ci-downloads').write_text('Acquire::Retries "2";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n')
-          PYTHON
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: '21', cache: maven}
       - uses: actions/setup-node@v4
@@ -61,9 +39,10 @@ jobs:
         with: {python-version: '3.12'}
       - name: Test sandboxed document worker
         run: |
-          sudo apt-get update && sudo apt-get install -y antiword libseccomp2 tesseract-ocr tesseract-ocr-fra tesseract-ocr-eng poppler-utils
-          python -m pip install -r services/document-worker/requirements.txt
-          python -m unittest discover -s services/document-worker/tests -v
+          docker build -f services/document-worker/Dockerfile -t skillhunters-worker-tests .
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --mount type=bind,source="$PWD",target=/workspace,readonly --workdir /workspace \
+            skillhunters-worker-tests python -m unittest discover -s services/document-worker/tests -v
       - name: Qualify local CPU embeddings
         run: |
           python -m venv /tmp/embedding-venv
@@ -94,28 +73,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
-      - name: Use official Ubuntu package mirrors
-        run: |
-          sudo python3 - <<'PYTHON'
-          from pathlib import Path
-          replacements = {
-              'mirror+file:/etc/apt/apt-mirrors.txt': 'https://archive.ubuntu.com/ubuntu',
-              'mirror+file:/etc/apt/apt-mirrors-security.txt': 'https://security.ubuntu.com/ubuntu',
-              'http://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
-              'https://azure.archive.ubuntu.com/ubuntu': 'https://archive.ubuntu.com/ubuntu',
-          }
-          sources = [Path('/etc/apt/sources.list'), *Path('/etc/apt/sources.list.d').glob('*.sources'), *Path('/etc/apt/sources.list.d').glob('*.list')]
-          for path in sources:
-              if not path.is_file():
-                  continue
-              original = path.read_text()
-              content = original
-              for old, new in replacements.items():
-                  content = content.replace(old, new)
-              if content != original:
-                  path.write_text(content)
-          Path('/etc/apt/apt.conf.d/80-ci-downloads').write_text('Acquire::Retries "2";\nAcquire::http::Timeout "20";\nAcquire::https::Timeout "20";\n')
-          PYTHON
       - name: Generate local-only configuration
         run: python3 scripts/init_local.py
       - name: Build and start the local stack
@@ -156,12 +113,15 @@ jobs:
       - name: Browser import and responsive checks
         run: |
           npm --prefix apps/web ci --no-audit --no-fund
-          cd apps/web
-          npx playwright install --with-deps chromium
           set -a
-          . ../../.env
+          . ./.env
           set +a
-          npm run test:browser
+          # Match @playwright/test in package-lock.json; browsers and OS dependencies are preinstalled.
+          docker run --rm --network host --ipc=host --user "$(id -u):$(id -g)" \
+            --env HOME=/tmp --env DEMO_PASSWORD \
+            --mount type=bind,source="$PWD",target=/workspace --workdir /workspace/apps/web \
+            mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f \
+            npm run test:browser
       - uses: actions/upload-artifact@v4
         if: always()
         with:
