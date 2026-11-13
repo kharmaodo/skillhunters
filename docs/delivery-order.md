@@ -51,6 +51,8 @@ Suite des dépendances Must : SH-30 → SH-31 (provenance et opposition) → SH-
 
 | SH-31 | Fusionnée, PR #26, CI réussie | Traitement versionné, preuve de notice, opposition et liens opaques ; [périmètre](validation/sh-31.md). Envoi SMTP et garde au moment de l’envoi : SH-25. |
 
-| SH-25 | Implémentée, validation en cours | Validation du message exact et tentative SMTP unitaire ; suivi dans validation/sh-25.md |
+| SH-25 | Fusionnée — PR #27 | Validation du message exact et tentative SMTP unitaire ; suivi dans validation/sh-25.md |
+
+| SH-26 | Implémentée, validation en cours | Historique partagé des contacts, transitions, pagination et rétention ciblée ; voir validation/sh-26.md |
 
 Recensement complet : [tickets MVP restants](mvp-remaining.md).

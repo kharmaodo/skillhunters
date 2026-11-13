@@ -6016,6 +6016,142 @@
         "x-implementation-status": "implemented",
         "description": "Rôle contact dans le vivier, compte actif et rétention vérifiés. Approbation et envoi recontrôlent SH-31, publication, destinataire et lien actif. Une demande répétée ne relance pas SMTP ; résultat ambigu sans renvoi automatique."
       }
+    },
+    "/candidates/{candidate}/contact-history": {
+      "get": {
+        "operationId": "listContactHistory",
+        "tags": [
+          "Communication"
+        ],
+        "summary": "Consulter l’historique partagé des contacts",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 256
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "APPROVED",
+                "INVALIDATED",
+                "SENDING",
+                "ACCEPTED",
+                "UNCERTAIN",
+                "FAILED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État du message ; no-store. ACCEPTED signifie accepté par SMTP, pas livré/lu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactHistoryPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Permission coordonnées dans le vivier, compte actif et rétention courante. Messages approuvés partagés entre personnes habilitées ; brouillon préparé privé au demandeur. Pagination stable 25 éléments par date/id décroissants, curseur lié au candidat et filtre. Contenu expiré inaccessible avant même purge. Aucune transmission ni relance SMTP. Les états APPROVED expirés et SENDING abandonnés sont rapprochés sans envoi."
+      }
+    },
+    "/candidates/{candidate}/contact-history/{id}": {
+      "get": {
+        "operationId": "getContactHistory",
+        "tags": [
+          "Communication"
+        ],
+        "summary": "Consulter le texte et les transitions d’un contact",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "État du message ; no-store. ACCEPTED signifie accepté par SMTP, pas livré/lu.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactHistoryDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "description": "Permission coordonnées dans le vivier, compte actif et rétention courante. Messages approuvés partagés entre personnes habilitées ; brouillon préparé privé au demandeur. Pagination stable 25 éléments par date/id décroissants, curseur lié au candidat et filtre. Contenu expiré inaccessible avant même purge. Aucune transmission ni relance SMTP. Les états APPROVED expirés et SENDING abandonnés sont rapprochés sans envoi."
+      }
     }
   },
   "components": {
@@ -11683,11 +11819,17 @@
               "integer",
               "null"
             ]
+          },
+          "latestVersion": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Dernière version, y compris marqueurs purgés ; utiliser pour If-Match."
           }
         },
         "required": [
           "items",
-          "nextCursor"
+          "nextCursor",
+          "latestVersion"
         ]
       },
       "GovernanceAuditEvent": {
@@ -12043,6 +12185,211 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "ContactHistorySummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "actorId",
+          "draftVersion",
+          "recipient",
+          "subject",
+          "status",
+          "approvedAt",
+          "attemptedAt",
+          "completedAt",
+          "retainedUntil",
+          "resultCode"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "draftVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "recipient": {
+            "type": "string"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "INVALIDATED",
+              "SENDING",
+              "ACCEPTED",
+              "UNCERTAIN",
+              "FAILED"
+            ]
+          },
+          "approvedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attemptedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "retainedUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resultCode": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ContactPreparedSummary": {
+        "type": "object",
+        "required": [
+          "draftVersion",
+          "subject",
+          "createdAt",
+          "status"
+        ],
+        "properties": {
+          "draftVersion": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subject": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PREPARED"
+            ]
+          }
+        }
+      },
+      "ContactHistoryPage": {
+        "type": "object",
+        "required": [
+          "prepared",
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "prepared": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ContactPreparedSummary"
+              }
+            ],
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/ContactHistorySummary"
+            }
+          },
+          "nextCursor": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ContactHistoryEvent": {
+        "type": "object",
+        "required": [
+          "sequence",
+          "actorId",
+          "status",
+          "code",
+          "occurredAt"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "APPROVED",
+              "INVALIDATED",
+              "SENDING",
+              "ACCEPTED",
+              "UNCERTAIN",
+              "FAILED"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ContactHistoryDetail": {
+        "type": "object",
+        "required": [
+          "summary",
+          "sender",
+          "replyTo",
+          "body",
+          "messageId",
+          "contentHash",
+          "events"
+        ],
+        "properties": {
+          "summary": {
+            "$ref": "#/components/schemas/ContactHistorySummary"
+          },
+          "sender": {
+            "type": "string"
+          },
+          "replyTo": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "messageId": {
+            "type": "string"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/ContactHistoryEvent"
+            }
           }
         }
       }

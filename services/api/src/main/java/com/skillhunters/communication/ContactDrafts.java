@@ -19,6 +19,7 @@ import org.springframework.web.util.HtmlUtils;
 
 @Service
 public class ContactDrafts {
+    private final ContactJournal journal;
     private final com.skillhunters.governance.AuditTrail trail;
     private final com.skillhunters.governance.CandidateGovernance governance;
     public static final List<String> VARIABLES=List.of("candidateFirstName","candidateLastName","recruiterName","companyName","jobTitle","jobDescription","workLocation","contractType","contactEmail","unsubscribeOrObjectionLink");
@@ -31,11 +32,11 @@ public class ContactDrafts {
     public record Draft(long version,UUID publicationId,String templateId,String templateVersion,Map<String,String> variables,
                         List<Skill> matchingSkills,String recipient,String subject,String body,String htmlBody,
                         List<String> missingFields,boolean sendBlocked,OffsetDateTime createdAt) {}
-    public record History(List<Draft> items,Integer nextCursor) {}
+    public record History(List<Draft> items,Integer nextCursor,long latestVersion) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;
     private final CandidateService candidates;private final ReviewService reviews;
     private final List<Template> templates;
-    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,com.skillhunters.governance.AuditTrail trail,com.skillhunters.governance.CandidateGovernance governance) {this.trail=trail;this.governance=governance;
+    public ContactDrafts(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,com.skillhunters.governance.AuditTrail trail,com.skillhunters.governance.CandidateGovernance governance,ContactJournal journal) {this.journal=journal;this.trail=trail;this.governance=governance;
         this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.reviews=reviews;
         templates=List.of(template("professional","Premier contact professionnel"),template("direct","Prise de contact directe"));
     }
@@ -103,17 +104,17 @@ public class ContactDrafts {
         if(!etag.equals("\""+version+"\""))throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CONTACT_DRAFT_CHANGED");
         if(version>=100)throw new Rejected(HttpStatus.TOO_MANY_REQUESTS,"CONTACT_DRAFT_QUOTA");
         var draft=render(actor,candidate,input,version+1);
-        int invalidated=db.sql("UPDATE contact_delivery SET status='INVALIDATED',result_code='DRAFT_CHANGED' WHERE actor_id=:actor AND candidate_id=:candidate AND status='APPROVED'").param("actor",actor).param("candidate",candidate).update();
-        if(invalidated>0)trail.candidate(actor,candidate,"CONTACT_APPROVAL_INVALIDATED");
+        journal.invalidateApprovals(actor,candidate,"DRAFT_CHANGED");
         db.sql("INSERT INTO contact_draft_revision(candidate_id,actor_id,version,publication_id,created_at,payload_json) VALUES (:candidate,:actor,:version,:publication,:now,:json)")
             .param("candidate",candidate).param("actor",actor).param("version",draft.version()).param("publication",draft.publicationId())
             .param("now",draft.createdAt()).param("json",write(draft)).update();trail.candidate(actor,candidate,"CONTACT_DRAFT_SAVED");return draft;
     });}
     public History history(UUID actor,UUID candidate,int cursor) {return tx.execute(t->{
         access(actor,candidate);if(cursor<0||cursor>100)invalid();
-        var values=db.sql("SELECT payload_json FROM contact_draft_revision WHERE actor_id=:actor AND candidate_id=:candidate ORDER BY version DESC LIMIT 26 OFFSET :cursor")
-            .param("actor",actor).param("candidate",candidate).param("cursor",cursor).query(String.class).list();
-        return new History(values.stream().limit(25).map(this::read).toList(),values.size()>25?cursor+25:null);
+        var values=db.sql("SELECT payload_json FROM contact_draft_revision WHERE actor_id=:actor AND candidate_id=:candidate AND content_purged=FALSE AND created_at>:cutoff ORDER BY version DESC LIMIT 26 OFFSET :cursor")
+            .param("actor",actor).param("candidate",candidate).param("cursor",cursor).param("cutoff",journal.draftCutoff()).query(String.class).list();
+        long latest=db.sql("SELECT COALESCE(MAX(version),0) FROM contact_draft_revision WHERE actor_id=:a AND candidate_id=:c").param("a",actor).param("c",candidate).query(Long.class).single();
+        return new History(values.stream().limit(25).map(this::read).toList(),values.size()>25?cursor+25:null,latest);
     });}
     @Scheduled(initialDelayString="${app.contact.cleanup-ms:3600000}",fixedDelayString="${app.contact.cleanup-ms:3600000}")
     public void cleanup(){tx.executeWithoutResult(t->db.sql("DELETE FROM contact_draft_revision WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now)")

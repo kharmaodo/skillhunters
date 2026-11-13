@@ -148,3 +148,9 @@ V23 ajoute `candidate_governance` (état/version, politique et déclaration fig�
 ## Approbation et livraison SMTP (SH-25)
 
 V24 ajoute `contact_delivery` : identifiant, candidature/acteur/vivier, version de brouillon unique par acteur/candidat, empreinte SHA-256, enveloppe et texte exacts privés, Message-ID, approbation/échéance/tentative/résultat. États APPROVED, INVALIDATED, SENDING, ACCEPTED, UNCERTAIN, FAILED. Le marqueur de tentative est commité avant SMTP ; aucune reprise automatique. Suppression en cascade avec la candidature. Voir [SH-25](../validation/sh-25.md).
+
+## Historique des contacts (SH-26)
+
+V25 ajoute une échéance de conservation et un indicateur de purge sur contact_delivery, un indicateur sur les brouillons et contact_delivery_event (séquence, livraison, auteur facultatif, état, code borné et date). Index candidat/date/id pour pagination stable et livraison/séquence pour transitions. Les données antérieures reçoivent un snapshot MIGRATED_STATE daté de la migration, sans transitions inventées. Les nouveaux événements sont écrits dans la transaction de changement d’état.
+
+Les messages approuvés sont consultables par les personnes ayant le droit contact du vivier ; les brouillons restent privés. Après échéance, le texte/enveloppe et les événements sont purgés ; identifiants, version, empreinte et marqueur de tentative restent jusqu’à suppression de la candidature pour empêcher un double envoi. Les brouillons expirés gardent leur numéro mais leur JSON est vidé. Voir [SH-26](../validation/sh-26.md) pour bornes et limites.

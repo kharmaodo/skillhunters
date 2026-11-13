@@ -836,5 +836,91 @@ class HumanReviewTest extends IdentityTestSupport {
             }
         }
         assertThat(count).isEqualTo(1);
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).events()).extracting(e->e.status()).containsExactly("APPROVED","SENDING","ACCEPTED");
     }
+
+    @Autowired com.skillhunters.communication.ContactHistory contactHistory;
+    @Autowired com.skillhunters.communication.ContactJournal contactJournal;
+
+    @Test void contactHistorySharesApprovedMessagesButKeepsPreparedDraftsPrivate() throws Exception {
+        var f=readyContact();
+        assertThat(contactHistory.list(alice,f.candidate(),null,null).prepared().draftVersion()).isEqualTo(1);
+        assertThatThrownBy(()->contactHistory.list(admin,f.candidate(),null,null)).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",admin,poolA);
+        assertThat(contactHistory.list(admin,f.candidate(),null,null).prepared()).isNull();
+        var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        deliveries.send(alice,f.candidate(),a.id());
+        var page=contactHistory.list(admin,f.candidate(),null,null);
+        assertThat(page.prepared()).isNull();assertThat(page.items()).hasSize(1);
+        assertThat(page.items().getFirst().status()).isEqualTo("ACCEPTED");
+        var detail=contactHistory.detail(admin,f.candidate(),a.id());
+        assertThat(detail.body()).isEqualTo(f.draft().body());
+        assertThat(detail.events()).extracting(e->e.status()).containsExactly("APPROVED","SENDING","ACCEPTED");
+        assertThatThrownBy(()->deliveries.send(admin,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+        governance.oppose(alice,f.candidate(),"\"1\"");
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).body()).isEqualTo(f.draft().body());
+        mvc.perform(get(candidateUrl(f.candidate())+"/contact-history").with(as("alice")))
+            .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+        db.update("DELETE FROM membership WHERE user_id=?",admin);
+        assertThatThrownBy(()->contactHistory.detail(admin,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",admin,poolB);
+        assertThatThrownBy(()->contactHistory.list(admin,f.candidate(),null,null)).isInstanceOf(Rejected.class);
+        verify(smtp,times(1)).send(any());
+    }
+    @Test void contactHistoryPaginatesTiedDatesAndBindsCursorToFilterAndCandidate() {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        for(int i=2;i<=29;i++)db.update("INSERT INTO contact_delivery(id,candidate_id,actor_id,pool_id,draft_version,content_hash,sender,recipient,reply_to,subject,body,message_id,status,approved_at,expires_at,history_expires_at) SELECT ?,candidate_id,actor_id,pool_id,?,content_hash,sender,recipient,reply_to,subject,body,?,status,approved_at,expires_at,history_expires_at FROM contact_delivery WHERE id=?",UUID.randomUUID(),i,"synthetic-"+i,a.id());
+        var first=contactHistory.list(alice,f.candidate(),null,"APPROVED");
+        var second=contactHistory.list(alice,f.candidate(),first.nextCursor(),"APPROVED");
+        assertThat(first.items()).hasSize(25);assertThat(second.items()).hasSize(4);assertThat(second.nextCursor()).isNull();
+        var ids=new HashSet<UUID>();first.items().forEach(x->ids.add(x.id()));second.items().forEach(x->ids.add(x.id()));assertThat(ids).hasSize(29);
+        assertThat(contactHistory.list(alice,f.candidate(),null,"ACCEPTED").items()).isEmpty();
+        assertThatThrownBy(()->contactHistory.list(alice,f.candidate(),first.nextCursor(),null)).isInstanceOf(Rejected.class);
+        String bad=Base64.getUrlEncoder().encodeToString((f.candidate()+"|invalid-date|"+a.id()+"|").getBytes());
+        assertThatThrownBy(()->contactHistory.list(alice,f.candidate(),bad,null)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_CONTACT_HISTORY_FILTER"));
+        assertThatThrownBy(()->contactHistory.list(alice,f.candidate(),"%%%",null)).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->contactHistory.list(alice,f.candidate(),null,"DELIVERED")).isInstanceOf(Rejected.class);
+        verify(smtp,never()).send(any());
+    }
+    @Test void expiredContactPayloadsDisappearBeforePurgeAndCannotResurrectAttempt() {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        db.update("UPDATE contact_delivery SET history_expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",a.id());
+        db.update("UPDATE contact_draft_revision SET created_at=CURRENT_TIMESTAMP - INTERVAL '100' DAY WHERE candidate_id=?",f.candidate());
+        assertThat(contactHistory.list(alice,f.candidate(),null,null).items()).isEmpty();
+        assertThatThrownBy(()->contactHistory.detail(alice,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+        assertThat(contactDrafts.history(alice,f.candidate(),0).items()).isEmpty();
+        assertThat(contactDrafts.history(alice,f.candidate(),0).latestVersion()).isEqualTo(1);
+        contactJournal.cleanup();
+        assertThat(db.queryForObject("SELECT body FROM contact_delivery WHERE id=?",String.class,a.id())).isEmpty();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_delivery_event WHERE delivery_id=?",Integer.class,a.id())).isZero();
+        assertThat(db.queryForObject("SELECT payload_json FROM contact_draft_revision WHERE candidate_id=?",String.class,f.candidate())).isEqualTo("{}");
+        assertThatThrownBy(()->deliveries.send(alice,f.candidate(),a.id())).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->deliveries.approve(alice,f.candidate(),approval(f.draft()))).isInstanceOf(Rejected.class);
+        var d=f.draft();var fresh=contactDrafts.save(alice,f.candidate(),"\"1\"",new com.skillhunters.communication.ContactDrafts.Input(d.publicationId(),d.templateId(),d.variables(),List.of(0),null,null));
+        assertThat(fresh.version()).isEqualTo(2);
+        assertThat(contactHistory.list(alice,f.candidate(),null,null).prepared().draftVersion()).isEqualTo(2);
+        verify(smtp,never()).send(any());
+    }
+    @Test void contactHistoryReconcilesExpiredAndInterruptedStatesExactlyOnce() {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        db.update("UPDATE contact_delivery SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",a.id());
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).summary().status()).isEqualTo("INVALIDATED");
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).events()).hasSize(2);
+        db.update("UPDATE contact_delivery SET status='SENDING',attempted_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",a.id());
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).summary().status()).isEqualTo("UNCERTAIN");
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).events()).hasSize(3);
+        verify(smtp,never()).send(any());
+    }
+    @Test void sourceExpiryBlocksHistoryAndPurgesDeliveryContent() {
+        var f=readyContact();var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        assertThat(contactHistory.detail(alice,f.candidate(),a.id()).summary().retainedUntil()).isBeforeOrEqualTo(candidates.get(alice,f.candidate()).expiresAt());
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        assertThatThrownBy(()->contactHistory.list(alice,f.candidate(),null,null)).isInstanceOf(Rejected.class);
+        contactJournal.cleanup();
+        assertThat(db.queryForObject("SELECT body FROM contact_delivery WHERE id=?",String.class,a.id())).isEmpty();
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_delivery",Integer.class)).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_delivery_event",Integer.class)).isZero();
+    }
+
 }
