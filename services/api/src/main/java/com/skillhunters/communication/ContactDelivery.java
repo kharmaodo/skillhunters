@@ -19,9 +19,10 @@ public class ContactDelivery {
     public record Approval(long draftVersion,String recipient,String subject,String body,boolean confirmed) {}
     public record Receipt(UUID id,long draftVersion,String contentHash,String sender,String recipient,String replyTo,String subject,String body,
                           String messageId,String status,OffsetDateTime approvedAt,OffsetDateTime expiresAt,OffsetDateTime attemptedAt,OffsetDateTime completedAt,String resultCode) {}
+    private final ContactJournal journal;
     private final JdbcClient db;private final TransactionTemplate tx;private final ContactDrafts drafts;private final CandidateService candidates;
     private final CandidateGovernance governance;private final ContactTransport transport;private final AuditTrail audit;private final ObjectMapper json;
-    public ContactDelivery(JdbcClient db,TransactionTemplate tx,ContactDrafts drafts,CandidateService candidates,CandidateGovernance governance,ContactTransport transport,AuditTrail audit,ObjectMapper json){
+    public ContactDelivery(JdbcClient db,TransactionTemplate tx,ContactDrafts drafts,CandidateService candidates,CandidateGovernance governance,ContactTransport transport,AuditTrail audit,ObjectMapper json,ContactJournal journal){this.journal=journal;
         this.db=db;this.tx=tx;this.drafts=drafts;this.candidates=candidates;this.governance=governance;this.transport=transport;this.audit=audit;this.json=json;
     }
     private void access(UUID actor,UUID candidate){
@@ -49,9 +50,10 @@ public class ContactDelivery {
         var existing=db.sql("SELECT id FROM contact_delivery WHERE candidate_id=:c AND actor_id=:a AND draft_version=:v").param("c",candidate).param("a",actor).param("v",d.version()).query(UUID.class).optional();
         if(existing.isPresent()){var r=row(actor,candidate,existing.get());if(!r.status().equals("APPROVED"))return r;if(r.expiresAt().isBefore(now())||!r.contentHash().equals(hash(d)))reject("CONTACT_NEW_DRAFT_REQUIRED");return r;}
         UUID id=UUID.randomUUID();var now=now();String messageId="<"+id+"@skillhunters.local>";
-        db.sql("INSERT INTO contact_delivery(id,candidate_id,actor_id,pool_id,draft_version,content_hash,sender,recipient,reply_to,subject,body,message_id,status,approved_at,expires_at) VALUES (:id,:c,:a,:p,:v,:hash,:sender,:recipient,:reply,:subject,:body,:mid,'APPROVED',:now,:expiry)")
+        db.sql("INSERT INTO contact_delivery(id,candidate_id,actor_id,pool_id,draft_version,content_hash,sender,recipient,reply_to,subject,body,message_id,status,approved_at,expires_at,history_expires_at) VALUES (:id,:c,:a,:p,:v,:hash,:sender,:recipient,:reply,:subject,:body,:mid,'APPROVED',:now,:expiry,:retention)")
             .param("id",id).param("c",candidate).param("a",actor).param("p",candidates.get(actor,candidate).poolId()).param("v",d.version()).param("hash",hash(d)).param("sender",transport.sender()).param("recipient",d.recipient()).param("reply",d.variables().get("contactEmail"))
-            .param("subject",d.subject()).param("body",d.body()).param("mid",messageId).param("now",now).param("expiry",now.plusMinutes(30)).update();
+            .param("subject",d.subject()).param("body",d.body()).param("mid",messageId).param("now",now).param("expiry",now.plusMinutes(30)).param("retention",journal.retention(candidates.get(actor,candidate).expiresAt())).update();
+        journal.event(actor,id,"APPROVED",null);
         audit.candidate(actor,candidate,"CONTACT_APPROVED");return row(actor,candidate,id);
     });}
     public Receipt get(UUID actor,UUID candidate,UUID id){return tx.execute(t->{access(actor,candidate);var r=row(actor,candidate,id);
@@ -61,7 +63,7 @@ public class ContactDelivery {
         boolean claimed;
         try{claimed=tx.execute(t->{access(actor,candidate);var r=row(actor,candidate,id);if(!r.status().equals("APPROVED"))return false;
             if(!transport.enabled())throw new Rejected(HttpStatus.SERVICE_UNAVAILABLE,"SMTP_DISABLED");validate(actor,candidate,r);
-            db.sql("UPDATE contact_delivery SET status='SENDING',attempted_at=:now WHERE id=:id").param("now",now()).param("id",id).update();audit.candidate(actor,candidate,"CONTACT_SEND_STARTED");return true;});
+            db.sql("UPDATE contact_delivery SET status='SENDING',attempted_at=:now WHERE id=:id").param("now",now()).param("id",id).update();journal.event(actor,id,"SENDING",null);audit.candidate(actor,candidate,"CONTACT_SEND_STARTED");return true;});
         }catch(Rejected denied){invalidate(actor,candidate,id);throw denied;}
         if(!claimed)return get(actor,candidate,id); // Repeated clicks/requests never send a second time.
         try{return tx.execute(t->{
@@ -80,14 +82,15 @@ public class ContactDelivery {
     }
     private void finish(UUID actor,UUID candidate,UUID id,String status,String code){
         db.sql("UPDATE contact_delivery SET status=:s,result_code=:code,completed_at=:now WHERE id=:id").param("s",status).param("code",code).param("now",now()).param("id",id).update();
+        journal.event(actor,id,status,code);
         audit.candidate(actor,candidate,"CONTACT_"+status);
     }
     private void invalidate(UUID actor,UUID candidate,UUID id){tx.executeWithoutResult(t->{
-        if(db.sql("UPDATE contact_delivery SET status='INVALIDATED',result_code='REVIEW_REQUIRED' WHERE id=:id AND actor_id=:a AND candidate_id=:c AND status IN ('APPROVED','SENDING')")
+        if(db.sql("UPDATE contact_delivery SET status='INVALIDATED',result_code='REVIEW_REQUIRED',completed_at=CURRENT_TIMESTAMP WHERE id=:id AND actor_id=:a AND candidate_id=:c AND status IN ('APPROVED','SENDING')")
             .param("id",id).param("a",actor).param("c",candidate).update()>0)
-            audit.record(actor,"CONTACT_INVALIDATED",candidate,null,null);
+            {journal.event(actor,id,"INVALIDATED","REVIEW_REQUIRED");audit.record(actor,"CONTACT_INVALIDATED",candidate,null,null);}
     });}
-    private Receipt row(UUID actor,UUID candidate,UUID id){return db.sql("SELECT * FROM contact_delivery WHERE id=:id AND actor_id=:a AND candidate_id=:c FOR UPDATE")
+    private Receipt row(UUID actor,UUID candidate,UUID id){return db.sql("SELECT * FROM contact_delivery WHERE id=:id AND actor_id=:a AND candidate_id=:c AND content_purged=FALSE AND history_expires_at>CURRENT_TIMESTAMP FOR UPDATE")
         .param("id",id).param("a",actor).param("c",candidate).query((r,n)->new Receipt(r.getObject("id",UUID.class),r.getLong("draft_version"),r.getString("content_hash"),r.getString("sender"),r.getString("recipient"),r.getString("reply_to"),r.getString("subject"),r.getString("body"),r.getString("message_id"),r.getString("status"),r.getObject("approved_at",OffsetDateTime.class),r.getObject("expires_at",OffsetDateTime.class),r.getObject("attempted_at",OffsetDateTime.class),r.getObject("completed_at",OffsetDateTime.class),r.getString("result_code"))).optional().orElseThrow(()->new Rejected(HttpStatus.NOT_FOUND,"CONTACT_DELIVERY_NOT_FOUND"));}
     private static OffsetDateTime now(){return OffsetDateTime.now(ZoneOffset.UTC);}
     private static void reject(String code){throw new Rejected(HttpStatus.CONFLICT,code);}

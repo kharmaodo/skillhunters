@@ -195,3 +195,6 @@ Flyway crée l’extension et les tables V14. Hors Compose, pgvector 0.8.7 doit 
 ## Recette de contact SMTP (SH-25)
 
 Le profil applicatif Docker inclut Mailpit, boîte de capture sans relais sortant : interface `http://localhost:8025`. Le parcours exige un dossier de traitement complet (COMPLIANCE et appartenance au vivier), un lien d’opposition émis pour le candidat et une approbation humaine exacte avant envoi. [Configuration et garanties](validation/sh-25.md).
+
+### Historique des contacts (SH-26)
+CONTACT_HISTORY_DAYS borne la conservation des nouveaux messages approuvés (défaut 90, de 1 à 3650 jours), toujours limitée par la source. Les brouillons utilisent ce délai depuis leur création. La purge conserve les marqueurs anti-double-envoi jusqu'à suppression de la candidature. Voir validation/sh-26.md pour migration et limites.

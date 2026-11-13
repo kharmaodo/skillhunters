@@ -60,6 +60,8 @@ management:
         readiness:
           include: readinessState,db
 app:
+  contact:
+    history-days: ${CONTACT_HISTORY_DAYS:90}
   smtp:
     enabled: ${SMTP_ENABLED:false}
     host: ${SMTP_HOST:localhost}

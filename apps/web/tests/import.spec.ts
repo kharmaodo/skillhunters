@@ -314,12 +314,21 @@ for (const width of [1280, 320]) {
     await expect(contact.locator('article')).toHaveCount(1);
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
     await contact.screenshot({path:`test-results/contact-draft-${width}.png`});
+    const history=page.getByRole('region',{name:'Historique des contacts',exact:true});
+    await history.getByRole('button',{name:'Actualiser l’historique des contacts'}).click();
+    await expect(history.getByRole('status')).toContainText('Votre brouillon préparé — version 1');
+    await expect(history.getByRole('status')).toContainText('Aucun message validé');
+    await history.screenshot({path:`test-results/contact-history-${width}.png`});
+
     await adminPage.getByLabel('Rôle dans ce vivier',{exact:true}).selectOption('RECRUITER');
     await adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true}).click();
     await expect(adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true})).toBeEnabled();
     await contact.getByRole('button',{name:'Charger le brouillon et remplacer ma saisie'}).click();
     await expect(contact.getByRole('alert')).toBeVisible();
     await expect(contact.getByLabel('Texte du brouillon')).toHaveCount(0);
+    await history.getByRole('button',{name:'Actualiser l’historique des contacts'}).click();
+    await expect(history.getByRole('alert')).toBeVisible();
+    await expect(history.getByRole('status')).toHaveCount(0);
     await adminContext.close();
 
 

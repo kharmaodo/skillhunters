@@ -372,8 +372,19 @@ Table contact_delivery {
  status varchar(20) [not null]
  approved_at timestamptz [not null]
  expires_at timestamptz [not null]
+ history_expires_at timestamptz [not null]
+ content_purged boolean [not null]
  attempted_at timestamptz
  completed_at timestamptz
  result_code varchar(80)
  indexes { (candidate_id, actor_id, draft_version) [unique] }
+}
+
+Table contact_delivery_event {
+ sequence bigint [pk, increment]
+ delivery_id uuid [not null, ref: > contact_delivery.id]
+ actor_id uuid
+ status varchar(20) [not null]
+ code varchar(80)
+ occurred_at timestamptz [not null]
 }

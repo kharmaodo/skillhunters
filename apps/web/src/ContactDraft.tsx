@@ -4,7 +4,7 @@ import { api, message, type Session } from './api';
 type Skill={sourceIndex:number;value:string};
 type Context={templates:{id:string;version:string;label:string}[];variables:string[];publicationId:string|null;skills:Skill[];recipient:string|null};
 type Draft={version:number;publicationId:string;templateId:string;templateVersion:string;variables:Record<string,string>;matchingSkills:Skill[];recipient:string;subject:string;body:string;missingFields:string[];sendBlocked:boolean;createdAt:string};
-type History={items:Draft[];nextCursor:number|null};
+type History={items:Draft[];nextCursor:number|null;latestVersion:number};
 const labels:Record<string,string>={candidateFirstName:'Prénom fiable (facultatif)',candidateLastName:'Nom fiable (facultatif)',recruiterName:'Nom du recruteur',companyName:'Entreprise',jobTitle:'Poste proposé',jobDescription:'Description du poste',workLocation:'Organisation du travail',contractType:'Type de contrat',contactEmail:'E-mail de réponse',unsubscribeOrObjectionLink:'Lien HTTPS d’opposition',matchingSkills:'Compétences publiées sélectionnées',recipient:'E-mail du candidat',subject:'Objet',body:'Message',unresolvedVariables:'Variables non remplacées'};
 export function ContactDraft({candidateId,session,failed}:{candidateId:string;session:Session;failed:(e:unknown)=>void}) {
  const [ctx,setCtx]=useState<Context|null>(null),[template,setTemplate]=useState('professional'),[variables,setVariables]=useState<Record<string,string>>({}),[skills,setSkills]=useState<number[]>([]);
@@ -14,7 +14,7 @@ export function ContactDraft({candidateId,session,failed}:{candidateId:string;se
  function invalidate(){setDirty(true);setDraft(null);setNotice('');}
  async function load(){setDirty(false);setBusy(true);setError('');setDraft(null);setHistory(null);try{
    const context=await api<Context>(route+'/context');const h=await api<History>(route);setCtx(context);setHistory(h);
-   const latest=h.items[0];setVersion(latest?.version??0);setTemplate(latest?.templateId??'professional');setVariables(latest?.variables??{});setSkills(latest?.matchingSkills.map(s=>s.sourceIndex)??[]);setDraft(latest?.publicationId===context.publicationId?latest:null);if(latest&&latest.publicationId!==context.publicationId){setSkills([]);setNotice("La publication a changé : sélectionnez à nouveau les compétences et régénérez le message.");}
+   const latest=h.items[0];setVersion(h.latestVersion??latest?.version??0);setTemplate(latest?.templateId??'professional');setVariables(latest?.variables??{});setSkills(latest?.matchingSkills.map(s=>s.sourceIndex)??[]);setDraft(latest?.publicationId===context.publicationId?latest:null);if(latest&&latest.publicationId!==context.publicationId){setSkills([]);setNotice("La publication a changé : sélectionnez à nouveau les compétences et régénérez le message.");}
  }catch(e){setCtx(null);setError(message(e));failed(e);}finally{setBusy(false);}}
  async function prepare(save=false){setBusy(true);setError('');setNotice('');try{
    const result=await api<Draft>(route+(save?'':'/preview'),{method:save?'PUT':'POST',headers:save?{'If-Match':`"${version}"`}:{},body:JSON.stringify({publicationId:ctx?.publicationId,templateId:template,variables,skillIndices:skills,subject:save?draft?.subject:null,body:save?draft?.body:null})},session.csrfToken);

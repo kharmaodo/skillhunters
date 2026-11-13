@@ -1,4 +1,5 @@
 import { Governance } from './Governance';
+import { ContactHistory } from './ContactHistory';
 import { ContactDraft } from './ContactDraft';
 import { TrackingEditor, TrackingLists } from './CandidateTracking';
 import { WordExport } from './WordExport';
@@ -89,6 +90,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
     <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <SkillPeriods candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <Governance candidateId={saved.id} poolId={saved.poolId} contactsVisible={saved.contactsVisible} session={session} failed={failed}/>
+    <ContactHistory key={saved.id+"-history"} candidateId={saved.id}/>
     <ContactDraft key={saved.id} candidateId={saved.id} session={session} failed={failed}/>
     <WordExport candidateId={saved.id} session={session} failed={failed}/>
   </section>;
