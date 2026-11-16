@@ -6152,6 +6152,419 @@
         "x-implementation-status": "implemented",
         "description": "Permission coordonnées dans le vivier, compte actif et rétention courante. Messages approuvés partagés entre personnes habilitées ; brouillon préparé privé au demandeur. Pagination stable 25 éléments par date/id décroissants, curseur lié au candidat et filtre. Contenu expiré inaccessible avant même purge. Aucune transmission ni relance SMTP. Les états APPROVED expirés et SENDING abandonnés sont rapprochés sans envoi."
       }
+    },
+    "/candidates/{candidate}/lineage": {
+      "get": {
+        "operationId": "getCandidateLineage",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Lire les sources liées et la version active",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateLineage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/lineage/suggestions": {
+      "get": {
+        "operationId": "suggestCandidateMatches",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Suggestions par e-mail explicitement vérifié dans un seul vivier",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 150
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineageSuggestions"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/lineage/history": {
+      "get": {
+        "operationId": "getCandidateLineageHistory",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Lire les décisions et références immuables de cette source",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineageHistory"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/lineage/verify-email": {
+      "post": {
+        "operationId": "verifyCandidateIdentityEmail",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Confirmer la vérification humaine de l’e-mail enregistré",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Version actuelle de la fiche entre guillemets."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateLineage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LineageConfirmation"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/lineage/merge": {
+      "post": {
+        "operationId": "mergeCandidateIdentities",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Rapprocher deux identités après comparaison et confirmation",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateLineage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LineageMerge"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/lineage/active": {
+      "post": {
+        "operationId": "activateCandidateSource",
+        "tags": [
+          "Candidates"
+        ],
+        "summary": "Choisir explicitement une source active",
+        "x-implementation-status": "implemented",
+        "description": "Compte actif, rétention et droit coordonnées dans le vivier requis, y compris ADMIN. Réponse no-store. Les sources et révisions restent conservées séparément. Aucun rapprochement automatique ; aucune prolongation de rétention. Oppositions héritées par l’identité, approbations SMTP invalidées lors d’une décision, SENDING bloque la mutation. Versions périmées refusées. Limites : 100 sources et 100 versions par identité.",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultat autorisé ; Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidateLineage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LineageActivation"
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6731,6 +7144,10 @@
           "expiresAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "activeVersion": {
+            "type": "boolean",
+            "description": "Version active pour les nouvelles recherches et mutations métier ; les versions conservées restent consultables."
           }
         },
         "required": [
@@ -6742,7 +7159,8 @@
           "profile",
           "contact",
           "contactsVisible",
-          "expiresAt"
+          "expiresAt",
+          "activeVersion"
         ],
         "description": "Fiche SH-06 liée à un import et une révision immuable, sans fusion ni validation métier SH-10. Coordonnées réservées au rôle RECRUITMENT_LEAD du vivier ; ADMIN seul ne donne aucun accès."
       },
@@ -12390,6 +12808,333 @@
             "items": {
               "$ref": "#/components/schemas/ContactHistoryEvent"
             }
+          }
+        }
+      },
+      "LineageMember": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidateId",
+          "sourceId",
+          "sourceRevisionId",
+          "candidateVersion",
+          "displayName",
+          "active",
+          "expiresAt"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CandidateLineage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identityId",
+          "version",
+          "emailVerified",
+          "members"
+        ],
+        "properties": {
+          "identityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "members": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/LineageMember"
+            }
+          }
+        }
+      },
+      "LineageSuggestion": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidateId",
+          "displayName",
+          "sourceId",
+          "candidateVersion",
+          "identityId",
+          "identityVersion"
+        ],
+        "properties": {
+          "candidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sourceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "identityId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "identityVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      },
+      "LineageSuggestions": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/LineageSuggestion"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "LineageConfirmation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "confirmed"
+        ],
+        "properties": {
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "LineageActivation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identityVersion",
+          "activeCandidateId",
+          "confirmed",
+          "reason"
+        ],
+        "properties": {
+          "identityVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "activeCandidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        }
+      },
+      "LineageMerge": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "identityVersion",
+          "activeCandidateId",
+          "confirmed",
+          "reason",
+          "otherCandidateId",
+          "candidateVersion",
+          "otherCandidateVersion",
+          "otherIdentityVersion"
+        ],
+        "properties": {
+          "identityVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "activeCandidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          },
+          "otherCandidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "otherCandidateVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "otherIdentityVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        }
+      },
+      "LineageEvent": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "sequence",
+          "decisionId",
+          "actorId",
+          "action",
+          "activeCandidateId",
+          "sourceRevisionId",
+          "publicationId",
+          "candidateVersion",
+          "reason",
+          "occurredAt"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "decisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "MERGED",
+              "ACTIVATED"
+            ]
+          },
+          "activeCandidateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sourceRevisionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicationId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "candidateVersion": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "LineageHistory": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/LineageEvent"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       }

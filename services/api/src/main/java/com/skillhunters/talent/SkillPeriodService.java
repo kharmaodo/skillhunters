@@ -23,8 +23,10 @@ public class SkillPeriodService {
     public record Report(long version,UUID revisionId,LocalDate referenceDate,String rule,List<Link> links,
                          Map<Kind,PeriodCalculator.Result> globalByKind,PeriodCalculator.Result globalProfessional,List<SkillResult> skills,Snapshot lastEdit) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final ObjectMapper json;
+    private final CandidateIdentity identities;
     private final CandidateService candidates;private final ReviewService reviews;
-    public SkillPeriodService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews) {
+    public SkillPeriodService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,ReviewService reviews,CandidateIdentity identities) {
+        this.identities=identities;
         this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.reviews=reviews;
     }
     public Report get(UUID actor,UUID id,LocalDate reference) {
@@ -54,7 +56,7 @@ public class SkillPeriodService {
         });
     }
     public Report save(UUID actor,UUID id,String etag,Request request) {
-        return tx.execute(t->{var state=reviews.get(actor,id);
+        return tx.execute(t->{candidates.get(actor,id);identities.requireActive(id);var state=reviews.get(actor,id);
             if(etag==null) throw new Rejected(HttpStatus.PRECONDITION_REQUIRED,"VERSION_REQUIRED");
             if(!etag.equals("\""+state.version()+"\"")) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");
             if(request==null||request.revisionId()==null||!request.revisionId().equals(state.publishedRevisionId())) throw new Rejected(HttpStatus.CONFLICT,"PUBLICATION_CHANGED");

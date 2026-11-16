@@ -53,6 +53,8 @@ Suite des dépendances Must : SH-30 → SH-31 (provenance et opposition) → SH-
 
 | SH-25 | Fusionnée — PR #27 | Validation du message exact et tentative SMTP unitaire ; suivi dans validation/sh-25.md |
 
-| SH-26 | Implémentée, validation en cours | Historique partagé des contacts, transitions, pagination et rétention ciblée ; voir validation/sh-26.md |
+| SH-26 | Fusionnée — PR #28, CI réussie | Historique partagé des contacts, transitions, pagination et rétention ciblée ; voir validation/sh-26.md |
 
 Recensement complet : [tickets MVP restants](mvp-remaining.md).
+
+Complément SH-05 : rapprochement par e-mail explicitement vérifié, décision humaine, lignage et version active implémentés dans cette branche ; validation avant fusion. SH-32 suit ce complément.

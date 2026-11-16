@@ -15,6 +15,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class CandidateGovernance {
+    private final com.skillhunters.talent.CandidateIdentity identities;
     public record State(UUID candidateId,long version,UUID policyId,String source,String purpose,String basisCode,String justification,
                         String noticeVersion,String noticeEvidence,OffsetDateTime notifiedAt,boolean opposed) {}
     public record Edit(UUID policyId,String source,String justification,String noticeVersion,String noticeEvidence,OffsetDateTime notifiedAt) {}
@@ -23,10 +24,12 @@ public class CandidateGovernance {
     public record History(List<State> items,Long nextCursor) {}
     private final JdbcClient db;private final TransactionTemplate tx;private final CandidateService candidates;private final AuditTrail audit;
     private final ObjectMapper json;private final String origin;private final SecureRandom random=new SecureRandom();
-    public CandidateGovernance(JdbcClient db,TransactionTemplate tx,CandidateService candidates,AuditTrail audit,ObjectMapper json,@Value("${app.origin}") String origin) {
+    public CandidateGovernance(JdbcClient db,TransactionTemplate tx,CandidateService candidates,AuditTrail audit,ObjectMapper json,@Value("${app.origin}") String origin,com.skillhunters.talent.CandidateIdentity identities) {
+        this.identities=identities;
         this.db=db;this.tx=tx;this.candidates=candidates;this.audit=audit;this.json=json;this.origin=origin;
     }
     private void lock(UUID candidate) {
+        identities.lock(candidate);
         db.sql("SELECT id FROM candidate_profile WHERE id=:id FOR UPDATE").param("id",candidate).query(UUID.class).optional()
             .orElseThrow(()->new Rejected(HttpStatus.NOT_FOUND,"CANDIDATE_NOT_FOUND"));
     }
@@ -41,9 +44,9 @@ public class CandidateGovernance {
         lock(candidate);
     }
     private State state(UUID candidate) {
-        return db.sql("SELECT * FROM candidate_governance WHERE candidate_id=:id").param("id",candidate).query((r,n)->new State(candidate,r.getLong("version"),r.getObject("policy_id",UUID.class),r.getString("source"),r.getString("purpose"),r.getString("basis_code"),r.getString("justification"),r.getString("notice_version"),r.getString("notice_evidence"),r.getObject("notified_at",OffsetDateTime.class),r.getBoolean("opposed"))).optional()
+        return db.sql("SELECT * FROM candidate_governance WHERE candidate_id=:id").param("id",candidate).query((r,n)->new State(candidate,r.getLong("version"),r.getObject("policy_id",UUID.class),r.getString("source"),r.getString("purpose"),r.getString("basis_code"),r.getString("justification"),r.getString("notice_version"),r.getString("notice_evidence"),r.getObject("notified_at",OffsetDateTime.class),r.getBoolean("opposed")||identities.opposed(candidate))).optional()
             .orElseGet(()->db.sql("SELECT d.* FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE c.id=:id").param("id",candidate)
-                .query((r,n)->new State(candidate,0,r.getObject("policy_id",UUID.class),r.getString("source"),r.getString("purpose"),r.getString("basis_code"),null,r.getString("notice_version"),null,null,false)).single());
+                .query((r,n)->new State(candidate,0,r.getObject("policy_id",UUID.class),r.getString("source"),r.getString("purpose"),r.getString("basis_code"),null,r.getString("notice_version"),null,null,identities.opposed(candidate))).single());
     }
     public State get(UUID actor,UUID candidate){return tx.execute(t->{compliance(actor,candidate);audit.candidate(actor,candidate,"GOVERNANCE_READ");return state(candidate);});}
     public State save(UUID actor,UUID candidate,String etag,Edit edit){return tx.execute(t->{
@@ -58,6 +61,7 @@ public class CandidateGovernance {
     });}
     public State oppose(UUID actor,UUID candidate,String etag){return tx.execute(t->{compliance(actor,candidate);var old=state(candidate);version(etag,old.version());return opposeLocked(actor,old);});}
     private State opposeLocked(UUID actor,State old){
+        identities.oppose(old.candidateId());
         if(old.opposed())return old;
         var next=new State(old.candidateId(),old.version()+1,old.policyId(),old.source(),old.purpose(),old.basisCode(),old.justification(),old.noticeVersion(),old.noticeEvidence(),old.notifiedAt(),true);
         persist(actor,next,"CONTACT_OPPOSED");return next;
@@ -77,9 +81,10 @@ public class CandidateGovernance {
         audit.candidate(actor,candidate,"GOVERNANCE_READ");var items=values.stream().limit(25).toList();return new History(items,values.size()>25?items.getLast().version():null);
     });}
     // Called in the enclosing contact transaction. The candidate lock serializes opposition with future send approval/dispatch.
-    public void ensureNotOpposed(UUID candidate){lock(candidate);if(state(candidate).opposed())throw new Rejected(HttpStatus.CONFLICT,"CONTACT_OPPOSED");}
+    public void ensureNotOpposed(UUID candidate){lock(candidate);identities.requireActive(candidate);if(state(candidate).opposed()||identities.opposed(candidate))throw new Rejected(HttpStatus.CONFLICT,"CONTACT_OPPOSED");}
     private Eligibility eligibilityLocked(UUID candidate){
-        var s=state(candidate);if(s.opposed())return new Eligibility(false,"CONTACT_OPPOSED");
+        if(!db.sql("SELECT active_version FROM candidate_profile WHERE id=:id").param("id",candidate).query(Boolean.class).single())return new Eligibility(false,"CANDIDATE_VERSION_INACTIVE");
+        var s=state(candidate);if(s.opposed()||identities.opposed(candidate))return new Eligibility(false,"CONTACT_OPPOSED");
         if(s.justification()==null||s.noticeEvidence()==null||s.notifiedAt()==null)return new Eligibility(false,"GOVERNANCE_INCOMPLETE");
         if(db.sql("SELECT COUNT(*) FROM import_policy WHERE id=:id AND enabled=TRUE").param("id",s.policyId()).query(Integer.class).single()==0)return new Eligibility(false,"GOVERNANCE_POLICY_DISABLED");
         return new Eligibility(true,"GOVERNANCE_READY");
@@ -106,6 +111,7 @@ public class CandidateGovernance {
         if(token==null||!token.matches("[A-Za-z0-9_-]{43}"))gone();
         tx.executeWithoutResult(t->{String hash=hash(token);
             var id=db.sql("SELECT candidate_id FROM contact_opposition_token WHERE token_hash=:hash AND expires_at>:now").param("hash",hash).param("now",OffsetDateTime.now(ZoneOffset.UTC)).query(UUID.class).optional().orElseThrow(()->new Rejected(HttpStatus.GONE,"OPPOSITION_LINK_UNAVAILABLE"));
+            identities.lock(id);
             if(db.sql("SELECT id FROM candidate_profile WHERE id=:id FOR UPDATE").param("id",id).query(UUID.class).optional().isEmpty())gone();
             if(db.sql("SELECT COUNT(*) FROM contact_opposition_token WHERE token_hash=:hash AND expires_at>:now").param("hash",hash).param("now",OffsetDateTime.now(ZoneOffset.UTC)).query(Integer.class).single()==0)gone();
             opposeLocked(null,state(id));

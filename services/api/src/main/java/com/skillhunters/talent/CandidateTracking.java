@@ -54,7 +54,7 @@ public class CandidateTracking {
         String sql="""
             SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id
             LEFT JOIN candidate_tracking t ON t.candidate_id=c.id AND t.actor_id=:a
-            WHERE d.pool_id=:p AND d.expires_at>:now
+            WHERE c.active_version=TRUE AND d.pool_id=:p AND d.expires_at>:now
             """;
         if(status!=null)sql+=" AND COALESCE(t.status,'NEW')=:s";
         if(l!=null)sql+=" AND EXISTS (SELECT 1 FROM candidate_tracking_label x WHERE x.actor_id=:a AND x.candidate_id=c.id AND x.kind='LIST' AND x.label=:l)";

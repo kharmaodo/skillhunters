@@ -23,6 +23,7 @@ Table membership {
  indexes { (user_id, pool_id, role) [pk] }
 }
 Table candidate {
+ active_version boolean [not null, default: true, note: "V26 : une seule source active après rapprochement"]
  id uuid [pk]
  organization_id uuid [not null, ref: > organization.id]
  display_name varchar
@@ -386,5 +387,35 @@ Table contact_delivery_event {
  actor_id uuid
  status varchar(20) [not null]
  code varchar(80)
+ occurred_at timestamptz [not null]
+}
+
+Table candidate_identity {
+ id uuid [pk]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ version bigint [not null]
+ opposed boolean [not null]
+}
+Table candidate_identity_member {
+ candidate_id uuid [pk, ref: > candidate.id]
+ identity_id uuid [not null, ref: > candidate_identity.id]
+}
+Table candidate_contact_verification {
+ candidate_id uuid [pk, ref: > candidate.id]
+ email_key varchar(64) [not null]
+ actor_id uuid [not null]
+ verified_at timestamptz [not null]
+}
+Table candidate_lineage_event {
+ sequence bigint [pk, increment]
+ candidate_id uuid [not null, ref: > candidate.id]
+ decision_id uuid [not null]
+ actor_id uuid [not null]
+ action varchar(30) [not null]
+ active_candidate_id uuid [not null]
+ source_revision_id uuid [not null]
+ publication_id uuid
+ candidate_version bigint [not null]
+ reason varchar(500) [not null]
  occurred_at timestamptz [not null]
 }

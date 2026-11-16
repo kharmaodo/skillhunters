@@ -19,14 +19,16 @@ public class ContactDelivery {
     public record Approval(long draftVersion,String recipient,String subject,String body,boolean confirmed) {}
     public record Receipt(UUID id,long draftVersion,String contentHash,String sender,String recipient,String replyTo,String subject,String body,
                           String messageId,String status,OffsetDateTime approvedAt,OffsetDateTime expiresAt,OffsetDateTime attemptedAt,OffsetDateTime completedAt,String resultCode) {}
+    private final com.skillhunters.talent.CandidateIdentity identities;
     private final ContactJournal journal;
     private final JdbcClient db;private final TransactionTemplate tx;private final ContactDrafts drafts;private final CandidateService candidates;
     private final CandidateGovernance governance;private final ContactTransport transport;private final AuditTrail audit;private final ObjectMapper json;
-    public ContactDelivery(JdbcClient db,TransactionTemplate tx,ContactDrafts drafts,CandidateService candidates,CandidateGovernance governance,ContactTransport transport,AuditTrail audit,ObjectMapper json,ContactJournal journal){this.journal=journal;
+    public ContactDelivery(JdbcClient db,TransactionTemplate tx,ContactDrafts drafts,CandidateService candidates,CandidateGovernance governance,ContactTransport transport,AuditTrail audit,ObjectMapper json,ContactJournal journal,com.skillhunters.talent.CandidateIdentity identities){this.identities=identities;this.journal=journal;
         this.db=db;this.tx=tx;this.drafts=drafts;this.candidates=candidates;this.governance=governance;this.transport=transport;this.audit=audit;this.json=json;
     }
     private void access(UUID actor,UUID candidate){
         if(!candidates.get(actor,candidate).contactsVisible())throw new Rejected(HttpStatus.FORBIDDEN,"CONTACT_ACCESS_REQUIRED");
+        identities.lock(candidate);
         db.sql("SELECT id FROM candidate_profile WHERE id=:id FOR UPDATE").param("id",candidate).query(UUID.class).single();
     }
     private ContactDrafts.Draft current(UUID actor,UUID candidate){

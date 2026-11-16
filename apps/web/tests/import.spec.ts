@@ -319,6 +319,45 @@ for (const width of [1280, 320]) {
     await expect(history.getByRole('status')).toContainText('Votre brouillon préparé — version 1');
     await expect(history.getByRole('status')).toContainText('Aucun message validé');
     await history.screenshot({path:`test-results/contact-history-${width}.png`});
+    const lineageCandidate=await (await page.request.get(`/api/v1/candidates/${initialFollow.candidateId}`)).json();
+    const contactUpdate=await page.request.patch(`/api/v1/candidates/${initialFollow.candidateId}`,{headers:{'X-CSRF-TOKEN':session.csrfToken,'If-Match':`"${lineageCandidate.version}"`},data:{contact:{email:`lineage-${width}@example.com`,phone:null},reason:'Contact synthétique vérifié pour recette'}});
+    expect(contactUpdate.status()).toBe(200);
+    const lineage=page.getByRole('region',{name:'Doublons et versions',exact:true});
+    await lineage.getByRole('button',{name:'Charger les versions liées'}).click();
+    await expect(lineage.getByRole('status')).toContainText('E-mail non vérifié');
+    await lineage.getByRole('checkbox',{name:'J’ai vérifié cet e-mail dans la source ou auprès du candidat.'}).check();
+    await lineage.getByRole('button',{name:'Valider l’e-mail enregistré pour le rapprochement'}).click();
+    await expect(lineage.getByRole('status')).toContainText('E-mail enregistré vérifié');
+    await lineage.getByRole('button',{name:'Rechercher les suggestions par e-mail vérifié'}).click();
+    await expect(lineage.getByText('Aucune suggestion dans ce vivier.',{exact:true})).toBeVisible();
+    // The second, identical import remains a distinct source until an explicit human decision.
+    const duplicateSources=await (await page.request.get(`/api/v1/imports/${lineageCandidate.importId}/duplicates`)).json();
+    const otherSource=duplicateSources.items[0];expect(otherSource).toBeTruthy();
+    const extractionResponse=await page.request.post(`/api/v1/imports/${otherSource.id}/extraction`,{headers:{'X-CSRF-TOKEN':session.csrfToken}});
+    expect(extractionResponse.status()).toBe(200);const otherExtraction=await extractionResponse.json();
+    const createOther=await page.request.post(`/api/v1/imports/${otherSource.id}/candidate`,{headers:{'X-CSRF-TOKEN':session.csrfToken},data:{revisionId:otherExtraction.id}});
+    expect(createOther.status()).toBe(200);const otherCandidate=await createOther.json();
+    const editOther=await page.request.patch(`/api/v1/candidates/${otherCandidate.id}`,{headers:{'X-CSRF-TOKEN':session.csrfToken,'If-Match':`"${otherCandidate.version}"`},data:{displayName:'Autre source synthétique',contact:{email:`lineage-${width}@example.com`,phone:null},reason:'Source synthétique pour rapprochement'}});
+    expect(editOther.status()).toBe(200);const verifiedOther=await editOther.json();
+    const verification=await page.request.post(`/api/v1/candidates/${otherCandidate.id}/lineage/verify-email`,{headers:{'X-CSRF-TOKEN':session.csrfToken,'If-Match':`"${verifiedOther.version}"`},data:{confirmed:true}});
+    expect(verification.status()).toBe(200);
+    await lineage.getByRole('button',{name:'Rechercher les suggestions par e-mail vérifié'}).click();
+    await lineage.getByRole('button',{name:'Comparer avant rapprochement'}).click();
+    await expect(lineage.getByRole('heading',{name:'Décision de rapprochement'})).toBeVisible();
+    await expect(lineage.getByRole('button',{name:'Confirmer le rapprochement humain'})).toBeDisabled();
+    await lineage.getByLabel('Motif de la décision de version',{exact:true}).fill('Deux sources synthétiques comparées en recette');
+    await lineage.getByRole('checkbox',{name:'J’ai comparé les sources et confirme la même personne et la version active choisie.'}).check();
+    await lineage.getByRole('button',{name:'Confirmer le rapprochement humain'}).click();
+    await expect(currentCandidate.getByText('Dernière version chargée ; la saisie précédente a été remplacée.',{exact:true})).toBeVisible();
+    await lineage.getByRole('button',{name:'Charger les versions liées'}).click();
+    await expect(lineage.getByRole('status')).toContainText('2 source(s)');
+    const inactive=await (await page.request.get(`/api/v1/candidates/${otherCandidate.id}`)).json();expect(inactive.activeVersion).toBe(false);
+    await lineage.getByRole('button',{name:'Historique des décisions de version'}).click();
+    await expect(lineage.getByText('MERGED',{exact:false})).toBeVisible();
+
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+    await lineage.screenshot({path:`test-results/candidate-lineage-${width}.png`});
+
 
     await adminPage.getByLabel('Rôle dans ce vivier',{exact:true}).selectOption('RECRUITER');
     await adminPage.getByRole('button',{name:'Enregistrer l’habilitation',exact:true}).click();
@@ -329,6 +368,9 @@ for (const width of [1280, 320]) {
     await history.getByRole('button',{name:'Actualiser l’historique des contacts'}).click();
     await expect(history.getByRole('alert')).toBeVisible();
     await expect(history.getByRole('status')).toHaveCount(0);
+    await lineage.getByRole('button',{name:'Charger les versions liées'}).click();
+    await expect(lineage.getByRole('alert')).toBeVisible();
+    await expect(lineage.getByRole('status')).toHaveCount(0);
     await adminContext.close();
 
 

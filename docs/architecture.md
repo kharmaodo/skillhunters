@@ -129,3 +129,7 @@ ProfileComparisons réutilise le rejeu SH-18 sous verrou acteur, puis les expér
 ## Brouillons SH-24
 
 Le module `communication` prépare des messages texte à partir de deux ressources immuables v1 et des compétences de la publication humaine. `ContactDrafts` contrôle les coordonnées, l'acteur et la rétention, puis enregistre des révisions personnelles sous If-Match. Aucun transport externe ni interprétation HTML. SH-25 assurera l'approbation et l'envoi après SH-31.
+
+## Lignage candidat (complément SH-05)
+
+CandidateLineage orchestre la vérification de contact, les suggestions limitées au vivier, le rapprochement confirmé et le choix actif. CandidateIdentity fournit le verrou et les gardes communs aux corrections, publications et contacts. Les sources et leurs révisions ne sont pas déplacées ; une identité commune porte une opposition persistante, les décisions sont tracées par source. Le changement de lignage invalide les approbations SMTP et refuse une tentative en cours. Les recherches nouvelles filtrent la version active, les snapshots historiques restent des snapshots.

@@ -923,4 +923,112 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(db.queryForObject("SELECT COUNT(*) FROM contact_delivery_event",Integer.class)).isZero();
     }
 
+
+    @Autowired com.skillhunters.talent.CandidateLineage lineage;
+    com.skillhunters.talent.CandidateService.Candidate anotherCandidate(UUID pool,String email) throws Exception {
+        UUID policy=db.queryForObject("SELECT policy_id FROM document_import WHERE id=?",UUID.class,id);
+        mvc.perform(multipart("/api/v1/imports").file(new MockMultipartFile("files","another-synthetic.md","text/markdown","Compétence : Java 2,5\nExpérience : autre source synthétique".getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+            .file(new MockMultipartFile("basis","","application/json",("{\"source\":\"Synthetic\",\"purpose\":\"Test\",\"basisCode\":\"TEST_ONLY\",\"retentionPolicyId\":\""+policy+"\"}").getBytes()))
+            .param("poolId",pool.toString()).header("Idempotency-Key","lineage-"+UUID.randomUUID()).with(as("alice")).with(csrf())).andExpect(status().isAccepted());
+        var source=db.queryForObject("SELECT id FROM document_import WHERE id<>? ORDER BY created_at DESC LIMIT 1",UUID.class,id);
+        analysis.runOnce();var c=candidates.create(alice,source,extraction.prepare(alice,source).id());reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        return candidates.update(alice,c.id(),"\"2\"",json.readTree("{\"contact\":{\"email\":\""+email+"\",\"phone\":null},\"reason\":\"Vérification synthétique\"}"));
+    }
+    void verifyEmail(UUID c){var state=candidates.get(alice,c);lineage.verify(alice,c,"\""+state.version()+"\"",true);}
+    com.skillhunters.talent.CandidateLineage.Merge mergeRequest(UUID first,UUID second,UUID active){
+        return new com.skillhunters.talent.CandidateLineage.Merge(second,candidates.get(alice,first).version(),candidates.get(alice,second).version(),lineage.state(alice,first).version(),lineage.state(alice,second).version(),active,true,"Sources synthétiques comparées");
+    }
+    @Test void verifiedEmailSuggestsButNeverMergesAutomaticallyAndContactChangesInvalidateVerification() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"CANDIDATE@example.com");
+        assertThatThrownBy(()->lineage.suggestions(alice,f.candidate(),null)).isInstanceOf(Rejected.class);
+        verifyEmail(f.candidate());assertThat(lineage.suggestions(alice,f.candidate(),null).items()).isEmpty();
+        verifyEmail(other.id());assertThat(lineage.suggestions(alice,f.candidate(),null).items()).extracting(x->x.candidateId()).containsExactly(other.id());
+        assertThat(lineage.state(alice,f.candidate()).members()).hasSize(1);
+        var request=mergeRequest(f.candidate(),other.id(),f.candidate());
+        candidates.update(alice,other.id(),"\""+other.version()+"\"",json.readTree("{\"contact\":{\"email\":\"changed@example.com\",\"phone\":null},\"reason\":\"Correction synthétique\"}"));
+        assertThat(lineage.state(alice,other.id()).emailVerified()).isFalse();
+        assertThat(lineage.suggestions(alice,f.candidate(),null).items()).isEmpty();
+        assertThatThrownBy(()->lineage.merge(alice,f.candidate(),request)).isInstanceOf(Rejected.class);
+        verify(smtp,never()).send(any());
+    }
+    @Test void mergePreservesSourcesRecordsImmutableReferencesAndSelectsOnlyOneActiveSearchResult() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"candidate@example.com");verifyEmail(f.candidate());verifyEmail(other.id());
+        var receipt=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        var sourceRevision=candidates.get(alice,f.candidate()).revisionId();var publication=reviews.publication(alice,f.candidate()).revisionId();
+        var request=mergeRequest(f.candidate(),other.id(),other.id());var state=lineage.merge(alice,f.candidate(),request);
+        assertThat(state.members()).hasSize(2);assertThat(state.members().stream().filter(x->x.active())).hasSize(1);
+        assertThat(candidates.get(alice,f.candidate()).activeVersion()).isFalse();
+        assertThat(candidates.list(alice,poolA,0,25).items()).extracting(x->x.id()).containsExactly(other.id());
+        assertThat(search.search(alice,searchQuery(false,"Java",null)).items()).extracting(x->x.candidateId()).containsExactly(other.id());
+        assertThat(deliveries.get(alice,f.candidate(),receipt.id()).status()).isEqualTo("INVALIDATED");
+        assertThat(lineage.history(alice,f.candidate(),null).items().getFirst().sourceRevisionId()).isEqualTo(sourceRevision);
+        assertThat(lineage.history(alice,f.candidate(),null).items().getFirst().publicationId()).isEqualTo(publication);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(2);
+        assertThatThrownBy(()->candidates.update(alice,f.candidate(),"\"2\"",json.readTree("{\"displayName\":\"Changed\",\"reason\":\"Test\"}"))).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->reviews.save(alice,f.candidate(),"\"2\"",request(accepted(f.candidate())),true)).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->lineage.merge(alice,f.candidate(),request)).isInstanceOf(Rejected.class);
+        var next=lineage.activate(alice,f.candidate(),new com.skillhunters.talent.CandidateLineage.Activation(state.version(),f.candidate(),true,"Choix explicite de la source conservée"));
+        assertThat(candidates.get(alice,f.candidate()).activeVersion()).isTrue();assertThat(candidates.get(alice,other.id()).activeVersion()).isFalse();
+        assertThat(lineage.history(alice,f.candidate(),null).items()).hasSize(2);assertThat(next.version()).isEqualTo(state.version()+1);
+        verify(smtp,never()).send(any());
+    }
+    @Test void lineageDoesNotRevealOtherPoolsOrPermitAdminOnlyAndRequiresCsrfAndConfirmation() throws Exception {
+        var f=readyContact();verifyEmail(f.candidate());
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",alice,poolB);
+        var other=anotherCandidate(poolB,"candidate@example.com");verifyEmail(other.id());
+        assertThat(lineage.suggestions(alice,f.candidate(),null).items()).isEmpty();
+        assertThatThrownBy(()->lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()))).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->lineage.state(admin,f.candidate())).isInstanceOf(Rejected.class);
+        mvc.perform(get(candidateUrl(f.candidate())+"/lineage").with(as("alice"))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+        mvc.perform(post(candidateUrl(f.candidate())+"/lineage/verify-email").with(as("alice")).header("If-Match","\"2\"").contentType("application/json").content("{\"confirmed\":true}")).andExpect(status().isForbidden());
+        assertThatThrownBy(()->lineage.verify(alice,f.candidate(),"\"2\"",false)).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->lineage.verify(alice,f.candidate(),"\"0\"",true)).isInstanceOf(Rejected.class);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        assertThatThrownBy(()->lineage.suggestions(alice,f.candidate(),null)).isInstanceOf(Rejected.class);
+    }
+    @Test void oppositionFollowsMergedIdentityAndSurvivesRemovalOfOpposedSource() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"candidate@example.com");verifyEmail(f.candidate());verifyEmail(other.id());
+        governance.oppose(alice,f.candidate(),"\"1\"");
+        lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()));
+        assertThat(governance.eligibility(alice,other.id()).reason()).isEqualTo("CONTACT_OPPOSED");
+        assertThat(governance.get(alice,other.id()).opposed()).isTrue();
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(governance.eligibility(alice,other.id()).reason()).isEqualTo("CONTACT_OPPOSED");
+        assertThat(governance.get(alice,other.id()).opposed()).isTrue();
+        assertThat(lineage.state(alice,other.id()).members()).hasSize(1);
+    }
+    @Test void laterPublicOppositionOnInactiveSourceBlocksActiveSourceAndPendingAttemptBlocksMerge() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"candidate@example.com");verifyEmail(f.candidate());verifyEmail(other.id());
+        var token=governance.issue(alice,f.candidate()).url().split("#opposition=")[1];
+        var receipt=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        db.update("UPDATE contact_delivery SET status='SENDING',attempted_at=CURRENT_TIMESTAMP WHERE id=?",receipt.id());
+        assertThatThrownBy(()->lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_ATTEMPT_PENDING"));
+        db.update("UPDATE contact_delivery SET status='UNCERTAIN' WHERE id=?",receipt.id());
+        lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()));governance.redeem(token);
+        assertThat(governance.eligibility(alice,other.id()).reason()).isEqualTo("CONTACT_OPPOSED");
+        assertThat(governance.get(alice,other.id()).opposed()).isTrue();
+        verify(smtp,never()).send(any());
+    }
+    @Test void expiredLinkedSourcesStayHiddenAndAreNeverAutomaticallyReactivated() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"candidate@example.com");verifyEmail(f.candidate());verifyEmail(other.id());
+        lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()));
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",other.importId());
+        assertThat(lineage.state(alice,f.candidate()).members()).hasSize(1);
+        assertThat(candidates.list(alice,poolA,0,25).items()).isEmpty();
+        assertThatThrownBy(()->lineage.state(alice,other.id())).isInstanceOf(Rejected.class);
+        lineage.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_lineage_event WHERE candidate_id=?",Integer.class,other.id())).isZero();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_contact_verification WHERE candidate_id=?",Integer.class,other.id())).isZero();
+    }
+    @Test void concurrentActiveChoicesHaveOneWinnerAndKeepOneActiveVersion() throws Exception {
+        var f=readyContact();var other=anotherCandidate(poolA,"candidate@example.com");verifyEmail(f.candidate());verifyEmail(other.id());
+        var state=lineage.merge(alice,f.candidate(),mergeRequest(f.candidate(),other.id(),other.id()));
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",admin,poolA);
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+            java.util.concurrent.Callable<Boolean> one=()->{try{lineage.activate(alice,f.candidate(),new com.skillhunters.talent.CandidateLineage.Activation(state.version(),f.candidate(),true,"Choix un"));return true;}catch(Rejected e){return false;}};
+            java.util.concurrent.Callable<Boolean> two=()->{try{lineage.activate(admin,other.id(),new com.skillhunters.talent.CandidateLineage.Activation(state.version(),other.id(),true,"Choix deux"));return true;}catch(Rejected e){return false;}};
+            var a=executor.submit(one);var b=executor.submit(two);assertThat(List.of(a.get(15,java.util.concurrent.TimeUnit.SECONDS),b.get(15,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+        }
+        assertThat(lineage.state(alice,f.candidate()).members().stream().filter(x->x.active())).hasSize(1);
+    }
+
 }
