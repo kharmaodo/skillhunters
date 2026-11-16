@@ -1031,4 +1031,91 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThat(lineage.state(alice,f.candidate()).members().stream().filter(x->x.active())).hasSize(1);
     }
 
+    @Autowired com.skillhunters.retention.RetentionService retention;
+    void retryErasure(){db.update("UPDATE erasure_tombstone SET next_attempt_at=CURRENT_TIMESTAMP");retention.runOnce();}
+    @Test void erasureRemovesOriginalAndAllCandidateDerivativesButKeepsMinimalProof() throws Exception {
+        var f=readyContact();verifyEmail(f.candidate());
+        var delivery=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        tracking.save(alice,f.candidate(),"\"0\"",follow(com.skillhunters.talent.CandidateTracking.Status.TO_REVIEW,"Synthetic",List.of("java"),List.of()));
+        scored.create(alice,scoredRequest(false,"Java"));
+        assertThat(storage.objects).isNotEmpty();
+        assertThat(retention.request(alice,id,true).erasureState()).isEqualTo("PENDING");
+        assertThatThrownBy(()->candidates.get(alice,f.candidate())).isInstanceOf(Rejected.class);
+        mvc.perform(get("/api/v1/imports/"+id).with(as("alice"))).andExpect(status().isNotFound());
+        retention.runOnce();
+        assertThat(retention.get(alice,id).erasureState()).isEqualTo("COMPLETE");
+        assertThat(retention.get(alice,id).categories()).contains("ORIGINAL_ALL_VERSIONS","CONTACT_MESSAGES");
+        for(var table:List.of("document_import","document_analysis","extraction_revision","candidate_profile","candidate_contact","candidate_revision","candidate_assertion_index","candidate_tracking","contact_delivery","contact_draft_revision","candidate_identity_member","candidate_contact_verification","scored_search_item"))
+            assertThat(db.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class)).as(table).isZero();
+        assertThat(storage.objects).isEmpty();assertThat(erasureLedger.records).containsKey(id);
+        String proof=json.writeValueAsString(retention.proofs(alice,poolA,null));
+        assertThat(proof).contains(id.toString(),"COMPLETE").doesNotContain("synthetic.md","candidate@example.com","Java","Compétence");
+        assertThatThrownBy(()->retentionGuard.replayAllowed("IMPORT",alice,poolA,"extraction-test-key")).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("SOURCE_ERASED"));
+    }
+    @Test void boundedHoldPreservesExpiredPayloadsWithoutExtendingAccessThenReleases() {
+        var f=readyContact();verifyEmail(f.candidate());var a=deliveries.approve(alice,f.candidate(),approval(f.draft()));
+        scored.create(alice,scoredRequest(false,"Java"));
+        tracking.save(alice,f.candidate(),"\"0\"",follow(com.skillhunters.talent.CandidateTracking.Status.TO_REVIEW,"Synthetic",List.of(),List.of()));
+        var until=java.time.OffsetDateTime.now().plusDays(2);
+        retention.hold(alice,id,"\"0\"",new com.skillhunters.retention.RetentionService.Hold(until,"Exception synthétique approuvée",true));
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY WHERE id=?",id);
+        db.update("UPDATE scored_search SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");
+        db.update("UPDATE contact_delivery SET history_expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");
+        db.update("UPDATE contact_draft_revision SET created_at=CURRENT_TIMESTAMP - INTERVAL '100' DAY");
+        contactJournal.cleanup();contactDrafts.cleanup();tracking.cleanup();lineage.cleanup();scored.cleanup();retention.runOnce();
+        assertThat(db.queryForObject("SELECT body FROM contact_delivery WHERE id=?",String.class,a.id())).isNotEmpty();
+        for(var table:List.of("candidate_tracking","candidate_contact_verification","scored_search_item"))assertThat(db.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class)).as(table).isPositive();
+        assertThat(retentionGuard.erased(id)).isFalse();assertThat(storage.objects).isNotEmpty();
+        assertThatThrownBy(()->candidates.get(alice,f.candidate())).isInstanceOf(Rejected.class);
+        assertThatThrownBy(()->retention.request(alice,id,true)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RETENTION_HOLD_ACTIVE"));
+        retention.hold(alice,id,"\"1\"",new com.skillhunters.retention.RetentionService.Hold(null,"Fin du gel synthétique",true));
+        retention.runOnce();assertThat(retention.get(alice,id).erasureState()).isEqualTo("COMPLETE");assertThat(storage.objects).isEmpty();
+    }
+    @Test void storageOrLedgerFailureNeverAcknowledgesPhysicalErasureAndRetryIsIdempotent() {
+        complianceRole();erasureLedger.fail=true;
+        assertThatThrownBy(()->retention.request(alice,id,true)).isInstanceOf(Rejected.class);
+        retention.runOnce();assertThat(retention.get(alice,id).erasureState()).isEqualTo("PENDING");assertThat(storage.objects).isNotEmpty();
+        erasureLedger.fail=false;storage.fail=true;retryErasure();
+        assertThat(retention.get(alice,id).resultCode()).isEqualTo("ERASURE_RETRY_REQUIRED");
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_import",Integer.class)).isEqualTo(1);
+        storage.fail=false;retryErasure();retryErasure();
+        assertThat(retention.get(alice,id).erasureState()).isEqualTo("COMPLETE");assertThat(storage.objects).isEmpty();
+    }
+    @Test void restoreReplaysIndependentLedgerAndBlocksDelayedWorker() throws Exception {
+        complianceRole();var job=analysis.claim();assertThat(job).isNotNull();
+        var row=db.queryForMap("SELECT * FROM document_import WHERE id=?",id);
+        var objects=new HashMap<>(storage.objects);
+        retention.request(alice,id,true);retention.runOnce();
+        assertThat(retention.get(alice,id).erasureState()).isEqualTo("COMPLETE");
+        db.update("DELETE FROM erasure_tombstone");
+        db.update("INSERT INTO document_import ("+String.join(",",row.keySet())+") VALUES ("+String.join(",",Collections.nCopies(row.size(),"?"))+")",row.values().toArray());
+        storage.objects.putAll(objects);
+        retention.replay();assertThat(retentionGuard.ready()).isTrue();
+        mvc.perform(get("/api/v1/imports/"+id).with(as("alice"))).andExpect(status().isNotFound());
+        analysis.complete(job,new DocumentAnalyzer.Result("EXTRACTED",null,List.of(new DocumentAnalyzer.Block("document","Late synthetic text")),List.of(),"test","test"));
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM document_analysis",Integer.class)).isZero();
+        retention.runOnce();assertThat(storage.objects).isEmpty();assertThat(retention.get(alice,id).erasureState()).isEqualTo("COMPLETE");
+        erasureLedger.fail=true;assertThatThrownBy(retention::replay).isInstanceOf(IllegalStateException.class);
+        assertThat(retentionGuard.ready()).isFalse();
+        mvc.perform(get("/api/v1/imports").with(as("alice"))).andExpect(status().isServiceUnavailable());
+        erasureLedger.fail=false;var original=erasureLedger.records.get(id);
+        erasureLedger.records.put(id,new com.skillhunters.retention.ErasureRecord(id,"IMPORT",poolA,original.replayHash(),original.requestedAt(),"0".repeat(64)));
+        assertThatThrownBy(retention::replay).isInstanceOf(IllegalStateException.class);assertThat(retentionGuard.ready()).isFalse();
+    }
+    @Test void retentionRequiresCompliancePoolCsrfConfirmationAndCurrentVersion() throws Exception {
+        var url="/api/v1/imports/"+id+"/retention";
+        mvc.perform(get(url).with(as("alice"))).andExpect(status().isForbidden());
+        mvc.perform(get(url).with(as("admin"))).andExpect(status().isForbidden());
+        complianceRole();
+        mvc.perform(post(url+"/erase").with(as("alice")).contentType("application/json").content("{\"confirmed\":true}")).andExpect(status().isForbidden());
+        assertThatThrownBy(()->retention.request(alice,id,false)).isInstanceOf(Rejected.class);
+        var hold=new com.skillhunters.retention.RetentionService.Hold(java.time.OffsetDateTime.now().plusDays(2),"Motif synthétique",true);
+        assertThatThrownBy(()->retention.hold(alice,id,null,hold)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("VERSION_REQUIRED"));
+        retention.hold(alice,id,"\"0\"",hold);
+        assertThatThrownBy(()->retention.hold(alice,id,"\"0\"",hold)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RETENTION_HOLD_CHANGED"));
+        assertThatThrownBy(()->retention.hold(alice,id,"\"1\"",new com.skillhunters.retention.RetentionService.Hold(java.time.OffsetDateTime.now().plusDays(366),"Motif",true))).isInstanceOf(Rejected.class);
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        mvc.perform(get(url).with(as("alice"))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/pools/"+poolA+"/erasures").with(as("alice"))).andExpect(status().isNotFound());
+    }
 }

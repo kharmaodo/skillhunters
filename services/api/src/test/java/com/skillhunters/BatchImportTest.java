@@ -151,4 +151,16 @@ class BatchImportTest extends IdentityTestSupport {
         }
         assertThat(db.queryForObject("SELECT COUNT(*) FROM import_batch",Integer.class)).isEqualTo(1);
     }
+    @Autowired com.skillhunters.retention.RetentionService retention;
+    @Test void expiredBatchPurgesManifestAndOriginalsAndCannotBeRecreatedByReplay() throws Exception {
+        byte[] bytes="Synthetic retention fixture".getBytes();var files=List.of(spec("retention.md",bytes));
+        var batch=create("retention-key",files);upload(batch,0,bytes);
+        db.update("UPDATE document_import SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");
+        db.update("UPDATE import_batch SET expires_at=CURRENT_TIMESTAMP - INTERVAL '1' DAY");
+        retention.runOnce();
+        for(var table:List.of("document_import","import_batch","import_batch_item","import_batch_event"))assertThat(db.queryForObject("SELECT COUNT(*) FROM "+table,Integer.class)).as(table).isZero();
+        assertThat(storage.objects).isEmpty();
+        mvc.perform(post("/api/v1/import-batches").with(as("alice")).with(csrf()).header("Idempotency-Key","retention-key")
+            .contentType("application/json").content(body(poolA,files))).andExpect(status().isGone());
+    }
 }

@@ -40,7 +40,7 @@ V4 ajoute un index `document_import(pool_id, sha256, byte_size, created_at DESC,
 
 ## Schéma physique SH-07
 
-V5 ajoute `document_analysis` (une tâche par import, demandeur, état, tentatives, bail/token, échéance de reprise, versions antivirus/parseur et JSON de preuves) et `document_analysis_event` (transitions sans texte CV). Les clés étrangères suppriment les dérivés lorsque la source est effacée. La rétention complète et sa tâche de purge restent SH-32 ; les résultats expirés sont déjà inaccessibles et les workers ne peuvent pas les republier. Les accès au résultat et relances humaines sont tracés dans `document_audit`.
+V5 ajoute `document_analysis` (une tâche par import, demandeur, état, tentatives, bail/token, échéance de reprise, versions antivirus/parseur et JSON de preuves) et `document_analysis_event` (transitions sans texte CV). Les clés étrangères suppriment les dérivés lorsque la source est effacée. La rétention complète et sa tâche de purge sont décrites sous SH-32 ci-dessous ; les résultats expirés sont déjà inaccessibles et les workers ne peuvent pas les republier. Les accès au résultat et relances humaines sont tracés dans `document_audit`.
 
 ## SH-08 : provenance OCR
 
@@ -160,3 +160,12 @@ Les messages approuvés sont consultables par les personnes ayant le droit conta
 V26 initialise une identité indépendante pour chaque fiche existante ; active_version est vrai. candidate_identity conserve vivier, version de décision et opposition persistante ; candidate_identity_member rattache chaque fiche à une seule identité. Les sources restent distinctes et ne changent pas de rétention. candidate_contact_verification conserve une empreinte de l'e-mail explicitement confirmé, son auteur et sa date ; aucun ancien contact n'est automatiquement vérifié.
 
 candidate_lineage_event fige pour chaque décision et source les références source/publication, version courante de fiche, acteur, motif, action et version active choisie. Les mutations de lignage sérialisent leurs accès par identité et candidat ; les lectures de recherche conservent l'ordre des UUID des candidats. Les événements et vérifications expirés sont purgés ; les liens et opposition restent utiles aux sources survivantes. Voir validation/sh-05.md pour le périmètre, les bornes et les garanties.
+
+
+## SH-32 — conservation et effacement
+
+V27 ajoute `retention_hold` (une exception par source, acteur, motif, fin, version), `erasure_tombstone` (UUID source/vivier, type IMPORT/BATCH, HMAC d’idempotence et signature, état, tentatives, prochain essai et date de fin) et `retention_mutex` (sérialisation des gels et des nettoyages). Aucun texte, nom de fichier, contact ni empreinte de CV dans le tombstone. Les motifs de gel sont supprimés en cascade avec la source ; l’audit conserve les actions minimisées, pas leur texte.
+
+L’échéance de la politique par finalité est figée sur chaque import. Le gel ne la prolonge pas et ne rouvre aucun accès. Un tombstone expire immédiatement la source, puis un journal signé dans un bucket séparé est écrit avant la suppression physique. Les originaux et toutes leurs versions S3 sont supprimés avant les cascades SQL (extractions, versions humaines, index, exports, snapshots/comparaisons, suivi, messages et gouvernance). Les événements documentaires et métadonnées de lot sont retirés explicitement. Un groupe d’identité subsiste tant qu’il a des sources ; une opposition ne disparaît pas avec une source.
+
+Au démarrage, le journal externe est vérifié et rejoué avant l’ouverture de l’API. Une restauration ancienne ne peut rétablir un gel ni une clé d’import déjà supprimée. Tous les tombstones rejoués repassent en attente afin de repurger aussi les objets restaurés. Voir `../validation/sh-32.md` pour les limites de sauvegarde, les fichiers temporaires et les copies externes.

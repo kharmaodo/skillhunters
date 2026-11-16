@@ -15,6 +15,7 @@ import org.springframework.http.HttpStatus;
 public class TestQuarantineStorage implements QuarantineStorage {
     final Map<String, byte[]> objects = new ConcurrentHashMap<>();
     boolean fail;
+    @Override public void delete(String key){if(fail)throw new IllegalStateException("SYNTHETIC_STORAGE_FAILURE");objects.remove(key);}
     @Override public byte[] read(String key) { if (fail) throw new IllegalStateException(); return objects.get(key); }
     @Override public void put(String key, Path file) {
         if (fail) throw new Rejected(HttpStatus.SERVICE_UNAVAILABLE, "QUARANTINE_UNAVAILABLE");

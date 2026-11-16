@@ -114,6 +114,7 @@ services:
       context: ..
       dockerfile: services/api/Dockerfile
     environment:
+      ERASURE_LEDGER_KEY: ${ERASURE_LEDGER_KEY:?Run init_local.py --upgrade-retention}
       ANALYSIS_ENABLED: "true"
       WORKER_ENDPOINT: http://document-worker:8090/analyze
       EMBEDDING_ENDPOINT: http://embedding-worker:8091/embed

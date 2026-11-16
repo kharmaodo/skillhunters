@@ -37,6 +37,7 @@ jobs:
       - name: L0 consistency and whitespace
         run: |
           python3 scripts/check_foundation.py
+          python3 -m unittest discover -s scripts/tests -v
           git diff --check HEAD^ HEAD
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
@@ -127,6 +128,14 @@ jobs:
             --mount type=bind,source="$PWD",target=/workspace --workdir /workspace/apps/web \
             mcr.microsoft.com/playwright:v1.64.0-noble@sha256:06a9939e57531807f8d5fd76ce44b53165ffb7d7501d87ab10e285c20b1e971f \
             npm run test:browser
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: '21', cache: maven}
+      - name: Verify erasure of all S3 versions and independent ledger
+        run: |
+          set -a
+          . ./.env
+          set +a
+          SH32_S3_ENDPOINT=http://localhost:9000 mvn -B -ntp -f services/api/pom.xml -Dtest=ErasureS3Test test
       - uses: actions/upload-artifact@v4
         if: always()
         with:

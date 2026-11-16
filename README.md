@@ -65,3 +65,5 @@ Les dossiers API et frontend contiennent le premier incrément. Le worker docume
 Créer une branche `feature/…`, `fix/…` ou `docs/…` depuis `origin/develop` à jour, puis ouvrir une PR vers `develop`. La fusion reste soumise à revue. Pas de push direct sur `main` ni de fusion automatique. Voir `AGENTS.md` pour les consignes détaillées.
 
 Les documents privés et les CV réels ne doivent pas être ajoutés à ce dépôt public. Les exemples utilisent exclusivement des données synthétiques. Aucune licence d'application n'est déduite du caractère public du dépôt : une décision de licence reste nécessaire.
+
+SH-32 ajoute conservation par finalité, gels motivés bornés et purge complète avec journal indépendant rejoué après restauration. Voir [validation SH-32](docs/validation/sh-32.md) et le [recensement MVP](docs/mvp-remaining.md).

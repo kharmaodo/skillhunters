@@ -12,6 +12,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class AnalysisService {
+    private final com.skillhunters.retention.RetentionGuard retention;
     public record Status(String state, int attempts, String code, String parserVersion, String avVersion,
                          OffsetDateTime updatedAt, DocumentAnalyzer.Result result) {}
     public record Job(UUID id, UUID actor, UUID pool, UUID token, String key, String type, String sha, long size) {}
@@ -22,7 +23,8 @@ public class AnalysisService {
     private final DocumentAnalyzer analyzer;
     private final ObjectMapper json;
     public AnalysisService(JdbcClient db, TransactionTemplate tx, ImportService imports, QuarantineStorage storage,
-            DocumentAnalyzer analyzer, ObjectMapper json) {
+            DocumentAnalyzer analyzer, ObjectMapper json,com.skillhunters.retention.RetentionGuard retention) {
+        this.retention=retention;
         this.db=db; this.tx=tx; this.imports=imports; this.storage=storage; this.analyzer=analyzer; this.json=json;
     }
     private OffsetDateTime now() { return OffsetDateTime.now(ZoneOffset.UTC); }
@@ -63,6 +65,7 @@ public class AnalysisService {
             .param("actor",actor).param("pool",pool).query(Integer.class).single()>0;
     }
     public Job claim() {
+        if(!retention.ready())return null;
         return tx.execute(status -> {
             var candidate=db.sql("""
                 SELECT a.import_id FROM document_analysis a WHERE
@@ -120,6 +123,7 @@ public class AnalysisService {
         complete(job,result);
     }
     public void complete(Job job,DocumentAnalyzer.Result proposed) {
+        if(!retention.ready()||retention.erased(job.id()))return;
         final DocumentAnalyzer.Result result=valid(proposed) ? proposed : new DocumentAnalyzer.Result("RETRY","INVALID_WORKER_RESULT",List.of(),List.of(),null,null);
         tx.executeWithoutResult(status -> {
             boolean permitted=allowed(job.actor(),job.pool());
@@ -128,7 +132,7 @@ public class AnalysisService {
             if(row.isEmpty()) return; // Expired/replaced lease or deleted source: never resurrect it.
             boolean live=db.sql("SELECT COUNT(*) FROM document_import WHERE id=:id AND pool_id=:pool AND state='QUARANTINED' AND expires_at>:now")
                 .param("id",job.id()).param("pool",job.pool()).param("now",now()).query(Integer.class).single()==1;
-            if(!permitted || !live) { terminal(job.id(),"CANCELLED","SOURCE_UNAVAILABLE"); return; }
+            if(!permitted || !live || retention.erased(job.id())) { terminal(job.id(),"CANCELLED","SOURCE_UNAVAILABLE"); return; }
             String state=result.state().equals("RETRY") && row.get()>=3 ? "FAILED" : result.state();
             String serialized=null;
             try { if(Set.of("EXTRACTED","OCR_REQUIRED").contains(state)) serialized=json.writeValueAsString(result); }

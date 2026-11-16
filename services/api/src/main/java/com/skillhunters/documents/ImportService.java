@@ -19,6 +19,7 @@ import com.skillhunters.shared.ApiProblem.Rejected;
 
 @Service
 public class ImportService {
+    private final com.skillhunters.retention.RetentionGuard retention;
     private final com.skillhunters.governance.AuditTrail trail;
     public record Basis(@NotBlank @Size(max=200) String source, @NotBlank @Size(max=200) String purpose,
             @NotBlank @Size(max=80) String basisCode, @Size(max=80) String noticeVersion, @NotNull UUID retentionPolicyId) {}
@@ -33,7 +34,7 @@ public class ImportService {
     private final QuarantineStorage storage;
     private final ImportQuota quota;
 
-    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
+    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota,com.skillhunters.governance.AuditTrail trail,com.skillhunters.retention.RetentionGuard retention) {this.retention=retention;this.trail=trail;
         this.quota = quota; this.db = db; this.identity = identity; this.tx = tx; this.storage = storage;
     }
 
@@ -71,6 +72,7 @@ public class ImportService {
         String hash = HexFormat.of().formatHex(ReceptionValidator.sha().digest(fingerprint.toString().getBytes(StandardCharsets.UTF_8)));
         UUID id = tx.execute(status -> {
             lockActor(actor, pool);
+            retention.replayAllowed("IMPORT",actor,pool,key);
             var existing = db.sql("SELECT id,request_hash FROM document_import WHERE actor_id=:actor AND pool_id=:pool AND idempotency_key=:key")
                 .param("actor", actor).param("pool", pool).param("key", key)
                 .query((rs, n) -> {
@@ -106,6 +108,7 @@ public class ImportService {
         // replaying the same key/hash resumes it and can never mark an unwritten object quarantined.
         return tx.execute(status -> {
             lockActor(actor, pool);
+            retention.replayAllowed("IMPORT",actor,pool,key);
             var row = db.sql("SELECT object_key,state,expires_at FROM document_import WHERE id=:id FOR UPDATE").param("id", id)
                 .query((rs,n) -> new Stored(rs.getString("object_key"), rs.getString("state"), rs.getObject("expires_at", OffsetDateTime.class))).single();
             if (row.expiresAt().isBefore(OffsetDateTime.now(ZoneOffset.UTC))) throw new Rejected(HttpStatus.CONFLICT, "IMPORT_EXPIRED");
@@ -149,7 +152,7 @@ public class ImportService {
     }
     public Receipt get(UUID actor, UUID id) {
         return db.sql("""
-            SELECT d.* FROM document_import d WHERE d.id=:id AND EXISTS
+            SELECT d.* FROM document_import d WHERE d.id=:id AND NOT EXISTS(SELECT 1 FROM erasure_tombstone e WHERE e.source_id=d.id) AND EXISTS
             (SELECT 1 FROM membership m WHERE m.pool_id=d.pool_id AND m.user_id=:actor)
             """).param("id", id).param("actor", actor).query(ImportService::map).optional()
             .orElseThrow(() -> new Rejected(HttpStatus.NOT_FOUND, "IMPORT_NOT_FOUND"));
@@ -197,7 +200,7 @@ public class ImportService {
             catch (RuntimeException invalid) { throw new Rejected(HttpStatus.BAD_REQUEST, "INVALID_CURSOR"); }
         }
         var rows = db.sql("""
-            SELECT * FROM document_import WHERE pool_id=:pool AND
+            SELECT * FROM document_import WHERE NOT EXISTS(SELECT 1 FROM erasure_tombstone e WHERE e.source_id=document_import.id) AND pool_id=:pool AND
             (created_at<:date OR (created_at=:date AND id<:id)) ORDER BY created_at DESC,id DESC LIMIT 21
             """).param("pool", pool).param("date", date).param("id", id).query(ImportService::map).list();
         var items = rows.stream().limit(20).toList();

@@ -17,16 +17,20 @@ import org.springframework.http.HttpStatus;
 
 @Component
 @Profile("!test")
-public class S3QuarantineStorage implements QuarantineStorage, AutoCloseable {
+public class S3QuarantineStorage implements QuarantineStorage, com.skillhunters.retention.ErasureLedger, AutoCloseable {
     private final S3Client s3;
     private final String bucket;
+    private final String ledgerBucket;
+    private final com.fasterxml.jackson.databind.ObjectMapper json;
 
     public S3QuarantineStorage(@Value("${app.storage.endpoint}") URI endpoint,
             @Value("${app.storage.access-key}") String accessKey,
             @Value("${app.storage.secret-key}") String secretKey,
             @Value("${app.storage.bucket}") String bucket,
             @Value("${app.storage.region}") String region,
-            @Value("${app.storage.create-bucket:false}") boolean createBucket) {
+            @Value("${app.storage.create-bucket:false}") boolean createBucket,
+            @Value("${app.retention.ledger-bucket:skillhunters-erasure-ledger}") String ledgerBucket, com.fasterxml.jackson.databind.ObjectMapper json) {
+        if(bucket.equals(ledgerBucket))throw new IllegalArgumentException("SEPARATE_LEDGER_BUCKET_REQUIRED");this.ledgerBucket=ledgerBucket;this.json=json;
         this.bucket = bucket;
         s3 = S3Client.builder().endpointOverride(endpoint).region(Region.of(region))
             .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
@@ -35,6 +39,7 @@ public class S3QuarantineStorage implements QuarantineStorage, AutoCloseable {
             .overrideConfiguration(c -> c.apiCallTimeout(Duration.ofSeconds(45)).apiCallAttemptTimeout(Duration.ofSeconds(25)))
             .build();
         if (createBucket) {
+            try{s3.headBucket(b->b.bucket(ledgerBucket));}catch(software.amazon.awssdk.services.s3.model.S3Exception e){if(e.statusCode()!=404)throw e;s3.createBucket(b->b.bucket(ledgerBucket));}
             try { s3.headBucket(b -> b.bucket(bucket)); }
             catch (software.amazon.awssdk.services.s3.model.S3Exception missing) {
                 if (missing.statusCode() != 404) throw missing;
@@ -63,5 +68,41 @@ public class S3QuarantineStorage implements QuarantineStorage, AutoCloseable {
         }
     }
 
+
+    @Override public void delete(String key) {
+        try {
+            for(int page=0;page<100;page++){
+                var versions=s3.listObjectVersions(b->b.bucket(bucket).prefix(key).maxKeys(1000));
+                int removed=0;
+                for(var v:versions.versions())if(v.key().equals(key)){s3.deleteObject(b->b.bucket(bucket).key(key).versionId(v.versionId()));removed++;}
+                for(var v:versions.deleteMarkers())if(v.key().equals(key)){s3.deleteObject(b->b.bucket(bucket).key(key).versionId(v.versionId()));removed++;}
+                if(removed==0){
+                    try{s3.headObject(b->b.bucket(bucket).key(key));s3.deleteObject(b->b.bucket(bucket).key(key));}
+                    catch(software.amazon.awssdk.services.s3.model.S3Exception absent){if(absent.statusCode()==404)return;throw absent;}
+                }
+            }
+            throw new IllegalStateException("OBJECT_VERSIONS_REMAIN");
+        }catch(RuntimeException failure){throw new IllegalStateException("ERASURE_STORAGE_UNAVAILABLE");}
+    }
+    @Override public void append(com.skillhunters.retention.ErasureRecord record){
+        String name="v1/"+record.sourceId()+".json";
+        try{
+            try{var existing=json.readValue(s3.getObjectAsBytes(b->b.bucket(ledgerBucket).key(name)).asByteArray(),com.skillhunters.retention.ErasureRecord.class);if(!existing.equals(record))throw new IllegalStateException("ERASURE_LEDGER_CONFLICT");return;}
+            catch(software.amazon.awssdk.services.s3.model.S3Exception absent){if(absent.statusCode()!=404)throw absent;}
+            s3.putObject(b->b.bucket(ledgerBucket).key(name).contentType("application/json").ifNoneMatch("*"),RequestBody.fromBytes(json.writeValueAsBytes(record)));
+        }catch(Exception failure){throw new IllegalStateException("ERASURE_LEDGER_UNAVAILABLE");}
+    }
+    @Override public void scan(java.util.function.Consumer<com.skillhunters.retention.ErasureRecord> consumer){
+        try{
+            for(var page:s3.listObjectsV2Paginator(b->b.bucket(ledgerBucket).prefix("v1/").maxKeys(1000))){
+                for(var object:page.contents()){
+                    if(object.size()>4096)throw new IllegalStateException("INVALID_ERASURE_LEDGER");
+                    var r=json.readValue(s3.getObjectAsBytes(b->b.bucket(ledgerBucket).key(object.key())).asByteArray(),com.skillhunters.retention.ErasureRecord.class);
+                    if(!object.key().equals("v1/"+r.sourceId()+".json"))throw new IllegalStateException("INVALID_ERASURE_LEDGER");
+                    consumer.accept(r);
+                }
+            }
+        }catch(Exception failure){throw new IllegalStateException("ERASURE_REPLAY_UNAVAILABLE",failure);}
+    }
     @Override public void close() { s3.close(); }
 }

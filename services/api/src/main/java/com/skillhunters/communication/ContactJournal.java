@@ -36,14 +36,15 @@ public class ContactJournal {
     }
     @Scheduled(initialDelayString="${app.contact.history-cleanup-ms:60000}",fixedDelayString="${app.contact.history-cleanup-ms:60000}")
     public void cleanup(){
-        tx.executeWithoutResult(t->db.sql("UPDATE contact_draft_revision SET payload_json='{}',content_purged=TRUE WHERE content_purged=FALSE AND created_at<=:cutoff").param("cutoff",draftCutoff()).update());
-        var ids=db.sql("SELECT x.id FROM contact_delivery x JOIN candidate_profile c ON c.id=x.candidate_id JOIN document_import d ON d.id=c.import_id WHERE x.content_purged=FALSE AND (x.history_expires_at<=:now OR d.expires_at<=:now) ORDER BY x.history_expires_at LIMIT 100")
+        tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();db.sql("UPDATE contact_draft_revision SET payload_json='{}',content_purged=TRUE WHERE content_purged=FALSE AND created_at<=:cutoff AND NOT EXISTS(SELECT 1 FROM candidate_profile hc JOIN retention_hold h ON h.import_id=hc.import_id WHERE hc.id=contact_draft_revision.candidate_id AND h.until_at>CURRENT_TIMESTAMP)").param("cutoff",draftCutoff()).update();});
+        var ids=db.sql("SELECT x.id FROM contact_delivery x JOIN candidate_profile c ON c.id=x.candidate_id JOIN document_import d ON d.id=c.import_id WHERE x.content_purged=FALSE AND NOT EXISTS(SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP) AND (x.history_expires_at<=:now OR d.expires_at<=:now) ORDER BY x.history_expires_at LIMIT 100")
             .param("now",now()).query(UUID.class).list();
-        for(var id:ids)tx.executeWithoutResult(t->{
+        for(var id:ids)tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();
             var candidate=db.sql("SELECT candidate_id FROM contact_delivery WHERE id=:id").param("id",id).query(UUID.class).optional();if(candidate.isEmpty())return;
             if(db.sql("SELECT id FROM candidate_profile WHERE id=:c FOR UPDATE").param("c",candidate.get()).query(UUID.class).optional().isEmpty())return;
             var pool=db.sql("SELECT pool_id FROM contact_delivery WHERE id=:id AND content_purged=FALSE AND (history_expires_at<=:now OR EXISTS (SELECT 1 FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE c.id=contact_delivery.candidate_id AND d.expires_at<=:now)) FOR UPDATE")
                 .param("id",id).param("now",now()).query(UUID.class).optional();if(pool.isEmpty())return;
+            if(db.sql("SELECT COUNT(*) FROM candidate_profile hc JOIN retention_hold h ON h.import_id=hc.import_id WHERE hc.id=:c AND h.until_at>CURRENT_TIMESTAMP").param("c",candidate.get()).query(Integer.class).single()>0)return;
             db.sql("DELETE FROM contact_delivery_event WHERE delivery_id=:id").param("id",id).update();
             // Keep the unique attempt marker: deleting it could make an old approval sendable again.
             db.sql("UPDATE contact_delivery SET sender='',recipient='',reply_to='',subject='',body='',content_purged=TRUE,status=CASE WHEN status='APPROVED' THEN 'INVALIDATED' WHEN status='SENDING' THEN 'UNCERTAIN' ELSE status END WHERE id=:id")

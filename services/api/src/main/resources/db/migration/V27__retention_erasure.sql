@@ -1,0 +1,24 @@
+CREATE TABLE retention_hold (
+ import_id UUID PRIMARY KEY REFERENCES document_import(id) ON DELETE CASCADE,
+ version BIGINT NOT NULL DEFAULT 1,
+ actor_id UUID NOT NULL,
+ reason VARCHAR(1000) NOT NULL,
+ until_at TIMESTAMP WITH TIME ZONE NOT NULL,
+ approved_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE erasure_tombstone (
+ source_id UUID PRIMARY KEY,
+ kind VARCHAR(10) NOT NULL CHECK(kind IN ('IMPORT','BATCH')),
+ pool_id UUID NOT NULL,
+ replay_hash VARCHAR(64) NOT NULL UNIQUE,
+ requested_at TIMESTAMP WITH TIME ZONE NOT NULL,
+ signature VARCHAR(64) NOT NULL,
+ state VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+ attempts INTEGER NOT NULL DEFAULT 0,
+ completed_at TIMESTAMP WITH TIME ZONE,
+ next_attempt_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ result_code VARCHAR(80)
+);
+CREATE INDEX erasure_pending ON erasure_tombstone(state,next_attempt_at);
+CREATE TABLE retention_mutex (id INTEGER PRIMARY KEY);
+INSERT INTO retention_mutex(id) VALUES (1);

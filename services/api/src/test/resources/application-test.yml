@@ -10,4 +10,7 @@ spring:
           skillhunters:
             client-secret: test-only-not-a-real-secret
 app:
+  retention:
+    ledger-key: synthetic-test-only-erasure-signature-key
+    poll-ms: 3600000
   origin: http://localhost:8080

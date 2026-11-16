@@ -20,6 +20,10 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'RETENTION_HOLD_ACTIVE') return 'Un gel actif protège cette source. Sa levée motivée est requise avant effacement.';
+    if (error.code === 'INVALID_RETENTION_REQUEST') return 'Confirmez la demande et renseignez un motif ainsi qu’une date future à moins de 365 jours pour le gel.';
+    if (error.code === 'RETENTION_HOLD_CHANGED') return 'La conservation a changé. Rechargez avant de modifier.';
+    if (error.code === 'ERASURE_LEDGER_UNAVAILABLE') return 'La source est bloquée ; le journal est indisponible. La purge reste en attente de reprise.';
     if (error.code === 'SMTP_DISABLED') return 'L’envoi SMTP est désactivé. Contactez l’administrateur.';
     if (['CONTACT_APPROVAL_CHANGED','CONTACT_NEW_DRAFT_REQUIRED'].includes(error.code)) return 'L’approbation n’est plus valable. Enregistrez une nouvelle version et relisez-la.';
     if (error.code === 'CONTACT_EXACT_REVIEW_REQUIRED') return 'Confirmez le destinataire, l’objet et le texte exacts de la dernière version enregistrée.';
