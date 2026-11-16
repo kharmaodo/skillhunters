@@ -14,12 +14,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 @Service
 public class CandidateService {
+    private final CandidateIdentity identities;
     private final com.skillhunters.governance.AuditTrail trail;
     public record Availability(String status, LocalDate availableFrom, LocalDate declaredOn, String declaration) {}
     public record Profile(String displayName, String professionalTitle, Availability availability) {}
     public record Contact(String email, String phone) {}
     public record Candidate(UUID id, UUID poolId, UUID importId, UUID revisionId, long version,
-                            Profile profile, Contact contact, boolean contactsVisible, OffsetDateTime expiresAt) {}
+                            Profile profile, Contact contact, boolean contactsVisible, OffsetDateTime expiresAt, boolean activeVersion) {}
     public record Page<T>(List<T> items, String nextCursor) {}
     public record Edit(long version, UUID actorId, List<String> fields, String provenance, OffsetDateTime occurredAt) {}
     private record Row(UUID id, UUID pool, UUID source, UUID revision, long version, String profile, OffsetDateTime expires) {}
@@ -27,7 +28,7 @@ public class CandidateService {
     private final TransactionTemplate tx;
     private final ObjectMapper json;
     private final ExtractionService extraction;
-    public CandidateService(JdbcClient db, TransactionTemplate tx, ObjectMapper json, ExtractionService extraction,com.skillhunters.governance.AuditTrail trail) {this.trail=trail;
+    public CandidateService(JdbcClient db, TransactionTemplate tx, ObjectMapper json, ExtractionService extraction,com.skillhunters.governance.AuditTrail trail,CandidateIdentity identities) {this.identities=identities;this.trail=trail;
         this.db=db;this.tx=tx;this.json=json;this.extraction=extraction;
     }
     // Same actor lock as membership replacement: a revocation cannot race a write.
@@ -61,7 +62,7 @@ public class CandidateService {
         boolean visible=contacts(actor,r.pool());
         Contact contact=visible?db.sql("SELECT email,phone FROM candidate_contact WHERE candidate_id=:id").param("id",r.id())
             .query((rs,n)->new Contact(rs.getString(1),rs.getString(2))).single():null;
-        return new Candidate(r.id(),r.pool(),r.source(),r.revision(),r.version(),read(r.profile(),Profile.class),contact,visible,r.expires());
+        return new Candidate(r.id(),r.pool(),r.source(),r.revision(),r.version(),read(r.profile(),Profile.class),contact,visible,r.expires(),db.sql("SELECT active_version FROM candidate_profile WHERE id=:id").param("id",r.id()).query(Boolean.class).single());
     }
     public Candidate get(UUID actor, UUID id) { return tx.execute(s->{actor(actor);var value=view(actor,row(actor,id));trail.candidate(actor,id,"CANDIDATE_READ");return value;}); }
     public Candidate create(UUID actor, UUID source, UUID revisionId) {
@@ -79,6 +80,8 @@ public class CandidateService {
             db.sql("INSERT INTO candidate_profile(id,import_id,revision_id,profile_json) VALUES (:id,:source,:revision,:profile)")
                 .param("id",id).param("source",source).param("revision",revisionId).param("profile",write(profile)).update();
             db.sql("INSERT INTO candidate_contact(candidate_id) VALUES (:id)").param("id",id).update();
+            db.sql("INSERT INTO candidate_identity(id,pool_id) SELECT :id,pool_id FROM document_import WHERE id=:source").param("id",id).param("source",source).update();
+            db.sql("INSERT INTO candidate_identity_member(candidate_id,identity_id) VALUES (:id,:id)").param("id",id).update();
             audit(actor,id,1,List.of("displayName","professionalTitle","availability"),"EXTRACTION:"+revisionId);
             return view(actor,row(actor,id));
         });
@@ -93,7 +96,7 @@ public class CandidateService {
         return tx.execute(s->{actor(actor);pool(actor,pool);
             var ids=db.sql("""
                 SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id
-                WHERE d.pool_id=:pool AND d.expires_at>:now ORDER BY c.id LIMIT :limit OFFSET :offset
+                WHERE c.active_version=TRUE AND d.pool_id=:pool AND d.expires_at>:now ORDER BY c.id LIMIT :limit OFFSET :offset
                 """).param("pool",pool).param("now",OffsetDateTime.now(ZoneOffset.UTC)).param("limit",limit+1).param("offset",offset).query(UUID.class).list();
             return new Page<>(ids.stream().limit(limit).map(id->{var result=view(actor,row(actor,id));trail.candidate(actor,id,"CANDIDATE_READ");return result;}).toList(),ids.size()>limit?""+(offset+limit):null);
         });
@@ -113,7 +116,7 @@ public class CandidateService {
         });
     }
     public Candidate update(UUID actor, UUID id, String etag, JsonNode patch) {
-        return tx.execute(s->{actor(actor);var r=row(actor,id);
+        return tx.execute(s->{actor(actor);var r=row(actor,id);identities.requireActive(id);
             if (etag==null) throw new Rejected(HttpStatus.PRECONDITION_REQUIRED,"VERSION_REQUIRED");
             if (!etag.equals("\""+r.version()+"\"")) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");
             keys(patch,Set.of("displayName","professionalTitle","availability","contact","reason"));
@@ -146,12 +149,14 @@ public class CandidateService {
             if(count!=1) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");
             if(contact!=null) db.sql("UPDATE candidate_contact SET email=:email,phone=:phone WHERE candidate_id=:id")
                 .param("email",contact.email()).param("phone",contact.phone()).param("id",id).update();
+            if(changed.stream().anyMatch(f->f.startsWith("contact.")))db.sql("DELETE FROM candidate_contact_verification WHERE candidate_id=:id").param("id",id).update();
             audit(actor,id,r.version()+1,changed,"HUMAN: "+reason);
             return view(actor,row(actor,id));
         });
     }
     // Internal publication boundary; caller owns the transaction and has checked actor/pool/source.
     void recordReview(UUID actor, UUID id, long expected, String action) {
+        identities.requireActive(id);
         int count=db.sql("UPDATE candidate_profile SET version=version+1 WHERE id=:id AND version=:version")
             .param("id",id).param("version",expected).update();
         if(count!=1) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");

@@ -1,3 +1,4 @@
+import { CandidateLineage } from './CandidateLineage';
 import { Governance } from './Governance';
 import { ContactHistory } from './ContactHistory';
 import { ContactDraft } from './ContactDraft';
@@ -10,7 +11,7 @@ import { api, ApiError, message, type Session } from './api';
 export type Candidate = { id: string; poolId: string; importId: string; revisionId: string; version: number;
   profile: { displayName: string | null; professionalTitle: string | null;
     availability: { status: 'UNKNOWN' | 'DECLARED'; availableFrom: string | null; declaredOn: string | null; declaration: string | null } };
-  contact: { email: string | null; phone: string | null } | null; contactsVisible: boolean; expiresAt: string };
+  contact: { email: string | null; phone: string | null } | null; contactsVisible: boolean; expiresAt: string; activeVersion:boolean };
 type Edit = { version: number; actorId: string; fields: string[]; provenance: string; occurredAt: string };
 type Page<T> = { items: T[]; nextCursor: string | null };
 export function CandidateProfile({ initial, session, failed }: { initial: Candidate; session: Session; failed: (e: unknown) => void }) {
@@ -53,6 +54,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
   }
   return <section className="candidate-profile" aria-label="Fiche candidat">
     <h4>Fiche candidat · version {saved.version}</h4>
+    {saved.activeVersion===false&&<p role="status">Version conservée inactive : corrections et nouveaux contacts bloqués. Choisissez explicitement une version active dans Doublons et versions.</p>}
     <p>Les propositions restent à vérifier. Enregistrer ce formulaire ne valide pas les compétences. Utilisez la revue humaine ci-dessous pour publier les propositions vérifiées.</p>
     {error && <p role="alert">{error}</p>}{notice && <p role="status">{notice}</p>}
     {conflict && <button className="button" disabled={busy} onClick={() => void reload()}>Recharger et remplacer ma saisie</button>}
@@ -78,7 +80,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
       </fieldset> : <p>Coordonnées masquées : habilitation de responsable recrutement requise dans ce vivier.</p>}
       <label htmlFor={`${prefix}-reason`}>Provenance / motif de la modification</label><input id={`${prefix}-reason`} required maxLength={500} value={reason} disabled={busy} onChange={e => setReason(e.target.value)}/>
       <p className="fine">Indiquez la source de votre correction, sans recopier de coordonnées dans le motif.</p>
-      <button className="button primary" disabled={busy || conflict} type="submit">{busy ? 'En cours…' : 'Enregistrer la fiche'}</button>
+      <button className="button primary" disabled={busy || conflict || saved.activeVersion===false} type="submit">{busy ? 'En cours…' : 'Enregistrer la fiche'}</button>
     </form>
     <details><summary>Origine et conservation</summary><p className="fine">Révision source : {saved.revisionId}</p><p>Conservation jusqu’au {new Date(saved.expiresAt).toLocaleDateString('fr-FR')}.</p></details>
     <button className="button" disabled={busy} onClick={() => void audit()}>Historique des modifications</button>
@@ -86,6 +88,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
       <p>Version {edit.version} · {new Date(edit.occurredAt).toLocaleString('fr-FR')}</p><p>Champs : {edit.fields.join(', ') || 'Modification de coordonnées masquée'}</p>
       <p>{edit.provenance === 'CONTACT_REDACTED' ? 'Provenance masquée avec les coordonnées' : edit.provenance}</p><p className="fine">Auteur : {edit.actorId}</p>
     </li>)}</ul>{history.nextCursor && <button className="button" disabled={busy} onClick={() => void audit(history.nextCursor!)}>Modifications précédentes</button>}</>}
+    <CandidateLineage key={saved.id+"-"+saved.version} candidate={saved} session={session} changed={reload}/>
     <TrackingEditor candidateId={saved.id} session={session} failed={failed}/>
     <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <SkillPeriods candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>

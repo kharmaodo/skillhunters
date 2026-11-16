@@ -27,12 +27,14 @@ public class ReviewService {
     public record Summary(UUID id, long version, String status, UUID actorId, OffsetDateTime createdAt) {}
     public record Indexed(int sourceIndex, StructuredExtractor.Field field, String value, Period period, com.skillhunters.taxonomy.TaxonomyService.Match taxonomy) {}
     public record Publication(UUID revisionId, List<Indexed> items) {}
+    private final CandidateIdentity identities;
     private final JdbcClient db;
     private final TransactionTemplate tx;
     private final ObjectMapper json;
     private final CandidateService candidates;
     private final com.skillhunters.taxonomy.TaxonomyService taxonomy;
-    public ReviewService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,com.skillhunters.taxonomy.TaxonomyService taxonomy) {
+    public ReviewService(JdbcClient db,TransactionTemplate tx,ObjectMapper json,CandidateService candidates,com.skillhunters.taxonomy.TaxonomyService taxonomy,CandidateIdentity identities) {
+        this.identities=identities;
         this.db=db;this.tx=tx;this.json=json;this.candidates=candidates;this.taxonomy=taxonomy;
     }
     private CandidateService.Candidate access(UUID actor,UUID id,boolean lock) {
@@ -84,7 +86,7 @@ public class ReviewService {
                 .map(v->read(v,com.skillhunters.taxonomy.TaxonomyService.Match.class)).toList();});
     }
     public Revision save(UUID actor,UUID id,String etag,Request request,boolean publish) {
-        return tx.execute(s->{var c=access(actor,id,true);
+        return tx.execute(s->{candidates.get(actor,id);identities.requireActive(id);var c=access(actor,id,true);
             if(etag==null) throw new Rejected(HttpStatus.PRECONDITION_REQUIRED,"VERSION_REQUIRED");
             if(!etag.equals("\""+c.version()+"\"")) throw new Rejected(HttpStatus.PRECONDITION_FAILED,"CANDIDATE_CHANGED");
             if(request==null||request.items()==null) invalid();

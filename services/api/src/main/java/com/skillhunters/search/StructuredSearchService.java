@@ -58,7 +58,7 @@ public class StructuredSearchService {
             // Bound each live page to 100 examined candidates. No hidden corpus truncation: continuation is explicit.
             var sql=db.sql("""
                 SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id
-                WHERE d.pool_id=:pool AND d.expires_at>:now
+                WHERE c.active_version=TRUE AND d.pool_id=:pool AND d.expires_at>:now
                   AND EXISTS (SELECT 1 FROM membership m WHERE m.pool_id=d.pool_id AND m.user_id=:actor)
                   AND EXISTS (SELECT 1 FROM candidate_revision r WHERE r.candidate_id=c.id AND r.status='PUBLISHED')
                 """+(after==null?"":" AND c.id>:after ")+" ORDER BY c.id LIMIT 101")
@@ -76,6 +76,7 @@ public class StructuredSearchService {
                     boolean include=!query.strict()||results.stream().filter(r->r.criterion().importance()==Importance.REQUIRED).allMatch(r->r.status()==Status.DOCUMENTED);
                     if(include) {
                         var c=candidates.get(actor,id); // Recheck source expiry immediately before projecting the hit.
+                        if(!c.activeVersion())continue;
                         hits.add(new Hit(id,c.profile().displayName(),c.profile().professionalTitle(),pub.revisionId(),revision.sourceRevisionId(),c.version(),report.lastEdit()==null?null:report.lastEdit().version(),List.copyOf(results)));
                     }
                 } catch(Rejected e) {if(e.status!=HttpStatus.NOT_FOUND) throw e;} // Concurrent expiry/deletion is never returned.
