@@ -1118,4 +1118,77 @@ class HumanReviewTest extends IdentityTestSupport {
         mvc.perform(get(url).with(as("alice"))).andExpect(status().isNotFound());
         mvc.perform(get("/api/v1/pools/"+poolA+"/erasures").with(as("alice"))).andExpect(status().isNotFound());
     }
+    @Autowired com.skillhunters.rights.CandidateRights rights;
+    com.skillhunters.rights.CandidateRights.Intake rightsIntake(String kind){var now=java.time.OffsetDateTime.now();return new com.skillhunters.rights.CandidateRights.Intake(kind,now.minusDays(1),now.plusDays(6),"POLICY-SYNTHETIC-v1",UUID.randomUUID().toString(),"Contestation synthétique d’une expérience");}
+    com.skillhunters.rights.CandidateRights.Case verifiedRequest(UUID candidate,String kind){var r=rights.create(alice,candidate,rightsIntake(kind));return rights.verify(alice,candidate,r.id(),"\"1\"",new com.skillhunters.rights.CandidateRights.Verification("CALLBACK","CHECK-SYNTHETIC-1",true));}
+    @Test void verifiedRectificationPublishesCorrectionAndIndexAtomicallyThenCloses() {
+        var c=create();complianceRole();reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        var r=verifiedRequest(c.id(),"RECTIFICATION");var items=new ArrayList<>(accepted(c.id()));
+        int experience=0;var claims=reviews.get(alice,c.id()).source().proposal().claims();for(int n=0;n<claims.size();n++)if(claims.get(n).field()==StructuredExtractor.Field.EXPERIENCE)experience=n;
+        var old=items.get(experience);items.set(experience,new Item(experience,old.value(),old.decision(),old.precision(),new Period("2024-01","2024-06",DatePrecision.MONTH,Kind.ACADEMIC),"Rectification fournie après vérification"));
+        var result=rights.correct(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Correction(2,request(items),true));
+        assertThat(reviews.publication(alice,c.id()).revisionId()).isEqualTo(result.revision().id());
+        assertThat(db.queryForObject("SELECT period_end FROM candidate_assertion_index WHERE candidate_id=? AND field='EXPERIENCE'",String.class,c.id())).isEqualTo("2024-06");
+        var closed=rights.close(alice,c.id(),r.id(),"\"3\"",new com.skillhunters.rights.CandidateRights.Closure("FULFILLED","Correction publiée et réponse consignée","REPLY-SYNTHETIC",true));
+        assertThat(closed.state()).isEqualTo("CLOSED");
+        assertThat(rights.history(alice,c.id(),r.id(),null).items()).extracting(e->e.action()).containsExactly("CLOSED","RECTIFIED","VERIFIED","RECEIVED");
+        assertThat(rights.queue(alice,poolA,null,false).items()).isEmpty();verify(smtp,never()).send(any());
+        assertThatThrownBy(()->rights.correct(alice,c.id(),r.id(),"\"4\"",new com.skillhunters.rights.CandidateRights.Correction(3,request(items),true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RIGHTS_REQUEST_CLOSED"));
+    }
+    @Test void rightsDisclosureAndClosureRequireVerifiedIdentityAndCurrentPackage() {
+        var c=create();complianceRole();var r=rights.create(alice,c.id(),rightsIntake("ACCESS"));
+        assertThatThrownBy(()->rights.prepare(alice,c.id(),r.id(),"\"1\"")).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("IDENTITY_NOT_VERIFIED"));
+        assertThatThrownBy(()->rights.close(alice,c.id(),r.id(),"\"1\"",new com.skillhunters.rights.CandidateRights.Closure("NOT_GRANTED","Motif","REPLY",true))).isInstanceOf(Rejected.class);
+        rights.verify(alice,c.id(),r.id(),"\"1\"",new com.skillhunters.rights.CandidateRights.Verification("EXISTING_CHANNEL","CHECK-1",true));
+        assertThatThrownBy(()->rights.prepare(alice,c.id(),r.id(),"\"2\"")).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CONTACT_PERMISSION_REQUIRED"));
+        contactRole();var bundle=rights.prepare(alice,c.id(),r.id(),"\"2\"");assertThat(bundle.candidate().id()).isEqualTo(c.id());assertThat(bundle.source()).isNotNull();
+        reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);
+        assertThatThrownBy(()->rights.close(alice,c.id(),r.id(),"\"3\"",new com.skillhunters.rights.CandidateRights.Closure("FULFILLED","Réponse","REPLY",true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("ACCESS_PACKAGE_CHANGED"));
+        rights.prepare(alice,c.id(),r.id(),"\"3\"");
+        assertThat(rights.close(alice,c.id(),r.id(),"\"4\"",new com.skillhunters.rights.CandidateRights.Closure("FULFILLED","Dossier relu puis transmis par le canal vérifié","REPLY-2",true)).state()).isEqualTo("CLOSED");
+    }
+    @Test void changedContactInvalidatesVerificationAndRequiresNewHumanCheck() {
+        var c=create();complianceRole();contactRole();var r=verifiedRequest(c.id(),"ACCESS");
+        db.update("UPDATE candidate_contact SET email='changed@example.com' WHERE candidate_id=?",c.id());
+        assertThatThrownBy(()->rights.prepare(alice,c.id(),r.id(),"\"2\"")).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("IDENTITY_VERIFICATION_CHANGED"));
+        rights.verify(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Verification("CALLBACK","CHECK-NEW",true));
+        assertThat(rights.prepare(alice,c.id(),r.id(),"\"3\"").candidate().contact().email()).isEqualTo("changed@example.com");
+    }
+    @Test void appealNeedsHumanReviewAndTracesReasonBeforeClosing() {
+        var c=create();complianceRole();var r=verifiedRequest(c.id(),"APPEAL");
+        var closure=new com.skillhunters.rights.CandidateRights.Closure("NOT_GRANTED","Décision humaine expliquée et réponse envoyée","REPLY-1",true);
+        assertThatThrownBy(()->rights.close(alice,c.id(),r.id(),"\"2\"",closure)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("APPEAL_REVIEW_REQUIRED"));
+        rights.appeal(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Decision("Réexamen contradictoire synthétique","ASSESSMENT-1",true));
+        assertThat(rights.close(alice,c.id(),r.id(),"\"3\"",closure).outcome()).isEqualTo("NOT_GRANTED");
+        assertThat(rights.history(alice,c.id(),r.id(),null).items()).anySatisfy(e->{assertThat(e.action()).isEqualTo("APPEAL_REVIEWED");assertThat(e.reason()).contains("contradictoire");});verify(smtp,never()).send(any());
+    }
+    @Test void rightsRespectScopesCsrfOptimisticVersionsAndDuplicateEmail() throws Exception {
+        var c=create();var input=rightsIntake("ACCESS");String root="/api/v1/candidates/"+c.id()+"/rights-requests";
+        assertThatThrownBy(()->rights.create(alice,c.id(),input)).isInstanceOf(Rejected.class);assertThatThrownBy(()->rights.create(admin,c.id(),input)).isInstanceOf(Rejected.class);
+        complianceRole();var r=rights.create(alice,c.id(),input);
+        assertThatThrownBy(()->rights.create(alice,c.id(),input)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RIGHTS_EMAIL_ALREADY_REGISTERED"));
+        mvc.perform(post(root).with(as("alice")).contentType("application/json").content(json.writeValueAsString(input))).andExpect(status().isForbidden());
+        assertThatThrownBy(()->rights.verify(alice,c.id(),r.id(),null,new com.skillhunters.rights.CandidateRights.Verification("CALLBACK","REF",true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("VERSION_REQUIRED"));
+        assertThatThrownBy(()->rights.verify(alice,c.id(),r.id(),"\"0\"",new com.skillhunters.rights.CandidateRights.Verification("CALLBACK","REF",true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RIGHTS_REQUEST_CHANGED"));
+        db.update("DELETE FROM membership WHERE user_id=?",alice);
+        mvc.perform(get(root).with(as("alice"))).andExpect(status().isNotFound());
+        mvc.perform(get("/api/v1/pools/"+poolA+"/rights-requests").with(as("alice"))).andExpect(status().isNotFound());
+    }
+    @Test void rightsDeadlinesPaginationAndSourceErasureKeepOnlyMinimalAudit() {
+        var c=create();complianceRole();var now=java.time.OffsetDateTime.now();
+        var r=rights.create(alice,c.id(),new com.skillhunters.rights.CandidateRights.Intake("ACCESS",now.minusDays(4),now.minusDays(1),"POLICY-1","EMAIL-OVERDUE","Private synthetic request summary"));
+        assertThat(r.overdue()).isTrue();assertThat(rights.queue(alice,poolA,null,true).items()).hasSize(1);
+        rights.deadline(alice,c.id(),r.id(),"\"1\"",new com.skillhunters.rights.CandidateRights.Deadline(now.plusDays(2),"POLICY-2","Prolongation motivée selon décision synthétique"));
+        assertThat(rights.queue(alice,poolA,null,true).items()).isEmpty();
+        for(int n=0;n<26;n++)rights.create(alice,c.id(),rightsIntake("ACCESS"));
+        var page=rights.list(alice,c.id(),null);assertThat(page.items()).hasSize(25);assertThat(rights.list(alice,c.id(),page.nextCursor()).items()).hasSize(2);
+        retention.request(alice,id,true);retention.runOnce();
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_rights_request",Integer.class)).isZero();assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_rights_event",Integer.class)).isZero();
+        assertThat(db.queryForList("SELECT action FROM governance_audit WHERE object_id=?",String.class,r.id())).contains("RIGHTS_RECEIVED","RIGHTS_DEADLINE_CHANGED");
+    }
+    @Test void rejectedCorrectionRollsBackCaseAndPublishedIndex() {
+        var c=create();complianceRole();var published=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);var r=verifiedRequest(c.id(),"RECTIFICATION");
+        assertThatThrownBy(()->rights.correct(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Correction(1,request(accepted(c.id())),true))).isInstanceOf(Rejected.class);
+        assertThat(reviews.publication(alice,c.id()).revisionId()).isEqualTo(published.id());assertThat(rights.list(alice,c.id(),null).items().getFirst().version()).isEqualTo(2);assertThat(rights.history(alice,c.id(),r.id(),null).items()).hasSize(2);
+    }
 }

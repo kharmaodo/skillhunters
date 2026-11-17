@@ -133,3 +133,8 @@ Le module `communication` prépare des messages texte à partir de deux ressourc
 ## Lignage candidat (complément SH-05)
 
 CandidateLineage orchestre la vérification de contact, les suggestions limitées au vivier, le rapprochement confirmé et le choix actif. CandidateIdentity fournit le verrou et les gardes communs aux corrections, publications et contacts. Les sources et leurs révisions ne sont pas déplacées ; une identité commune porte une opposition persistante, les décisions sont tracées par source. Le changement de lignage invalide les approbations SMTP et refuse une tentative en cours. Les recherches nouvelles filtrent la version active, les snapshots historiques restent des snapshots.
+
+
+## Droits candidat SH-33
+
+`rights.CandidateRights` orchestre le traitement humain d’une demande reçue par e-mail. Le service contrôle COMPLIANCE et le vivier, puis verrouille l’identité et la fiche avant vérification ou action. If-Match porte sur la demande ; la rectification contrôle également la version de fiche et publie via ReviewService dans la même transaction. Le dossier JSON est généré à la demande pour un opérateur autorisé après vérification, sans copie persistante ni envoi. Le canal de réponse reste l’e-mail manuel au MVP. La file de suivi signale les demandes en retard sans inventer de délai légal.

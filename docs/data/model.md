@@ -169,3 +169,12 @@ V27 ajoute `retention_hold` (une exception par source, acteur, motif, fin, versi
 L’échéance de la politique par finalité est figée sur chaque import. Le gel ne la prolonge pas et ne rouvre aucun accès. Un tombstone expire immédiatement la source, puis un journal signé dans un bucket séparé est écrit avant la suppression physique. Les originaux et toutes leurs versions S3 sont supprimés avant les cascades SQL (extractions, versions humaines, index, exports, snapshots/comparaisons, suivi, messages et gouvernance). Les événements documentaires et métadonnées de lot sont retirés explicitement. Un groupe d’identité subsiste tant qu’il a des sources ; une opposition ne disparaît pas avec une source.
 
 Au démarrage, le journal externe est vérifié et rejoué avant l’ouverture de l’API. Une restauration ancienne ne peut rétablir un gel ni une clé d’import déjà supprimée. Tous les tombstones rejoués repassent en attente afin de repurger aussi les objets restaurés. Voir `../validation/sh-32.md` pour les limites de sauvegarde, les fichiers temporaires et les copies externes.
+
+
+## SH-33 — demandes d’accès, de rectification et de recours
+
+V28 ajoute `candidate_rights_request`, liée à une source par `candidate_profile` et supprimée en cascade. Elle conserve le type, l’état, les références e-mail/politique, réception/échéance, le résumé borné, la vérification humaine, la version du dossier préparé, la révision de correction et la référence de réponse. Une empreinte interne de rattachement/coordonnées invalide la vérification si ces données changent ; elle n’est jamais exposée dans le contrat. Un e-mail ne peut être enregistré deux fois pour la même source. Limites : 100 demandes par source, 500 versions par demande.
+
+`candidate_rights_event` trace réception, vérification, modification d’échéance, préparation du dossier, correction publiée, réexamen et clôture. Historique paginé par séquence, 25 événements ; demandes et file du vivier paginées par UUID, 25 lignes. Les textes et références suivent l’effacement de la source. `governance_audit` ne conserve que l’action, les identifiants pseudonymes et la date. Aucun texte de demande ou justificatif dans cet audit minimal.
+
+La correction réutilise SH-10 : nouvelle révision humaine et remplacement de l’index courant dans la même transaction que l’action SH-33. L’extraction d’origine reste une preuve immuable. Les anciennes publications et snapshots restent historiques sous leur rétention ; les nouvelles recherches utilisent la correction. Aucun nouveau vecteur candidat n’est créé.

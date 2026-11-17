@@ -20,6 +20,16 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'IDENTITY_NOT_VERIFIED') return 'Vérifiez la personne et le canal de réponse avant de traiter la demande.';
+    if (error.code === 'IDENTITY_VERIFICATION_CHANGED') return 'Les coordonnées ou le rattachement ont changé. Une nouvelle vérification humaine est requise.';
+    if (error.code === 'IDENTITY_ALREADY_VERIFIED') return 'La vérification est déjà enregistrée pour ces coordonnées.';
+    if (error.code === 'RIGHTS_REQUEST_CHANGED') return 'La demande a changé. Rechargez les demandes avant de poursuivre.';
+    if (error.code === 'RIGHTS_REQUEST_CLOSED') return 'Cette demande est clôturée. Enregistrez une nouvelle demande pour un nouveau traitement.';
+    if (error.code === 'RIGHTS_EMAIL_ALREADY_REGISTERED') return 'Cet e-mail est déjà enregistré pour cette source. Consultez les demandes existantes.';
+    if (error.code === 'ACCESS_PACKAGE_CHANGED') return 'Préparez à nouveau le dossier : les données ont changé ou aucun dossier n’a encore été préparé.';
+    if (error.code === 'RIGHTS_CORRECTION_REQUIRED') return 'Publiez une correction effective dans cette demande avant de la clôturer comme satisfaite.';
+    if (error.code === 'APPEAL_REVIEW_REQUIRED') return 'Consignez le réexamen humain et son motif avant de clôturer ce recours.';
+    if (error.code === 'INVALID_RIGHTS_REQUEST') return 'Complétez les références, le motif et les confirmations. L’échéance doit suivre la réception, dans la borne technique de 365 jours.';
     if (error.code === 'RETENTION_HOLD_ACTIVE') return 'Un gel actif protège cette source. Sa levée motivée est requise avant effacement.';
     if (error.code === 'INVALID_RETENTION_REQUEST') return 'Confirmez la demande et renseignez un motif ainsi qu’une date future à moins de 365 jours pour le gel.';
     if (error.code === 'RETENTION_HOLD_CHANGED') return 'La conservation a changé. Rechargez avant de modifier.';

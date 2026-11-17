@@ -1,3 +1,4 @@
+import {CandidateRights,RightsQueue} from './CandidateRights';
 import { CandidateLineage } from './CandidateLineage';
 import { Governance } from './Governance';
 import { ContactHistory } from './ContactHistory';
@@ -92,6 +93,7 @@ export function CandidateProfile({ initial, session, failed }: { initial: Candid
     <TrackingEditor candidateId={saved.id} session={session} failed={failed}/>
     <HumanReview candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
     <SkillPeriods candidateId={saved.id} session={session} failed={failed} versionChanged={version => { setSaved(c => ({ ...c, version })); setDraft(c => ({ ...c, version })); setHistory(null); }}/>
+    <CandidateRights candidateId={saved.id} session={session} failed={failed} versionChanged={version=>{setSaved(c=>({...c,version}));setDraft(c=>({...c,version}));setHistory(null);}}/>
     <Governance candidateId={saved.id} poolId={saved.poolId} contactsVisible={saved.contactsVisible} session={session} failed={failed}/>
     <ContactHistory key={saved.id+"-history"} candidateId={saved.id}/>
     <ContactDraft key={saved.id} candidateId={saved.id} session={session} failed={failed}/>
@@ -116,6 +118,7 @@ export function Candidates({ poolId, session, failed }: { poolId: string; sessio
     {page && <><ul className="proposal-list">{page.items.map(c => <li key={c.id}><button className="text-button" disabled={busy} onClick={() => void open(c.id)}>{c.profile.displayName || 'Nom inconnu'} · {c.profile.professionalTitle || 'Titre inconnu'}</button></li>)}</ul>
       {!page.items.length && <p>Aucune fiche. Créez une fiche depuis les propositions structurées d’un document analysé.</p>}
       {page.nextCursor && <button className="button" disabled={busy} onClick={() => void load(page.nextCursor!)}>Fiches suivantes</button>}</>}
+    <RightsQueue key={poolId} poolId={poolId} open={id=>void open(id)}/>
     <TrackingLists poolId={poolId} failed={failed} open={id=>void open(id)}/>
     {selected && <CandidateProfile key={`${selected.id}-${selected.version}`} initial={selected} session={session} failed={failed}/>}
   </section>;

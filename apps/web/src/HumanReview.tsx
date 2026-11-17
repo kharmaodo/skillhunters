@@ -4,7 +4,7 @@ type Claim = { field: string; item: number; raw: string | null; normalized: stri
   evidence: { source: string; start: number; end: number; quote: string }[] };
 type Period = { start: string | null; end: string | null; precision: 'UNKNOWN' | 'DAY' | 'MONTH' | 'YEAR'; kind: string };
 type Item = { sourceIndex: number; value: string | null; decision: 'PENDING' | 'VALIDATED' | 'REJECTED' | 'UNKNOWN'; precision: string; period: Period | null; reason: string | null };
-type Revision = { id: string; version: number; status: string; actorId: string; createdAt: string; justification: string; items: Item[];
+export type Revision = { id: string; version: number; status: string; actorId: string; createdAt: string; justification: string; items: Item[];
   changes: { sourceIndex: number; before: Item; after: Item }[] };
 type State = { version: number; source: { id: string; documentSha256: string; proposal: { claims: Claim[] } }; latest: Revision | null; publishedRevisionId: string | null };
 type Summary = { id: string; version: number; status: string; actorId: string; createdAt: string };
@@ -12,7 +12,9 @@ const labels: Record<string, string> = { FULL_NAME: 'Nom', TITLE: 'Titre', AVAIL
 const decisions: Record<string, string> = { PENDING: 'À examiner', VALIDATED: 'Validée', REJECTED: 'Écartée', UNKNOWN: 'Inconnue' };
 function initial(claim: Claim, i: number): Item { return { sourceIndex: i, value: claim.normalized ?? claim.raw,
   decision: claim.status === 'UNKNOWN' ? 'UNKNOWN' : 'PENDING', precision: claim.status === 'UNKNOWN' ? 'UNKNOWN' : claim.field === 'DECLARED_LEVEL' ? 'DECLARED_LEVEL' : 'TEXT', period: null, reason: null }; }
-export function HumanReview({ candidateId, session, failed, versionChanged }: { candidateId: string; session: Session; failed: (e: unknown) => void; versionChanged: (v: number) => void }) {
+export type ReviewInput = {items: Item[]; justification: string};
+export function HumanReview({ candidateId, session, failed, versionChanged, publishOverride, idSuffix = "" }: { candidateId: string; session: Session; failed: (e: unknown) => void; versionChanged: (v: number) => void; publishOverride?: (version: number, input: ReviewInput) => Promise<Revision>; idSuffix?: string }) {
+  const domId = candidateId + idSuffix;
   const [state, setState] = useState<State | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [justification, setJustification] = useState('');
@@ -44,7 +46,7 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
     if (!state) return;
     setBusy(true); setError(''); setNotice('');
     try {
-      const r = await api<Revision>(`/candidates/${candidateId}/${publish ? 'validate' : 'revisions'}`, { method: 'POST', headers: { 'If-Match': `"${state.version}"` }, body: JSON.stringify({ items, justification }) }, session.csrfToken);
+      const r = publish && publishOverride ? await publishOverride(state.version, {items,justification}) : await api<Revision>(`/candidates/${candidateId}/${publish ? 'validate' : 'revisions'}`, { method: 'POST', headers: { 'If-Match': `"${state.version}"` }, body: JSON.stringify({ items, justification }) }, session.csrfToken);
       setState({ ...state, version: r.version, latest: r, publishedRevisionId: publish ? r.id : state.publishedRevisionId });
       setNormalizations([]); setItems(r.items); setJustification(''); setHistory(null); setInspected(null); versionChanged(r.version);
       setNotice(publish ? 'Révision publiée. L’index professionnel a été mis à jour.' : 'Brouillon enregistré. La publication précédente est conservée.');
@@ -78,7 +80,7 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
       <form onSubmit={e => { e.preventDefault(); void save(true); }}>
         <fieldset disabled={busy}><legend>Décisions et corrections</legend>
           {state.source.proposal.claims.map((claim, i) => {
-            const item = items[i]; const prefix = `review-${candidateId}-${i}`;
+            const item = items[i]; const prefix = `review-${domId}-${i}`;
             return <details className="review-item" key={i}>
               <summary>{labels[claim.field]} {claim.item || ''} · {decisions[item.decision]} · {item.value || 'Non renseigné'}</summary>
               <p>Valeur source : {claim.raw ?? 'Inconnue'}</p>
@@ -111,9 +113,9 @@ export function HumanReview({ candidateId, session, failed, versionChanged }: { 
               <p className="fine">Justification obligatoire pour chaque décision ou correction modifiée. N’ajoutez que des informations professionnelles nécessaires.</p>
             </details>;
           })}
-          <label htmlFor={`review-${candidateId}-justification`}>Justification de cette révision</label>
-          <input id={`review-${candidateId}-justification`} maxLength={500} value={justification} onChange={e => setJustification(e.target.value)}/>
-          <div className="review-actions"><button className="button" type="button" disabled={conflict || !justification.trim()} onClick={() => void save(false)}>Enregistrer le brouillon</button>
+          <label htmlFor={`review-${domId}-justification`}>Justification de cette révision</label>
+          <input id={`review-${domId}-justification`} maxLength={500} value={justification} onChange={e => setJustification(e.target.value)}/>
+          <div className="review-actions">{!publishOverride&&<button className="button" type="button" disabled={conflict || !justification.trim()} onClick={() => void save(false)}>Enregistrer le brouillon</button>}
             <button className="button primary" type="submit" disabled={conflict || !justification.trim() || items.some(i => i.decision === 'PENDING')}>Valider et publier la révision</button></div>
         </fieldset>
       </form>
