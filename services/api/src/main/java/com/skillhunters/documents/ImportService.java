@@ -26,15 +26,16 @@ public class ImportService {
     public record Policy(UUID id, String label, String purpose, String basisCode, int retentionDays) {}
     public record Item(UUID id, String fileName, String state, String mediaType, long byteSize, String sha256) {}
     public record Receipt(UUID id, UUID poolId, OffsetDateTime createdAt, OffsetDateTime expiresAt,
-            String validationVersion, List<Item> items) {}
+            String validationVersion, Long settingsVersion, List<Item> items) {}
     public record Page(List<Receipt> items, String nextCursor) {}
     private final JdbcClient db;
     private final IdentityStore identity;
     private final TransactionTemplate tx;
     private final QuarantineStorage storage;
     private final ImportQuota quota;
+    private final com.skillhunters.settings.ImportSettings settings;
 
-    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota,com.skillhunters.governance.AuditTrail trail,com.skillhunters.retention.RetentionGuard retention) {this.retention=retention;this.trail=trail;
+    public ImportService(JdbcClient db, IdentityStore identity, TransactionTemplate tx, QuarantineStorage storage, ImportQuota quota,com.skillhunters.governance.AuditTrail trail,com.skillhunters.retention.RetentionGuard retention,com.skillhunters.settings.ImportSettings settings) {this.settings=settings;this.retention=retention;this.trail=trail;
         this.quota = quota; this.db = db; this.identity = identity; this.tx = tx; this.storage = storage;
     }
 
@@ -53,16 +54,16 @@ public class ImportService {
 
     public Receipt create(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file) {
         if (key != null && key.startsWith("batch-")) throw new Rejected(HttpStatus.BAD_REQUEST, "RESERVED_IDEMPOTENCY_KEY");
-        return create(actor, pool, key, basis, file, null, null);
+        return create(actor, pool, key, basis, file, null, null, null);
     }
 
     Receipt createForBatch(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file,
-            Policy policy, OffsetDateTime expiresAt) {
-        return create(actor, pool, key, basis, file, policy, expiresAt);
+            Policy policy, OffsetDateTime expiresAt, Long settingsVersion) {
+        return create(actor, pool, key, basis, file, policy, expiresAt, settingsVersion);
     }
 
     private Receipt create(UUID actor, UUID pool, String key, Basis basis, ReceptionValidator.Received file,
-            Policy frozenPolicy, OffsetDateTime batchExpiry) {
+            Policy frozenPolicy, OffsetDateTime batchExpiry, Long frozenSettings) {
         if (key == null || !key.matches("[A-Za-z0-9_-]{8,128}")) throw new Rejected(HttpStatus.BAD_REQUEST, "INVALID_IDEMPOTENCY_KEY");
         // Length-prefixed fields avoid ambiguity; actor/pool form the DB uniqueness scope.
         String[] fields = {file.sha256(), file.name(), file.mediaType(), basis.source(), basis.purpose(),
@@ -85,22 +86,24 @@ public class ImportService {
             if (!policy.purpose().equals(basis.purpose()) || !policy.basisCode().equals(basis.basisCode())) {
                 throw new Rejected(HttpStatus.BAD_REQUEST, "IMPORT_POLICY_MISMATCH");
             }
-            if (frozenPolicy == null) quota.check(actor, 1, file.size());
+            var rules=frozenPolicy==null?settings.current():frozenSettings==null?null:settings.version(frozenSettings);
+            if(file.size()>(rules==null?ReceptionValidator.MAX_BYTES:rules.maxFileBytes()))throw new Rejected(HttpStatus.PAYLOAD_TOO_LARGE,"FILE_TOO_LARGE");
+            if (frozenPolicy == null) quota.check(actor, 1, file.size(),rules);
             UUID created = UUID.randomUUID();
             OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
             db.sql("""
                 INSERT INTO document_import(id,pool_id,actor_id,idempotency_key,request_hash,object_key,file_name,
                 media_type,byte_size,sha256,source,purpose,basis_code,notice_version,policy_id,retention_days,
-                created_at,expires_at,state,validation_version)
+                created_at,expires_at,state,validation_version,settings_version)
                 VALUES (:id,:pool,:actor,:key,:hash,:object,:name,:type,:size,:sha,:source,:purpose,:basis,:notice,
-                :policy,:days,:now,:expires,'RECEIVING',:version)
+                :policy,:days,:now,:expires,'RECEIVING',:version,:settings)
                 """)
                 .param("id", created).param("pool", pool).param("actor", actor).param("key", key).param("hash", hash)
                 .param("object", "quarantine/" + pool + "/" + created).param("name", file.name())
                 .param("type", file.mediaType()).param("size", file.size()).param("sha", file.sha256())
                 .param("source", basis.source()).param("purpose", policy.purpose()).param("basis", policy.basisCode())
                 .param("notice", basis.noticeVersion()).param("policy", policy.id()).param("days", policy.retentionDays())
-                .param("now", now).param("expires", batchExpiry != null ? batchExpiry : now.plusDays(policy.retentionDays())).param("version", ReceptionValidator.VERSION).update();
+                .param("now", now).param("expires", batchExpiry != null ? batchExpiry : now.plusDays(policy.retentionDays())).param("version", ReceptionValidator.VERSION).param("settings",rules==null?null:rules.version()).update();
             audit(created, actor, "RECEPTION_RESERVED");
             return created;
         });
@@ -147,7 +150,7 @@ public class ImportService {
     private static Receipt map(java.sql.ResultSet rs, int n) throws java.sql.SQLException {
         UUID id = rs.getObject("id", UUID.class);
         return new Receipt(id, rs.getObject("pool_id", UUID.class), rs.getObject("created_at", OffsetDateTime.class),
-            rs.getObject("expires_at", OffsetDateTime.class), rs.getString("validation_version"),
+            rs.getObject("expires_at", OffsetDateTime.class), rs.getString("validation_version"), rs.getObject("settings_version",Long.class),
             List.of(new Item(id, rs.getString("file_name"), rs.getString("state"), rs.getString("media_type"), rs.getLong("byte_size"), rs.getString("sha256"))));
     }
     public Receipt get(UUID actor, UUID id) {

@@ -27,19 +27,21 @@ public class BatchImportService {
     public record Item(UUID id, String fileName, long byteSize, String sha256, String state, String errorCode,
             int attempts, OffsetDateTime retryAfter, UUID importId) {}
     public record Batch(UUID id, UUID poolId, OffsetDateTime createdAt, OffsetDateTime expiresAt,
-            boolean canUpload, int completedFiles, int totalFiles, List<Item> items) {}
+            boolean canUpload, int completedFiles, int totalFiles, List<Item> items, Long settingsVersion) {}
     public record Summary(UUID id, OffsetDateTime createdAt, int completedFiles, int totalFiles) {}
     public record Page(List<Summary> items, String nextCursor) {}
     private record Header(UUID id, UUID actorId, UUID poolId, OffsetDateTime createdAt, OffsetDateTime expiresAt,
-            String source, String purpose, String basisCode, String noticeVersion, UUID policyId, String policyLabel, int retentionDays) {}
+            String source, String purpose, String basisCode, String noticeVersion, UUID policyId, String policyLabel, int retentionDays,Long settingsVersion) {}
     private record Claim(UUID token, boolean done) {}
     private final JdbcClient db;
     private final TransactionTemplate tx;
     private final ImportService imports;
     private final ImportQuota quota;
     private final ReceptionValidator validator;
+    private final com.skillhunters.settings.ImportSettings settings;
 
-    public BatchImportService(JdbcClient db, TransactionTemplate tx, ImportService imports, ImportQuota quota, ReceptionValidator validator,com.skillhunters.retention.RetentionGuard retention) {
+    public BatchImportService(JdbcClient db, TransactionTemplate tx, ImportService imports, ImportQuota quota, ReceptionValidator validator,com.skillhunters.retention.RetentionGuard retention,com.skillhunters.settings.ImportSettings settings) {
+        this.settings=settings;
         this.retention=retention;
         this.db=db; this.tx=tx; this.imports=imports; this.quota=quota; this.validator=validator;
     }
@@ -67,18 +69,20 @@ public class BatchImportService {
             var policy=imports.policies(actor,request.poolId()).stream().filter(p -> p.id().equals(basis.retentionPolicyId())).findFirst()
                 .orElseThrow(() -> error(HttpStatus.BAD_REQUEST,"IMPORT_POLICY_UNAVAILABLE"));
             if (!policy.purpose().equals(basis.purpose()) || !policy.basisCode().equals(basis.basisCode())) throw error(HttpStatus.BAD_REQUEST,"IMPORT_POLICY_MISMATCH");
-            quota.check(actor,request.files().size(),bytes);
+            var rules=settings.current();
+            if(request.files().size()>rules.maxBatchFiles()||bytes>rules.maxBatchBytes())throw error(HttpStatus.PAYLOAD_TOO_LARGE,"BATCH_TOO_LARGE");
+            quota.check(actor,request.files().size(),bytes,rules);
             UUID batch=UUID.randomUUID(); var date=now();
             db.sql("""
                 INSERT INTO import_batch(id,actor_id,pool_id,idempotency_key,request_hash,source,purpose,basis_code,
-                    notice_version,policy_id,policy_label,retention_days,created_at,expires_at)
-                VALUES (:id,:actor,:pool,:key,:hash,:source,:purpose,:basis,:notice,:policy,:label,:days,:created,:expires)
+                    notice_version,policy_id,policy_label,retention_days,created_at,expires_at,settings_version)
+                VALUES (:id,:actor,:pool,:key,:hash,:source,:purpose,:basis,:notice,:policy,:label,:days,:created,:expires,:settings)
                 """).param("id",batch).param("actor",actor).param("pool",request.poolId()).param("key",key).param("hash",hash)
                 .param("source",basis.source()).param("purpose",policy.purpose()).param("basis",policy.basisCode())
                 .param("notice",basis.noticeVersion()).param("policy",policy.id()).param("label",policy.label()).param("days",policy.retentionDays())
-                .param("created",date).param("expires",date.plusDays(policy.retentionDays())).update();
+                .param("created",date).param("expires",date.plusDays(policy.retentionDays())).param("settings",rules.version()).update();
             for (int index=0;index<request.files().size();index++) {
-                var file=request.files().get(index); String rejection=manifestRejection(file); UUID item=UUID.randomUUID();
+                var file=request.files().get(index); String rejection=manifestRejection(file,rules.maxFileBytes()); UUID item=UUID.randomUUID();
                 db.sql("""
                     INSERT INTO import_batch_item(id,batch_id,ordinal,file_name,byte_size,sha256,state,error_code)
                     VALUES (:id,:batch,:ordinal,:name,:size,:sha,:state,:error)
@@ -93,9 +97,9 @@ public class BatchImportService {
         return get(actor,id);
     }
     private static void append(StringBuilder target,String value) { target.append(value.length()).append(':').append(value); }
-    private static String manifestRejection(FileSpec file) {
+    private static String manifestRejection(FileSpec file,long maxFileBytes) {
         if (file.byteSize()==0) return "EMPTY_FILE";
-        if (file.byteSize()>ReceptionValidator.MAX_BYTES) return "FILE_TOO_LARGE";
+        if (file.byteSize()>maxFileBytes) return "FILE_TOO_LARGE";
         String name=file.fileName().toLowerCase(Locale.ROOT);
         return name.matches(".+\\.(pdf|docx|doc|md)$") ? null : "UNSUPPORTED_FORMAT";
     }
@@ -132,7 +136,7 @@ public class BatchImportService {
     public Batch get(UUID actor,UUID id) {
         var h=header(actor,id); var items=h.expiresAt().isAfter(now())?items(h):List.<Item>of();
         return new Batch(id,h.poolId(),h.createdAt(),h.expiresAt(),h.actorId().equals(actor) && h.expiresAt().isAfter(now()),
-            (int)items.stream().filter(BatchImportService::terminal).count(),items.size(),items);
+            (int)items.stream().filter(BatchImportService::terminal).count(),items.size(),items,h.settingsVersion());
     }
     public Page list(UUID actor,UUID pool,String cursor) {
         imports.policies(actor,pool); // Checks pool membership even if it has no policy.
@@ -184,7 +188,7 @@ public class BatchImportService {
         try(var received=validator.receive(file)) {
             var basis=new ImportService.Basis(h.source(),h.purpose(),h.basisCode(),h.noticeVersion(),h.policyId());
             var policy=new ImportService.Policy(h.policyId(),h.policyLabel(),h.purpose(),h.basisCode(),h.retentionDays());
-            imports.createForBatch(actor,h.poolId(),"batch-"+itemId,basis,received,policy,h.expiresAt());
+            imports.createForBatch(actor,h.poolId(),"batch-"+itemId,basis,received,policy,h.expiresAt(),h.settingsVersion());
             finish(actor,h,itemId,claim.token(),"QUARANTINED",null);
         } catch(Rejected rejected) {
             if(rejected.status==HttpStatus.FORBIDDEN || rejected.status==HttpStatus.NOT_FOUND) throw rejected;

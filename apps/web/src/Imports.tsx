@@ -1,3 +1,4 @@
+import {type Admission} from './ImportSettings';
 import {Retention,ErasureProofs} from './Retention';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { DocumentAnalysis } from './DocumentAnalysis';
@@ -6,10 +7,11 @@ import { BatchImports } from './BatchImports';
 import { api, message, type Pool, type Session } from './api';
 
 type Policy = { id: string; label: string; purpose: string; basisCode: string; retentionDays: number };
-type Receipt = { id: string; createdAt: string; expiresAt: string; items: { fileName: string; state: string; byteSize: number }[] };
+type Receipt = { id: string; settingsVersion:number|null; createdAt: string; expiresAt: string; items: { fileName: string; state: string; byteSize: number }[] };
 type Page = { items: Receipt[]; nextCursor: string | null };
 
 export function Imports({ pool, session, failed }: { pool: Pool; session: Session; failed: (error: unknown) => void }) {
+  const [admission,setAdmission]=useState<Admission|null>(null);
   const [erased,setErased]=useState<Set<string>>(new Set());
   const [batchMode, setBatchMode] = useState(false);
   const [resumeFiles, setResumeFiles] = useState<Record<string, File>>({});
@@ -30,10 +32,10 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
 
   useEffect(() => {
     let active = true;
-    Promise.all([api<Policy[]>(`/pools/${pool.id}/import-policies`), api<Page>(`/pools/${pool.id}/imports`)])
-      .then(([available, history]) => {
+    Promise.all([api<Policy[]>(`/pools/${pool.id}/import-policies`), api<Page>(`/pools/${pool.id}/imports`),api<Admission>(`/pools/${pool.id}/import-settings`)])
+      .then(([available, history, rules]) => {
         if (!active) return;
-        setPolicies(available); setPolicyId(available[0]?.id || ''); setRows(history.items); setCursor(history.nextCursor);
+        setAdmission(rules);setPolicies(available); setPolicyId(available[0]?.id || ''); setRows(history.items); setCursor(history.nextCursor);
       }).catch(e => { if (active) { setError(message(e)); failed(e); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -82,7 +84,7 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
   return <div className="import-section">
     <button className="button" disabled={busy} onClick={() => setBatchMode(true)}>Importer un lot</button>
     <h3>Déposer un CV</h3>
-    <p className="muted">Un fichier à la fois, de 15 Mio maximum. PDF, DOCX, DOC ou Markdown. Le document reste privé et bloqué en quarantaine jusqu’aux contrôles antivirus et documentaires.</p>
+    <p className="muted">Un fichier à la fois, limité à {admission?.limits.maxFileBytes.toLocaleString()??"…"} octets (règles v{admission?.version??"…"}). Le serveur applique la version courante lors de la réservation. PDF, DOCX, DOC ou Markdown. Le document reste privé et bloqué en quarantaine jusqu’aux contrôles antivirus et documentaires.</p>
     {loading ? <p role="status">Chargement des possibilités d’import…</p> : !policies.length ? <p className="alert">Aucune politique d’import n’est configurée. Contactez votre administrateur.</p> :
       <form onSubmit={e => void submit(e)} className="import-form">
         <label htmlFor="import-policy">Cadre du dépôt</label>
@@ -104,7 +106,7 @@ export function Imports({ pool, session, failed }: { pool: Pool; session: Sessio
       {!erased.has(receipt.id)&&<><strong>{receipt.items[0].fileName}</strong>
       <span className="badge">{receipt.items[0].state === 'QUARANTINED' ? 'Original conservé en quarantaine' : 'Réception incomplète · à reprendre'}</span>
       <span className="fine">{new Date(receipt.createdAt).toLocaleString('fr-FR')} · {Math.ceil(receipt.items[0].byteSize / 1024)} Kio</span>
-      <span className="fine">Référence : {receipt.id}</span>
+      <span className="fine">Référence : {receipt.id} · Règles : {receipt.settingsVersion==null?"antérieures au versionnement":"v"+receipt.settingsVersion}</span>
       {receipt.items[0].state === 'QUARANTINED' && <><DocumentDuplicates id={receipt.id} failed={failed}/><DocumentAnalysis id={receipt.id} session={session} failed={failed}/></>}
       {receipt.items[0].state === 'RECEIVING' && <div className="import-form">
         <label htmlFor={`resume-${receipt.id}`}>Resélectionner le document original pour reprendre</label>

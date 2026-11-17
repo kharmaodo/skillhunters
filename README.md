@@ -69,3 +69,5 @@ Les documents privés et les CV réels ne doivent pas être ajoutés à ce dép�
 SH-32 ajoute conservation par finalité, gels motivés bornés et purge complète avec journal indépendant rejoué après restauration. Voir [validation SH-32](docs/validation/sh-32.md) et le [recensement MVP](docs/mvp-remaining.md).
 
 SH-33 ajoute le traitement des demandes candidat reçues par e-mail : vérification humaine, accès par source, rectification publiée, recours et clôture tracée. Voir [validation SH-33](docs/validation/sh-33.md).
+
+SH-28 ajoute les limites et quotas d’import administrables, leur historique immuable et la référence conservée par les réceptions et lots réservés. Le modèle Word nettoyé est téléchargeable avec sa version et son empreinte. Voir [validation SH-28](docs/validation/sh-28.md).
