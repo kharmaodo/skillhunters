@@ -67,3 +67,5 @@ Créer une branche `feature/…`, `fix/…` ou `docs/…` depuis `origin/develop
 Les documents privés et les CV réels ne doivent pas être ajoutés à ce dépôt public. Les exemples utilisent exclusivement des données synthétiques. Aucune licence d'application n'est déduite du caractère public du dépôt : une décision de licence reste nécessaire.
 
 SH-32 ajoute conservation par finalité, gels motivés bornés et purge complète avec journal indépendant rejoué après restauration. Voir [validation SH-32](docs/validation/sh-32.md) et le [recensement MVP](docs/mvp-remaining.md).
+
+SH-33 ajoute le traitement des demandes candidat reçues par e-mail : vérification humaine, accès par source, rectification publiée, recours et clôture tracée. Voir [validation SH-33](docs/validation/sh-33.md).

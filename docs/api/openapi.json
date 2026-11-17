@@ -1253,32 +1253,33 @@
         "description": "Rôle global COMPLIANCE obligatoire, ADMIN seul refusé. Chaque lecture réussie ajoute AUDIT_READ. Pagination descendante de 50 événements au maximum. Aucun contenu de CV ou brouillon. Cache-Control: no-store."
       }
     },
-    "/rights-requests": {
-      "post": {
-        "operationId": "createRightsRequest",
+    "/candidates/{candidate}/rights-requests": {
+      "get": {
+        "operationId": "listCandidateRights",
         "tags": [
-          "Governance"
+          "CandidateRights"
         ],
-        "summary": "Enregistrer une demande de droits à vérifier",
+        "summary": "Lister les demandes de cette source",
         "parameters": [
           {
-            "$ref": "#/components/parameters/CsrfToken"
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
           {
-            "$ref": "#/components/parameters/IdempotencyKey"
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "responses": {
-          "201": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RightsRequest"
-                }
-              }
-            }
-          },
           "400": {
             "$ref": "#/components/responses/Problem"
           },
@@ -1291,39 +1292,184 @@
           "404": {
             "$ref": "#/components/responses/Problem"
           },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
           "429": {
             "$ref": "#/components/responses/Problem"
           },
-          "500": {
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCases"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
+      },
+      "post": {
+        "operationId": "registerCandidateRights",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Enregistrer une demande e-mail et son échéance applicable",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
             "$ref": "#/components/responses/Problem"
           },
           "409": {
             "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "201": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCase"
+                }
+              }
+            }
           }
         },
+        "x-implementation-status": "implemented",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RightsRequestInput"
+                "$ref": "#/components/schemas/RightsIntake"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/events": {
+      "get": {
+        "operationId": "listCandidateRightsEvents",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Consulter la réception, la vérification, les actions et la clôture",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsEvents"
+                }
               }
             }
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented"
       }
     },
-    "/rights-requests/{id}": {
-      "patch": {
-        "operationId": "resolveRightsRequest",
+    "/candidates/{candidate}/rights-requests/{request}/verification": {
+      "put": {
+        "operationId": "verifyCandidateRights",
         "tags": [
-          "Governance"
+          "CandidateRights"
         ],
-        "summary": "Mettre à jour le traitement de la demande",
+        "summary": "Consigner une vérification humaine proportionnée du demandeur",
         "parameters": [
           {
-            "name": "id",
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
             "in": "path",
             "required": true,
             "schema": {
@@ -1339,16 +1485,6 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RightsRequest"
-                }
-              }
-            }
-          },
           "400": {
             "$ref": "#/components/responses/Problem"
           },
@@ -1361,14 +1497,24 @@
           "404": {
             "$ref": "#/components/responses/Problem"
           },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
           "429": {
             "$ref": "#/components/responses/Problem"
           },
-          "500": {
+          "503": {
             "$ref": "#/components/responses/Problem"
           },
-          "409": {
-            "$ref": "#/components/responses/Problem"
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCase"
+                }
+              }
+            }
           },
           "412": {
             "$ref": "#/components/responses/Problem"
@@ -1377,54 +1523,53 @@
             "$ref": "#/components/responses/Problem"
           }
         },
+        "x-implementation-status": "implemented",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RightsResolution"
+                "$ref": "#/components/schemas/RightsVerification"
               }
             }
           }
-        },
-        "x-implementation-status": "planned"
-      },
-      "get": {
-        "operationId": "getRightsRequest",
+        }
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/deadline": {
+      "put": {
+        "operationId": "changeCandidateRightsDeadline",
         "tags": [
-          "Governance"
+          "CandidateRights"
         ],
-        "summary": "Lire une demande de droits et sa version",
+        "summary": "Modifier une échéance avec politique et motif explicites",
         "parameters": [
           {
-            "name": "id",
+            "name": "candidate",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
           }
         ],
         "responses": {
-          "200": {
-            "description": "Succès. Le contrat décrit un comportement cible non encore implémenté.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RightsRequest"
-                }
-              }
-            },
-            "headers": {
-              "ETag": {
-                "description": "Version opaque pour If-Match.",
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
-          },
           "400": {
             "$ref": "#/components/responses/Problem"
           },
@@ -1437,14 +1582,443 @@
           "404": {
             "$ref": "#/components/responses/Problem"
           },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
           "429": {
             "$ref": "#/components/responses/Problem"
           },
-          "500": {
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCase"
+                }
+              }
+            }
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
             "$ref": "#/components/responses/Problem"
           }
         },
-        "x-implementation-status": "planned"
+        "x-implementation-status": "implemented",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RightsDeadline"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/access-package": {
+      "post": {
+        "operationId": "prepareCandidateRightsAccess",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Préparer le dossier par source après vérification ; aucun envoi automatique",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsAccessBundle"
+                }
+              }
+            }
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented"
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/rectification": {
+      "post": {
+        "operationId": "rectifyCandidateRights",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Publier la correction et la projection d’index dans la même transaction",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCorrectionResult"
+                }
+              }
+            }
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RightsCorrection"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/appeal-review": {
+      "post": {
+        "operationId": "reviewCandidateAppeal",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Consigner le réexamen humain motivé du recours",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCase"
+                }
+              }
+            }
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RightsDecision"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/candidates/{candidate}/rights-requests/{request}/closure": {
+      "post": {
+        "operationId": "closeCandidateRights",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Clôturer après action et référence de réponse au destinataire vérifié",
+        "parameters": [
+          {
+            "name": "candidate",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "request",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCase"
+                }
+              }
+            }
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "x-implementation-status": "implemented",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RightsClosure"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pools/{pool}/rights-requests": {
+      "get": {
+        "operationId": "listPoolCandidateRights",
+        "tags": [
+          "CandidateRights"
+        ],
+        "summary": "Suivre les demandes ouvertes, éventuellement en retard",
+        "parameters": [
+          {
+            "name": "pool",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "409": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "503": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "200": {
+            "description": "Succès ; COMPLIANCE + vivier, source non expirée. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RightsCases"
+                }
+              }
+            }
+          }
+        },
+        "x-implementation-status": "implemented"
       }
     },
     "/exports": {
@@ -8338,37 +8912,181 @@
           }
         }
       },
-      "RightsRequestInput": {
+      "RightsIntake": {
         "type": "object",
-        "additionalProperties": false,
+        "required": [
+          "kind",
+          "receivedAt",
+          "dueAt",
+          "policyReference",
+          "emailReference",
+          "summary"
+        ],
         "properties": {
-          "candidateId": {
-            "type": "string",
-            "format": "uuid"
-          },
           "kind": {
             "type": "string",
             "enum": [
               "ACCESS",
               "RECTIFICATION",
-              "DELETION",
-              "OBJECTION"
+              "APPEAL"
             ]
           },
-          "details": {
+          "receivedAt": {
             "type": "string",
-            "maxLength": 20000
+            "format": "date-time"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "policyReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "emailReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
           }
-        },
-        "required": [
-          "candidateId",
-          "kind",
-          "details"
-        ]
+        }
       },
-      "RightsRequest": {
+      "RightsVerification": {
         "type": "object",
-        "additionalProperties": false,
+        "required": [
+          "method",
+          "reference",
+          "confirmed"
+        ],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "EXISTING_CHANNEL",
+              "CALLBACK",
+              "PROPORTIONATE_CHECK"
+            ]
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "RightsDeadline": {
+        "type": "object",
+        "required": [
+          "dueAt",
+          "policyReference",
+          "reason"
+        ],
+        "properties": {
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "policyReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          }
+        }
+      },
+      "RightsDecision": {
+        "type": "object",
+        "required": [
+          "reason",
+          "reference",
+          "confirmed"
+        ],
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "RightsClosure": {
+        "type": "object",
+        "required": [
+          "outcome",
+          "reason",
+          "responseReference",
+          "confirmed"
+        ],
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "FULFILLED",
+              "NOT_GRANTED"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "responseReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "RightsCase": {
+        "type": "object",
+        "required": [
+          "id",
+          "candidateId",
+          "version",
+          "kind",
+          "state",
+          "receivedAt",
+          "dueAt",
+          "policyReference",
+          "emailReference",
+          "summary",
+          "verificationMethod",
+          "verificationReference",
+          "verifiedAt",
+          "preparedVersion",
+          "correctedRevision",
+          "appealReviewed",
+          "outcome",
+          "responseReference",
+          "closedAt",
+          "overdue"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -8378,63 +9096,264 @@
             "type": "string",
             "format": "uuid"
           },
+          "version": {
+            "type": "integer"
+          },
           "kind": {
             "type": "string",
             "enum": [
               "ACCESS",
               "RECTIFICATION",
-              "DELETION",
-              "OBJECTION"
+              "APPEAL"
             ]
           },
-          "status": {
+          "state": {
             "type": "string",
             "enum": [
-              "IDENTITY_CHECK",
+              "RECEIVED",
+              "VERIFIED",
               "IN_PROGRESS",
-              "RESOLVED",
-              "REFUSED"
+              "CLOSED"
             ]
           },
-          "createdAt": {
+          "receivedAt": {
             "type": "string",
             "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "candidateId",
-          "kind",
-          "status",
-          "createdAt"
-        ]
-      },
-      "RightsResolution": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": [
-              "IN_PROGRESS",
-              "RESOLVED",
-              "REFUSED"
-            ]
           },
-          "reason": {
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "policyReference": {
             "type": "string",
             "minLength": 1,
             "maxLength": 200
           },
-          "identityVerified": {
+          "emailReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "verificationMethod": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verificationReference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verifiedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "preparedVersion": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "correctedRevision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "appealReviewed": {
+            "type": "boolean"
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "responseReference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "closedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "overdue": {
             "type": "boolean"
           }
-        },
+        }
+      },
+      "RightsCases": {
+        "type": "object",
         "required": [
-          "status",
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/RightsCase"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "RightsEvent": {
+        "type": "object",
+        "required": [
+          "sequence",
+          "actorId",
+          "action",
+          "reference",
           "reason",
-          "identityVerified"
-        ]
+          "occurredAt"
+        ],
+        "properties": {
+          "sequence": {
+            "type": "integer"
+          },
+          "actorId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RightsEvents": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/RightsEvent"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        }
+      },
+      "RightsCorrection": {
+        "type": "object",
+        "required": [
+          "candidateVersion",
+          "review",
+          "confirmed"
+        ],
+        "properties": {
+          "candidateVersion": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "review": {
+            "$ref": "#/components/schemas/ValidationRequest"
+          },
+          "confirmed": {
+            "type": "boolean",
+            "const": true
+          }
+        }
+      },
+      "RightsCorrectionResult": {
+        "type": "object",
+        "required": [
+          "request",
+          "revision"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RightsCase"
+          },
+          "revision": {
+            "$ref": "#/components/schemas/ReviewRevision"
+          }
+        }
+      },
+      "RightsAccessBundle": {
+        "type": "object",
+        "required": [
+          "request",
+          "candidate",
+          "source",
+          "published",
+          "scope"
+        ],
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/RightsCase"
+          },
+          "candidate": {
+            "$ref": "#/components/schemas/Candidate"
+          },
+          "source": {
+            "$ref": "#/components/schemas/ExtractionRevision"
+          },
+          "published": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReviewRevision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
       },
       "ObjectionInput": {
         "type": "object",

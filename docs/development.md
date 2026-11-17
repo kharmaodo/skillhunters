@@ -216,3 +216,12 @@ python3 -m unittest discover -s scripts/tests -v
 ```
 
 Planifier `expire` quotidiennement dans l’exploitation. `pack` impose 1 à 30 jours et une empreinte SHA-256 ; `stage` refuse les enveloppes expirées/altérées et n’écrase aucun fichier. Il ne décompresse ni n’applique le snapshot. Retirer le snapshot brut et les fichiers de staging selon la même échéance ; les copies hors de ce répertoire ne sont pas gérées. Le journal d’effacement courant et sa clé ne doivent **jamais** être inclus dans la restauration d’un ancien snapshot. Arrêter l’API, restaurer seulement les données métier/objets, réattacher le journal courant, puis démarrer : l’API reste indisponible tant que le rejeu signé échoue. Attendre la fin des purges avant de déclarer la restauration achevée. La réalisation et recette d’un snapshot PostgreSQL + S3 cohérent restent SH-29.
+
+
+## SH-33 — traiter une demande candidat
+
+Dans une fiche, ouvrir « Accès, rectification et recours ». L’opérateur doit avoir COMPLIANCE et une appartenance au vivier ; la préparation du dossier avec coordonnées exige aussi RECRUITMENT_LEAD. ADMIN seul ne donne aucun de ces droits. Enregistrer une référence e-mail interne, un résumé minimal, la date réelle de réception et l’échéance justifiée par la politique applicable. Aucun délai légal n’est configuré implicitement : la borne de 365 jours est technique.
+
+Consigner une vérification humaine proportionnée, sans pièce d’identité ni message complet. Après vérification : préparer le dossier d’accès pour relecture, publier une correction des propositions via la revue intégrée, ou consigner un réexamen humain. Après réponse manuelle par le canal vérifié, enregistrer sa référence et clôturer avec une issue motivée. Une demande non satisfaite exige également une personne vérifiée ; tant que l’identité n’est pas établie, la demande demeure en attente et aucun dossier n’est préparé. La file « Demandes candidat à traiter » permet de filtrer les retards. Les décisions de prolongation restent humaines, motivées et tracées.
+
+Une demande ne gèle pas sa source automatiquement. Si une exception de conservation est nécessaire, utiliser explicitement le gel motivé SH-32 avant expiration. Une source expirée ou effacée rend ses demandes détaillées inaccessibles ; les textes sont purgés avec elle et seul l’audit minimal subsiste. Voir `validation/sh-33.md` pour le périmètre exact du dossier et les canaux manuels.
