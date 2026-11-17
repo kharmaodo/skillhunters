@@ -138,3 +138,9 @@ CandidateLineage orchestre la vérification de contact, les suggestions limitée
 ## Droits candidat SH-33
 
 `rights.CandidateRights` orchestre le traitement humain d’une demande reçue par e-mail. Le service contrôle COMPLIANCE et le vivier, puis verrouille l’identité et la fiche avant vérification ou action. If-Match porte sur la demande ; la rectification contrôle également la version de fiche et publie via ReviewService dans la même transaction. Le dossier JSON est généré à la demande pour un opérateur autorisé après vérification, sans copie persistante ni envoi. Le canal de réponse reste l’e-mail manuel au MVP. La file de suivi signale les demandes en retard sans inventer de délai légal.
+
+## Paramètres d’admission SH-28
+
+`ImportSettings` publie une liste explicite de cinq valeurs non secrètes sous rôle ADMIN, CSRF et If-Match. Le verrou de compte précède le verrou de tête de configuration, partagé avec la réservation des nouveaux imports et manifestes ; les versions sont immuables. L’I/O objet reste hors de cette section critique. La reprise retrouve sa réservation avant de consulter les nouvelles règles. Les fichiers d’un lot reprennent la version de son manifeste et ses quotas déjà réservés. La configuration ne peut jamais relever les plafonds techniques des workers ou du multipart.
+
+La première lecture initialise la version 1 depuis les quotas de déploiement non secrets. Les imports antérieurs gardent une référence nulle, sans reconstruction historique. Le membre d’un vivier ne reçoit que les limites et leur numéro, sans auteur ni motif. Le modèle nettoyé est une ressource qualifiée livrée avec l’application, pas un upload arbitraire ; ses version et SHA-256 sont conservés dans la configuration et les reçus d’export SH-11.

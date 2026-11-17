@@ -1,10 +1,10 @@
 # Recensement MVP — 17 novembre 2026
 
-Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #30 (SH-32). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
+Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #31 (SH-33). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
 
 ## Tickets livrés dans develop
 
-27 tickets avec livraison identifiée, sous réserve des qualifications et limites ci-dessous.
+28 tickets avec livraison identifiée, sous réserve des qualifications et limites ci-dessous.
 
 | Ticket | État |
 |---|---|
@@ -36,18 +36,19 @@ Référence : backlog du dossier de conception, documentation de validation et �
 | SH-31 — Provenance base légale et opposition | Livré dans develop ; limites des fiches de validation applicables |
 | SH-32 — Conservation et suppression complète | Fusionné — PR #30 ; gels, purge et rejeu signés, limites SH-29 documentées |
 
+| SH-33 — Accès, rectification et recours | Fusionné — PR #31 ; build et parcours corrigés, CI verte |
+
 ## Tickets MVP sans livraison complète identifiée
 
 | Ticket | État au début de cette livraison | Travail restant |
 |---|---|---|
-| SH-28 — Paramètres et template versionné | Fondations présentes, ticket non livré | Administration versionnée des quotas/paramètres, règles appliquées aux nouveaux travaux et référence des anciennes règles ; modèle Word nettoyé déjà livré par SH-11 |
+| SH-28 — Paramètres et template versionné | Implémenté dans cette branche, validation avant fusion | Quotas et limites versionnés, références figées, modèle nettoyé et historique ; voir validation/sh-28.md |
 | SH-29 — Exploitation locale et Docker | Démarrage et CI présents, ticket non clos | Procédure et recette sauvegarde/restauration complète avec contrôle des empreintes, sécurisation des deux modes d'exploitation |
-| SH-33 — Accès, rectification et recours | Implémenté dans cette branche, validation avant fusion | Demande e-mail, vérification humaine, dossier par source, correction publiée, réexamen et clôture ; voir validation/sh-33.md |
 | SH-34 — Export autorisé | À livrer | CSV de sélection avec champs autorisés, quotas, neutralisation des formules et lien bref ; l'export Word SH-11 ne clôt pas ce ticket |
 | SH-35 — Évaluation des biais et modèles | À livrer | Tests contrefactuels et par format, rapport de qualification et décision de mise en service |
 | SH-36 — Suivi opérationnel des imports | Mécanismes de traitement présents, ticket non livré | Métriques agrégées, file morte, relance contrôlée et recette de reprise après expiration de bail |
 
-Soit **6 tickets** encore à livrer/finaliser, dont SH-33 en cours de validation, plus les qualifications détaillées ci-dessous. Après fusion de SH-33, il restera 5 tickets : SH-28, SH-29, SH-34, SH-35 et SH-36.
+Soit **5 tickets** encore à livrer/finaliser, dont SH-28 en cours de validation, plus les qualifications détaillées ci-dessous. Après fusion de SH-28, il restera 4 tickets : SH-29, SH-34, SH-35 et SH-36.
 
 ## Compléments de tickets déjà fusionnés
 
@@ -58,6 +59,6 @@ Soit **6 tickets** encore à livrer/finaliser, dont SH-33 en cours de validation
 
 ## Ordre proposé
 
-SH-33, puis finalisation SH-28/SH-29, SH-34, SH-35 et SH-36 avant recette globale. Les tests de qualité et d'exploitation peuvent être préparés en continu ; la clôture dépend de leurs preuves, pas de l'ordre numérique.
+SH-28, puis SH-29, SH-34, SH-35 et SH-36 avant recette globale. Les tests de qualité et d'exploitation peuvent être préparés en continu ; la clôture dépend de leurs preuves, pas de l'ordre numérique.
 
 Hors MVP : SH-17, SH-23, SH-27, SH-37 et SH-38 (R1) ; SH-39, SH-40 et SH-41 (R2).

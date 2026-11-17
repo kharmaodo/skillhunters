@@ -163,4 +163,18 @@ class BatchImportTest extends IdentityTestSupport {
         mvc.perform(post("/api/v1/import-batches").with(as("alice")).with(csrf()).header("Idempotency-Key","retention-key")
             .contentType("application/json").content(body(poolA,files))).andExpect(status().isGone());
     }
+    @Autowired com.skillhunters.settings.ImportSettings settings;
+    @Test void batchKeepsAdmissionRulesAcrossQuotaAndSizeReduction() throws Exception {
+        byte[] bytes="Synthetic batch data".getBytes();var files=List.of(spec("a.md",bytes),spec("b.md",bytes));var old=create("settings-batch-key",files);
+        settings.publish(admin,"\"1\"",new com.skillhunters.settings.ImportSettings.Edit(new com.skillhunters.settings.ImportSettings.Limits(4,1,100,1,100),"Réduction synthétique"));
+        assertThat(create("settings-batch-key",files).get("settingsVersion").asLong()).isEqualTo(1);
+        upload(old,0,bytes);upload(old,1,bytes);
+        assertThat(db.queryForList("SELECT settings_version FROM document_import",Long.class)).containsOnly(1L);assertThat(storage.objects).hasSize(2);
+        mvc.perform(post("/api/v1/import-batches").with(as("alice")).with(csrf()).header("Idempotency-Key","new-settings-batch").contentType("application/json").content(body(poolA,files))).andExpect(status().isPayloadTooLarge());
+    }
+    @Test void legacyReservedBatchIsNotAssignedAnInventedSettingsVersion() throws Exception {
+        byte[] bytes="Synthetic legacy data".getBytes();var old=create("legacy-settings-batch",List.of(spec("old.md",bytes)));
+        db.update("UPDATE import_batch SET settings_version=NULL");settings.publish(admin,"\"1\"",new com.skillhunters.settings.ImportSettings.Edit(new com.skillhunters.settings.ImportSettings.Limits(4,1,100,1,100),"Nouvelle règle"));
+        upload(old,0,bytes);assertThat(storage.objects).hasSize(1);assertThat(db.queryForObject("SELECT settings_version FROM document_import",Long.class)).isNull();
+    }
 }

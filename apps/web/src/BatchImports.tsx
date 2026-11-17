@@ -3,14 +3,14 @@ import { api, ApiError, message, type Pool, type Session } from './api';
 
 type Policy = { id: string; label: string; purpose: string; basisCode: string; retentionDays: number };
 type Item = { id: string; fileName: string; byteSize: number; sha256: string; state: string; errorCode: string | null; attempts: number; retryAfter: string | null };
-type Batch = { id: string; poolId: string; canUpload: boolean; completedFiles: number; totalFiles: number; items: Item[] };
+type Batch = { id: string; settingsVersion:number|null; poolId: string; canUpload: boolean; completedFiles: number; totalFiles: number; items: Item[] };
 type Summary = { id: string; createdAt: string; completedFiles: number; totalFiles: number };
 type Page = { items: Summary[]; nextCursor: string | null };
 type Selected = { file: File; fileName: string; byteSize: number; sha256: string };
 const terminal = (item: Item) => ['QUARANTINED', 'REJECTED_FORMAT', 'FAILED'].includes(item.state);
 const labels: Record<string, string> = { WAITING_UPLOAD: 'À envoyer', UPLOADING: 'Réception en cours', QUARANTINED: 'En quarantaine', REJECTED_FORMAT: 'Format refusé', RETRYABLE_FAILURE: 'À reprendre', FAILED: 'Échec définitif' };
 const reasons: Record<string, string> = {
-  EMPTY_FILE: 'Fichier vide', FILE_TOO_LARGE: 'Fichier supérieur à 15 Mio', UNSUPPORTED_FORMAT: 'Extension non acceptée',
+  EMPTY_FILE: 'Fichier vide', FILE_TOO_LARGE: 'Fichier supérieur à la limite applicable', UNSUPPORTED_FORMAT: 'Extension non acceptée',
   SIGNATURE_MISMATCH: 'Le contenu ne correspond pas au format attendu', MIME_MISMATCH: 'Type déclaré incohérent',
   INVALID_TEXT: 'Texte UTF-8 invalide', UNSAFE_ARCHIVE: 'Archive non autorisée', ARCHIVE_LIMIT: 'Limite de décompression dépassée',
   QUARANTINE_UNAVAILABLE: 'Stockage temporairement indisponible', RECEPTION_UNAVAILABLE: 'Réception indisponible',
@@ -121,14 +121,14 @@ export function BatchImports({ pool, session, failed, back }: { pool: Pool; sess
 
   return <section className="import-section">
     <div className="row"><h3>Importer un lot</h3><button className="text-button" disabled={busy} onClick={back}>Retour au dépôt individuel</button></div>
-    <p className="muted">De 1 à 100 fichiers, 300 Mio par lot et 15 Mio par fichier. Chaque fichier garde son résultat, même si un autre est refusé. Aucun fichier ne sort de quarantaine.</p>
+    <p className="muted">Plafonds techniques : 100 fichiers, 300 Mio par lot et 15 Mio par fichier. Les paramètres administrés peuvent fixer des limites inférieures, contrôlées à la réservation. Chaque fichier garde son résultat, même si un autre est refusé. Aucun fichier ne sort de quarantaine.</p>
     {loading ? <p role="status">Chargement…</p> : <>
       {!batch && <div className="import-form">
         <label htmlFor="batch-policy">Cadre du lot</label><select id="batch-policy" value={policyId} disabled={busy} onChange={e => { setPolicyId(e.target.value); key.current = crypto.randomUUID(); }}>{policies.map(p => <option key={p.id} value={p.id}>{p.label}</option>)}</select>
         {!policies.length && <p className="alert">Aucune politique d’import configurée.</p>}
         <label htmlFor="batch-source">Provenance des documents</label><input id="batch-source" value={source} maxLength={200} disabled={busy} onChange={e => { setSource(e.target.value); key.current = crypto.randomUUID(); }}/>
       </div>}
-      {batch && <><p className="fine">Lot {batch.id}</p><p role="status">{batch.completedFiles} / {batch.totalFiles} fichiers terminés (reçus ou refusés).</p><progress max={batch.totalFiles} value={batch.completedFiles} aria-label="Progression du lot"/>
+      {batch && <><p className="fine">Lot {batch.id} · Règles : {batch.settingsVersion==null?"antérieures au versionnement":"v"+batch.settingsVersion}</p><p role="status">{batch.completedFiles} / {batch.totalFiles} fichiers terminés (reçus ou refusés).</p><progress max={batch.totalFiles} value={batch.completedFiles} aria-label="Progression du lot"/>
         {!batch.canUpload && <p className="alert">La reprise est réservée à l’auteur du lot, habilité à ce vivier, avant son échéance.</p>}
         <p className="fine">Pour reprendre, resélectionnez les fichiers locaux d’origine. Leurs empreintes seront vérifiées ; les fichiers déjà reçus ne seront pas renvoyés.</p></>}
       {(!batch || (batch.canUpload && batch.completedFiles < batch.totalFiles)) && <div className="import-form">

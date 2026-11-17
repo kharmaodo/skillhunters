@@ -213,7 +213,7 @@
           }
         },
         "x-implementation-status": "implemented",
-        "description": "Limite 15 Mio, un fichier. Idempotence par acteur/vivier/clé ; conflit si empreinte ou métadonnées diffèrent. Aucun parsing métier. Quotas initiaux : 1 000 fichiers et 3 000 Mio par acteur, réservations de lots incluses ; quatre réceptions actives par instance. DOC/PDF nécessitent encore qualification isolée, antivirus et limite de pages. Le préfixe de clé batch- est réservé au service de lots. Pour plusieurs fichiers utiliser /import-batches."
+        "description": "Limite 15 Mio, un fichier. Idempotence par acteur/vivier/clé ; conflit si empreinte ou métadonnées diffèrent. Aucun parsing métier. Quotas initiaux : 1 000 fichiers et 3 000 Mio par acteur, réservations de lots incluses ; quatre réceptions actives par instance. DOC/PDF nécessitent encore qualification isolée, antivirus et limite de pages. Le préfixe de clé batch- est réservé au service de lots. Pour plusieurs fichiers utiliser /import-batches. SH-28 : limites d’admission administrables sous les plafonds techniques, version figée à la réservation et retournée dans settingsVersion ; reprise sans réévaluation des nouvelles limites."
       }
     },
     "/imports/{id}": {
@@ -2689,7 +2689,7 @@
             }
           }
         },
-        "description": "300 Mio par lot. Idempotence acteur/vivier/clé/empreinte du manifeste ordonné. Politique figée. Un rejet individuel est conservé sans annuler le lot. Les quotas incluent les réservations."
+        "description": "300 Mio par lot. Idempotence acteur/vivier/clé/empreinte du manifeste ordonné. Politique figée. Un rejet individuel est conservé sans annuler le lot. Les quotas incluent les réservations. SH-28 : limites administrables sous ces plafonds, version figée dans settingsVersion ; les fichiers réservés héritent de cette version même après baisse des limites ou quotas."
       }
     },
     "/import-batches/{id}": {
@@ -7399,6 +7399,227 @@
         },
         "x-implementation-status": "implemented"
       }
+    },
+    "/admin/import-settings": {
+      "get": {
+        "operationId": "getImportSettings",
+        "summary": "Lire les paramètres courants — ADMIN",
+        "tags": [
+          "Administration"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Valeurs non secrètes. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSettingsVersion"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version entre guillemets, à transmettre dans If-Match."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      },
+      "put": {
+        "operationId": "publishImportSettings",
+        "summary": "Publier une version immuable — ADMIN",
+        "tags": [
+          "Administration"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valeurs non secrètes. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSettingsVersion"
+                }
+              }
+            },
+            "headers": {
+              "ETag": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Version entre guillemets, à transmettre dans If-Match."
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "412": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "428": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "429": {
+            "$ref": "#/components/responses/Problem"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportSettingsEdit"
+              }
+            }
+          }
+        },
+        "description": "Réservation et publication sont sérialisées. Les nouveaux imports et lots utilisent cette version ; les reprises conservent la référence réservée. Aucun secret ni paramètre de sécurité worker. Maximum 10 000 versions."
+      }
+    },
+    "/admin/import-settings/history": {
+      "get": {
+        "operationId": "listImportSettingsHistory",
+        "summary": "Historique des valeurs et auteurs — ADMIN",
+        "tags": [
+          "Administration"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valeurs non secrètes. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportSettingsPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/admin/import-settings/template": {
+      "get": {
+        "operationId": "downloadCleanCvTemplate",
+        "summary": "Télécharger le modèle Word nettoyé livré — ADMIN",
+        "tags": [
+          "Administration"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Modèle propre qualifié, séparé de l’original. Attachment et no-store. Version et SHA-256 dans les paramètres.",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.wordprocessingml.document": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
+    },
+    "/pools/{poolId}/import-settings": {
+      "get": {
+        "operationId": "getPoolImportAdmissionSettings",
+        "summary": "Consulter les limites courantes — membre du vivier",
+        "tags": [
+          "Administration"
+        ],
+        "x-implementation-status": "implemented",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Valeurs non secrètes. Cache-Control: no-store.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportAdmissionSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "403": {
+            "$ref": "#/components/responses/Problem"
+          },
+          "404": {
+            "$ref": "#/components/responses/Problem"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7708,12 +7929,21 @@
           },
           "validationVersion": {
             "type": "string"
+          },
+          "settingsVersion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Version immuable des règles d’admission réservées. null pour les réceptions antérieures à V29 ; aucune version historique inventée."
           }
         },
         "required": [
           "id",
           "createdAt",
-          "items"
+          "items",
+          "settingsVersion"
         ],
         "description": "Réception individuelle SH-03. Aucun objet S3 ni URL de téléchargement exposé. QUARANTINED signifie réception réussie, pas antivirus réussi."
       },
@@ -9861,6 +10091,14 @@
             "items": {
               "$ref": "#/components/schemas/BatchUploadItem"
             }
+          },
+          "settingsVersion": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "Version immuable des règles d’admission réservées. null pour les réceptions antérieures à V29 ; aucune version historique inventée."
           }
         },
         "required": [
@@ -9871,7 +10109,8 @@
           "canUpload",
           "completedFiles",
           "totalFiles",
-          "items"
+          "items",
+          "settingsVersion"
         ]
       },
       "UploadBatchSummary": {
@@ -14496,6 +14735,180 @@
               "null"
             ],
             "format": "uuid"
+          }
+        }
+      },
+      "ImportSettingsLimits": {
+        "type": "object",
+        "required": [
+          "maxFileBytes",
+          "maxBatchFiles",
+          "maxBatchBytes",
+          "maxFilesPerUser",
+          "maxBytesPerUser"
+        ],
+        "properties": {
+          "maxFileBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 15728640
+          },
+          "maxBatchFiles": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "maxBatchBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 314572800
+          },
+          "maxFilesPerUser": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "maxBytesPerUser": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1099511627776
+          }
+        },
+        "description": "Bornes d’admission. maxBatchBytes doit être supérieur ou égal à maxFileBytes. Quotas par compte, tous viviers et réservations inclus."
+      },
+      "ImportSettingsVersion": {
+        "type": "object",
+        "required": [
+          "maxFileBytes",
+          "maxBatchFiles",
+          "maxBatchBytes",
+          "maxFilesPerUser",
+          "maxBytesPerUser",
+          "version",
+          "templateVersion",
+          "templateSha256",
+          "actorId",
+          "createdAt",
+          "reason"
+        ],
+        "properties": {
+          "maxFileBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 15728640
+          },
+          "maxBatchFiles": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "maxBatchBytes": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 314572800
+          },
+          "maxFilesPerUser": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 100000
+          },
+          "maxBytesPerUser": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "maximum": 1099511627776
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "templateVersion": {
+            "type": "string"
+          },
+          "templateSha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "actorId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
+      },
+      "ImportSettingsEdit": {
+        "type": "object",
+        "required": [
+          "limits",
+          "reason"
+        ],
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/ImportSettingsLimits"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500,
+            "description": "Motif non blanc sans caractères de contrôle ; ne pas saisir de secret ou de donnée candidat."
+          }
+        }
+      },
+      "ImportSettingsPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/ImportSettingsVersion"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        }
+      },
+      "ImportAdmissionSettings": {
+        "type": "object",
+        "required": [
+          "version",
+          "limits"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limits": {
+            "$ref": "#/components/schemas/ImportSettingsLimits"
           }
         }
       }

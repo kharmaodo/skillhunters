@@ -153,4 +153,18 @@ class ImportSecurityTest extends IdentityTestSupport {
         mvc.perform(upload(poolA,"short","test").with(as("alice")).with(csrf())).andExpect(status().isBadRequest());
         assertThat(storage.objects).isEmpty();
     }
+    @Autowired com.skillhunters.settings.ImportSettings settings;
+    @Test void newLimitsApplyToNewImportsButNotReservedReceiptsOrTheirReplay() throws Exception {
+        storage.fail=true;
+        mvc.perform(upload(poolA,"frozen-settings-key","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isServiceUnavailable());
+        var id=db.queryForObject("SELECT id FROM document_import",UUID.class);
+        var edit=new com.skillhunters.settings.ImportSettings.Edit(new com.skillhunters.settings.ImportSettings.Limits(4,1,4,2,100),"Limite synthétique réduite");
+        settings.publish(admin,"\"1\"",edit);storage.fail=false;
+        mvc.perform(upload(poolA,"frozen-settings-key","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isAccepted()).andExpect(jsonPath("$.settingsVersion").value(1));
+        mvc.perform(upload(poolA,"new-settings-key","# Synthetic CV").with(as("alice")).with(csrf())).andExpect(status().isPayloadTooLarge());
+        mvc.perform(upload(poolA,"small-settings-key","Test").with(as("alice")).with(csrf())).andExpect(status().isAccepted()).andExpect(jsonPath("$.settingsVersion").value(2));
+        mvc.perform(upload(poolA,"quota-settings-key","Test").with(as("alice")).with(csrf())).andExpect(status().isTooManyRequests());
+        assertThat(db.queryForObject("SELECT settings_version FROM document_import WHERE id=?",Long.class,id)).isEqualTo(1);
+        assertThat(settings.version(1).maxFileBytes()).isEqualTo(15728640);assertThat(storage.objects).hasSize(2);
+    }
 }

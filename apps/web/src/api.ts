@@ -20,6 +20,8 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'SETTINGS_CHANGED') return 'Les paramètres ont changé. Rechargez la version courante avant de publier.';
+    if (error.code === 'INVALID_SETTINGS') return 'Vérifiez les bornes, le motif et la cohérence des tailles de fichier et de lot.';
     if (error.code === 'IDENTITY_NOT_VERIFIED') return 'Vérifiez la personne et le canal de réponse avant de traiter la demande.';
     if (error.code === 'IDENTITY_VERIFICATION_CHANGED') return 'Les coordonnées ou le rattachement ont changé. Une nouvelle vérification humaine est requise.';
     if (error.code === 'IDENTITY_ALREADY_VERIFIED') return 'La vérification est déjà enregistrée pour ces coordonnées.';
@@ -74,7 +76,7 @@ export function message(error: unknown): string {
     if (error.code === 'EXPORT_MEMBERSHIP_REQUIRED') return 'Attribuez d’abord un rôle dans ce vivier, puis autorisez l’export.';
     if (error.status === 403) return 'Cette action n’est pas autorisée. Vos habilitations ont peut-être changé.';
     if (error.status === 404) return 'Cet élément n’est pas disponible dans votre périmètre.';
-    if (error.status === 413) return 'Le fichier dépasse la limite de 15 Mio.';
+    if (error.status === 413) return 'Le fichier dépasse la limite applicable.';
     if (error.status === 415) return 'Ce document est vide, son format est invalide ou son archive dépasse les limites de sécurité. Utilisez un PDF, DOCX, DOC ou Markdown valide.';
     if (error.code === 'IMPORT_NOT_COMPARABLE') return 'Ce dépôt est expiré ou sa réception est incomplète. La comparaison est indisponible.';
     if (error.code === 'FILE_FINGERPRINT_MISMATCH') return 'Le fichier ne correspond pas au document d’origine. Resélectionnez le même nom et le même contenu.';

@@ -37,6 +37,8 @@ abstract class IdentityTestSupport {
         db.update("UPDATE skill_dictionary_head SET version=0 WHERE id=1");
         db.update("DELETE FROM skill_dictionary WHERE version>0");
         for (var table : List.of("export_permission", "document_analysis_event", "document_analysis", "import_batch_event", "import_batch_item", "import_batch", "document_audit", "document_import", "import_policy", "identity_audit", "membership", "global_role", "talent_pool", "app_user")) db.update("DELETE FROM " + table);
+        db.update("DELETE FROM import_settings_version");
+        db.update("UPDATE import_settings_head SET version=0 WHERE id=1");
         db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", alice, issuer, "alice", "Alice Exemple");
         db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)", admin, issuer, "admin", "Admin Exemple");
         db.update("INSERT INTO talent_pool(id,name) VALUES (?,?)", poolA, "Vivier A");

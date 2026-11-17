@@ -51,6 +51,7 @@ Table document_version {
  created_at timestamptz [not null]
 }
 Table import_batch {
+ settings_version bigint [ref: > import_settings_version.version, note: "V29 : null pour les réservations antérieures"]
  id uuid [pk]
  actor_id uuid [not null, ref: > app_user.id]
  pool_id uuid [not null, ref: > talent_pool.id]
@@ -418,4 +419,23 @@ Table candidate_lineage_event {
  candidate_version bigint [not null]
  reason varchar(500) [not null]
  occurred_at timestamptz [not null]
+}
+
+Table import_settings_head {
+ id int [pk, note: 'Ligne unique id=1']
+ version bigint [not null, note: '0 avant initialisation transactionnelle']
+}
+Table import_settings_version {
+ version bigint [pk]
+ max_file_bytes bigint [not null]
+ max_batch_files int [not null]
+ max_batch_bytes bigint [not null]
+ max_files_per_user bigint [not null]
+ max_bytes_per_user bigint [not null]
+ template_version varchar [not null]
+ template_sha256 varchar [not null]
+ actor_id uuid
+ created_at timestamptz [not null]
+ reason varchar [not null]
+ Note: 'V29. Référencée aussi par document_import.settings_version dans le schéma exécutable ; versions immuables, valeurs non secrètes.'
 }

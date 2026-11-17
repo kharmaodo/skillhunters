@@ -178,3 +178,9 @@ V28 ajoute `candidate_rights_request`, liée à une source par `candidate_profil
 `candidate_rights_event` trace réception, vérification, modification d’échéance, préparation du dossier, correction publiée, réexamen et clôture. Historique paginé par séquence, 25 événements ; demandes et file du vivier paginées par UUID, 25 lignes. Les textes et références suivent l’effacement de la source. `governance_audit` ne conserve que l’action, les identifiants pseudonymes et la date. Aucun texte de demande ou justificatif dans cet audit minimal.
 
 La correction réutilise SH-10 : nouvelle révision humaine et remplacement de l’index courant dans la même transaction que l’action SH-33. L’extraction d’origine reste une preuve immuable. Les anciennes publications et snapshots restent historiques sous leur rétention ; les nouvelles recherches utilisent la correction. Aucun nouveau vecteur candidat n’est créé.
+
+## SH-28 — paramètres versionnés
+
+V29 ajoute `import_settings_head` (ligne unique, version courante, verrou de publication) et `import_settings_version` (cinq limites non secrètes, modèle/empreinte, auteur, date et motif). Les versions ne sont jamais réécrites. `document_import.settings_version` et `import_batch.settings_version` référencent la version réservée ; les fichiers d’un lot héritent de celle du manifeste. Les lignes préexistantes restent nulles pour ne pas inventer une référence. Les versions de configuration survivent à la purge des documents sans contenir leur contenu ou leurs coordonnées.
+
+La version initiale est créée transactionnellement au premier accès ; son auteur nul désigne l’initialisation. Les publications suivantes exigent un administrateur actif, un motif et la version courante. Le journal SH-30 enregistre lectures/publications et téléchargement du modèle, sans recopier les valeurs ou le motif libre dans les événements.
