@@ -283,6 +283,10 @@ class Operations:
                 raise ValueError('APPLICATION_NOT_READY')
         if self.sql("SELECT count(*) FROM erasure_tombstone WHERE state<>'COMPLETE'", 'skillhunters') != '0':
             raise ValueError('ERASURE_REPLAY_NOT_COMPLETE')
+        due = self.sql("SELECT count(*) FROM document_import d WHERE d.expires_at<=CURRENT_TIMESTAMP AND NOT EXISTS (SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP)", 'skillhunters')
+        batches = self.sql("SELECT count(*) FROM import_batch b WHERE b.expires_at<=CURRENT_TIMESTAMP AND NOT EXISTS (SELECT 1 FROM import_batch_item i JOIN document_import d ON d.idempotency_key=CONCAT('batch-',CAST(i.id AS VARCHAR)) JOIN retention_hold h ON h.import_id=d.id WHERE i.batch_id=b.id AND h.until_at>CURRENT_TIMESTAMP)", 'skillhunters')
+        if due != '0' or batches != '0':
+            raise ValueError('EXPIRED_DATA_PURGE_NOT_COMPLETE')
         erased = json.loads(self.sql("SELECT coalesce(json_agg(x),'[]') FROM (SELECT source_id,pool_id FROM erasure_tombstone WHERE kind='IMPORT') x", 'skillhunters'))
         keys = {item['key'] for item in self.objects()}
         if any('quarantine/' + r['pool_id'] + '/' + r['source_id'] in keys for r in erased):

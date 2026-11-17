@@ -51,6 +51,12 @@ class SnapshotTest(unittest.TestCase):
     def test_latest_deleted_document_cannot_be_restored_as_live(self):
         self.manifest['objects'][0]['delete']=True;self.write()
         with self.assertRaisesRegex(ValueError,'DOCUMENT_OBJECT'):b.validate_snapshot(self.path,KEY)
+    def test_final_verification_waits_for_expired_sources_to_be_purged(self):
+        from unittest.mock import patch
+        from io import BytesIO
+        ops=object.__new__(b.Operations);ops.sql=Mock(side_effect=['0','1','0'])
+        with patch('urllib.request.urlopen',return_value=BytesIO(b'{"status":"UP"}')):
+            with self.assertRaisesRegex(ValueError,'EXPIRED_DATA_PURGE'):ops.verify()
     def test_restore_never_mutates_without_current_ledger_ack(self):
         ops=object.__new__(b.Operations);ops.s3=Mock();ops.compose=Mock()
         with self.assertRaisesRegex(ValueError,'CURRENT_INDEPENDENT'):ops.restore(self.path,False)
