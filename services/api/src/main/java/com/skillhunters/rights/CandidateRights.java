@@ -73,7 +73,7 @@ public class CandidateRights {
         return new AccessBundle(read(candidate,id),profile,review.source(),review.publishedRevisionId()==null?null:reviews.revision(actor,candidate,review.publishedRevisionId()),List.of("Fiche et coordonnées de cette source","Propositions et preuves du document","Dernière révision humaine publiée","Autres sources, historiques et données de tiers à examiner séparément avant réponse"));
     });}
     public CorrectionResult correct(UUID actor,UUID candidate,UUID id,String etag,Correction in){return tx.execute(t->{var c=writable(actor,candidate,id,etag,true);if(!Set.of("RECTIFICATION","APPEAL").contains(c.kind())||in==null||!in.confirmed()||in.review()==null)invalid();
-        var before=reviews.get(actor,candidate);if(before.publishedRevisionId()!=null&&in.review().items()!=null&&reviews.revision(actor,candidate,before.publishedRevisionId()).items().equals(in.review().items()))fail(HttpStatus.CONFLICT,"RIGHTS_CORRECTION_REQUIRED");
+        var before=reviews.get(actor,candidate);if(before.publishedRevisionId()!=null&&in.review().items()!=null&&sameData(reviews.revision(actor,candidate,before.publishedRevisionId()).items(),in.review().items()))fail(HttpStatus.CONFLICT,"RIGHTS_CORRECTION_REQUIRED");
         var revision=reviews.save(actor,candidate,"\""+in.candidateVersion()+"\"",in.review(),true);
         db.sql("UPDATE candidate_rights_request SET version=version+1,state='IN_PROGRESS',corrected_revision=:revision WHERE id=:id").param("revision",revision.id()).param("id",id).update();event(actor,candidate,id,"RECTIFIED",revision.id().toString(),null);return new CorrectionResult(read(candidate,id),revision);
     });}
@@ -88,6 +88,11 @@ public class CandidateRights {
         }
         db.sql("UPDATE candidate_rights_request SET version=version+1,state='CLOSED',outcome=:outcome,response_reference=:ref,closed_at=:now WHERE id=:id").param("outcome",in.outcome()).param("ref",in.responseReference().strip()).param("now",now()).param("id",id).update();event(actor,candidate,id,"CLOSED",in.responseReference(),in.outcome()+" : "+in.reason());return read(candidate,id);
     });}
+    private static boolean sameData(List<ReviewService.Item> before,List<ReviewService.Item> after){
+        if(before.size()!=after.size())return false;
+        for(int i=0;i<before.size();i++){var a=before.get(i);var b=after.get(i);if(b==null||a.sourceIndex()!=b.sourceIndex()||!Objects.equals(a.value(),b.value())||a.decision()!=b.decision()||a.precision()!=b.precision()||!Objects.equals(a.period(),b.period()))return false;}
+        return true; // A changed justification alone is not a rectification of candidate data.
+    }
     private static void deadline(OffsetDateTime received,OffsetDateTime due,String policy){text(policy,200);if(due==null||!due.isAfter(received)||due.isAfter(received.plusDays(365)))invalid();}
     private static void text(String s,int max){if(s==null||s.isBlank()||s.length()>max||s.codePoints().anyMatch(Character::isISOControl))invalid();}
     private static OffsetDateTime now(){return OffsetDateTime.now(ZoneOffset.UTC);}

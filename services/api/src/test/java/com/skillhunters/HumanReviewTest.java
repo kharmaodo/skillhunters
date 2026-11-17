@@ -1189,6 +1189,8 @@ class HumanReviewTest extends IdentityTestSupport {
     @Test void rejectedCorrectionRollsBackCaseAndPublishedIndex() {
         var c=create();complianceRole();var published=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);var r=verifiedRequest(c.id(),"RECTIFICATION");
         assertThatThrownBy(()->rights.correct(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Correction(1,request(accepted(c.id())),true))).isInstanceOf(Rejected.class);
+        var reasonsOnly=accepted(c.id()).stream().map(i->new Item(i.sourceIndex(),i.value(),i.decision(),i.precision(),i.period(),"Nouveau motif sans correction des données")).toList();
+        assertThatThrownBy(()->rights.correct(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Correction(2,request(reasonsOnly),true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RIGHTS_CORRECTION_REQUIRED"));
         assertThat(reviews.publication(alice,c.id()).revisionId()).isEqualTo(published.id());assertThat(rights.list(alice,c.id(),null).items().getFirst().version()).isEqualTo(2);assertThat(rights.history(alice,c.id(),r.id(),null).items()).hasSize(2);
     }
 }
