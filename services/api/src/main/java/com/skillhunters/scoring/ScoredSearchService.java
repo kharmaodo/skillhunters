@@ -135,9 +135,9 @@ public class ScoredSearchService {
     }
     @Scheduled(initialDelayString="${app.scoring.cleanup-ms:3600000}",fixedDelayString="${app.scoring.cleanup-ms:3600000}")
     public void cleanup() {
-        tx.executeWithoutResult(t->{
-            db.sql("DELETE FROM scored_search WHERE expires_at<=:now").param("now",OffsetDateTime.now(ZoneOffset.UTC)).update();
-            db.sql("DELETE FROM scored_search_item WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now)")
+        tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();
+            db.sql("DELETE FROM scored_search WHERE expires_at<=:now AND NOT EXISTS(SELECT 1 FROM scored_search_item si JOIN candidate_profile c ON c.id=si.candidate_id JOIN retention_hold h ON h.import_id=c.import_id WHERE si.search_id=scored_search.id AND h.until_at>CURRENT_TIMESTAMP)").param("now",OffsetDateTime.now(ZoneOffset.UTC)).update();
+            db.sql("DELETE FROM scored_search_item WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now AND NOT EXISTS(SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP))")
                 .param("now",OffsetDateTime.now(ZoneOffset.UTC)).update();
         });
     }

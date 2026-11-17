@@ -125,7 +125,7 @@ Les migrations V1/V2 sont conservées ; V3 est appliquée au redémarrage de l'A
 
 Dans un vivier, choisir **Importer un lot**, renseigner le cadre et la provenance puis sélectionner jusqu'à 100 documents synthétiques. L'interface réserve le lot et envoie deux fichiers à la fois. Pour tester une reprise, suspendre l'envoi ou fermer l'onglet, puis rouvrir le vivier → Importer un lot → Ouvrir le lot. Resélectionner les originaux ; seuls les fichiers encore attendus sont transmis. Un transfert interrompu après arrivée au serveur peut nécessiter l'expiration de son bail de deux minutes.
 
-Configuration facultative : `IMPORT_MAX_FILES_PER_USER` (1 000) et `IMPORT_MAX_BYTES_PER_USER` (3 145 728 000, soit 3 000 Mio). Ces quotas cumulent fichiers individuels et réservations de lots, y compris rejets et réceptions incomplètes ; l'absence de purge automatique reste une limite explicite. Limites de lot : 100 fichiers/300 Mio, 15 Mio par fichier.
+Configuration facultative : `IMPORT_MAX_FILES_PER_USER` (1 000) et `IMPORT_MAX_BYTES_PER_USER` (3 145 728 000, soit 3 000 Mio). Ces quotas cumulent fichiers individuels et réservations de lots, y compris rejets et réceptions incomplètes ; SH-32 libère ces réservations à échéance hors gel motivé. Limites de lot : 100 fichiers/300 Mio, 15 Mio par fichier.
 
 Le test Java de référence envoie 100 fichiers dont un faux PDF et exige 99 réceptions persistées ainsi qu'un rejet identifié. La recette Playwright comporte désormais quatre scénarios : deux individuels et deux lots avec succès partiel, interruption puis reprise après rechargement, desktop et mobile.
 
@@ -198,3 +198,21 @@ Le profil applicatif Docker inclut Mailpit, boîte de capture sans relais sortan
 
 ### Historique des contacts (SH-26)
 CONTACT_HISTORY_DAYS borne la conservation des nouveaux messages approuvés (défaut 90, de 1 à 3650 jours), toujours limitée par la source. Les brouillons utilisent ce délai depuis leur création. La purge conserve les marqueurs anti-double-envoi jusqu'à suppression de la candidature. Voir validation/sh-26.md pour migration et limites.
+
+
+## SH-32 — conservation, journal et sauvegardes
+
+Pour une installation existante : `python3 scripts/init_local.py --upgrade-retention`, puis reconstruire/redémarrer l’API. Conserver `ERASURE_LEDGER_KEY` durablement (au moins 32 caractères), séparément des snapshots ; une rotation non migrée rend les signatures antérieures invalides et bloque le démarrage. Le bucket `skillhunters-erasure-ledger` est distinct de `skillhunters-quarantine` ; le compose local crée les deux. En exploitation, préprovisionner le bucket, restreindre sa lecture/écriture à l’application, interdire sa suppression/remplacement à l’identité de restauration, et sauvegarder son état courant indépendamment. Le compose de démonstration utilise encore un même volume physique et des identifiants S3 administrateur : ce n’est pas une garantie WORM ni une politique de sauvegarde production.
+
+Le traitement tourne chaque minute, par lots de 25 sources et 25 manifestes. Les échecs restent PENDING et sont retentés, sans exposer les données. COMPLIANCE + appartenance au vivier peut consulter, geler (motif, fin ≤ 365 jours, If-Match), lever un gel et demander un effacement anticipé dans l’écran d’imports. ADMIN seul ne suffit pas. Le suivi des effacements reste disponible après disparition du dépôt.
+
+Enveloppe d’expiration pour un snapshot cohérent produit par l’opérateur :
+
+```sh
+python3 scripts/retained_backup.py pack /secure/snapshot.tar /secure/backups --days 7
+python3 scripts/retained_backup.py expire /secure/backups
+python3 scripts/retained_backup.py stage /secure/backups/UUID.shbackup /secure/restoration.tar
+python3 -m unittest discover -s scripts/tests -v
+```
+
+Planifier `expire` quotidiennement dans l’exploitation. `pack` impose 1 à 30 jours et une empreinte SHA-256 ; `stage` refuse les enveloppes expirées/altérées et n’écrase aucun fichier. Il ne décompresse ni n’applique le snapshot. Retirer le snapshot brut et les fichiers de staging selon la même échéance ; les copies hors de ce répertoire ne sont pas gérées. Le journal d’effacement courant et sa clé ne doivent **jamais** être inclus dans la restauration d’un ancien snapshot. Arrêter l’API, restaurer seulement les données métier/objets, réattacher le journal courant, puis démarrer : l’API reste indisponible tant que le rejeu signé échoue. Attendre la fin des purges avant de déclarer la restauration achevée. La réalisation et recette d’un snapshot PostgreSQL + S3 cohérent restent SH-29.

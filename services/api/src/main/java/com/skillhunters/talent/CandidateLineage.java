@@ -99,7 +99,7 @@ public class CandidateLineage {
         audit.candidate(actor,candidate,"CANDIDATE_LINEAGE_READ");var items=all.stream().limit(25).toList();return new History(items,all.size()>25?items.getLast().sequence():null);
     });}
     @org.springframework.scheduling.annotation.Scheduled(initialDelayString="${app.lineage.cleanup-ms:60000}",fixedDelayString="${app.lineage.cleanup-ms:60000}")
-    public void cleanup(){tx.executeWithoutResult(t->{for(String table:List.of("candidate_contact_verification","candidate_lineage_event"))db.sql("DELETE FROM "+table+" WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now)").param("now",now()).update();});}
+    public void cleanup(){tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();for(String table:List.of("candidate_contact_verification","candidate_lineage_event"))db.sql("DELETE FROM "+table+" WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now AND NOT EXISTS(SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP))").param("now",now()).update();});}
     private static OffsetDateTime now(){return OffsetDateTime.now(ZoneOffset.UTC);}
     private static void decision(boolean confirmed,String reason){if(!confirmed||reason==null||reason.isBlank()||reason.length()>500||reason.codePoints().anyMatch(Character::isISOControl))invalid();}
     private static void changed(){throw new Rejected(HttpStatus.PRECONDITION_FAILED,"LINEAGE_CHANGED");}

@@ -10,9 +10,19 @@ root = Path(__file__).resolve().parents[1]
 env = root / '.env'
 generated = root / 'infrastructure/generated'
 parser = argparse.ArgumentParser()
+parser.add_argument('--upgrade-retention', action='store_true', help='Append missing erasure ledger secret without changing existing secrets')
 parser.add_argument('--upgrade-storage', action='store_true', help='Append only missing local S3 settings; preserve identity/database secrets')
 parser.add_argument('--upgrade-analysis', action='store_true', help='Append missing worker configuration, preserving every existing secret')
 args = parser.parse_args()
+if args.upgrade_retention:
+    if not env.exists(): raise SystemExit('Initialisez la configuration avec init_local.py sans option.')
+    current = {line.split('=',1)[0] for line in env.read_text().splitlines() if '=' in line}
+    additions = {'ERASURE_LEDGER_KEY': secrets.token_hex(32)}
+    with env.open('a') as out:
+        out.write(''.join(f'{key}={value}\n' for key,value in additions.items() if key not in current))
+    os.chmod(env, 0o600)
+    print('Configuration du journal ajoutée ; conserver ce secret avec le journal courant.')
+    raise SystemExit(0)
 if args.upgrade_analysis:
     if not env.exists(): raise SystemExit('Initialisez la configuration avec init_local.py sans option.')
     current = {line.split('=',1)[0] for line in env.read_text().splitlines() if '=' in line}
@@ -34,7 +44,7 @@ if args.upgrade_storage:
     raise SystemExit(0)
 if env.exists():
     raise SystemExit('.env existe déjà : conservez les secrets existants. Voir docs/development.md.')
-values = {name: secrets.token_hex(24) for name in ('DB_PASSWORD','OIDC_CLIENT_SECRET','KEYCLOAK_ADMIN_PASSWORD','DEMO_PASSWORD','S3_SECRET_KEY','WORKER_TOKEN')}
+values = {name: secrets.token_hex(24) for name in ('DB_PASSWORD','OIDC_CLIENT_SECRET','KEYCLOAK_ADMIN_PASSWORD','DEMO_PASSWORD','S3_SECRET_KEY','WORKER_TOKEN','ERASURE_LEDGER_KEY')}
 values.update({'WORKER_ENDPOINT':'http://localhost:8090/analyze','ANALYSIS_ENABLED':'true','S3_ACCESS_KEY':'skillhunters-local','S3_ENDPOINT':'http://localhost:9000','S3_CREATE_BUCKET':'true','DB_URL':'jdbc:postgresql://localhost:5432/skillhunters','DB_USER':'skillhunters',
                'OIDC_ISSUER':'http://localhost:8081/realms/skillhunters','OIDC_BACKCHANNEL':'http://localhost:8081/realms/skillhunters',
                'APP_ORIGIN':'http://localhost:8080','COOKIE_SECURE':'false'})

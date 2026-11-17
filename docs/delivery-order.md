@@ -57,4 +57,4 @@ Suite des dépendances Must : SH-30 → SH-31 (provenance et opposition) → SH-
 
 Recensement complet : [tickets MVP restants](mvp-remaining.md).
 
-Complément SH-05 : rapprochement par e-mail explicitement vérifié, décision humaine, lignage et version active implémentés dans cette branche ; validation avant fusion. SH-32 suit ce complément.
+Complément SH-05 fusionné dans la PR #29. SH-32 (conservation, gels, purge et rejeu) est implémenté dans cette branche et doit passer la CI avant fusion ; SH-33 suit.

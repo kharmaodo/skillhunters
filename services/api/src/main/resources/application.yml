@@ -58,7 +58,7 @@ management:
         enabled: true
       group:
         readiness:
-          include: readinessState,db
+          include: readinessState,db,erasureReadiness
 app:
   contact:
     history-days: ${CONTACT_HISTORY_DAYS:90}
@@ -80,6 +80,9 @@ app:
   imports:
     max-files-per-user: ${IMPORT_MAX_FILES_PER_USER:1000}
     max-bytes-per-user: ${IMPORT_MAX_BYTES_PER_USER:3145728000}
+  retention:
+    ledger-key: ${ERASURE_LEDGER_KEY:unconfigured}
+    ledger-bucket: ${ERASURE_LEDGER_BUCKET:skillhunters-erasure-ledger}
   storage:
     create-bucket: ${S3_CREATE_BUCKET:false}
     endpoint: ${S3_ENDPOINT:http://localhost:9000}

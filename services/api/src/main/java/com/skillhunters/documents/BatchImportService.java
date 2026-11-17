@@ -19,6 +19,7 @@ import com.skillhunters.shared.ApiProblem.Rejected;
 
 @Service
 public class BatchImportService {
+    private final com.skillhunters.retention.RetentionGuard retention;
     public record FileSpec(@NotBlank @Size(max=200) @Pattern(regexp="[^\\\\/\\p{Cntrl}\\p{Cf}]+") String fileName,
             @Min(0) @Max(314572800) long byteSize, @NotNull @Pattern(regexp="[a-f0-9]{64}") String sha256) {}
     public record Request(@NotNull UUID poolId, @NotNull @Valid ImportService.Basis basis,
@@ -38,7 +39,8 @@ public class BatchImportService {
     private final ImportQuota quota;
     private final ReceptionValidator validator;
 
-    public BatchImportService(JdbcClient db, TransactionTemplate tx, ImportService imports, ImportQuota quota, ReceptionValidator validator) {
+    public BatchImportService(JdbcClient db, TransactionTemplate tx, ImportService imports, ImportQuota quota, ReceptionValidator validator,com.skillhunters.retention.RetentionGuard retention) {
+        this.retention=retention;
         this.db=db; this.tx=tx; this.imports=imports; this.quota=quota; this.validator=validator;
     }
     private static OffsetDateTime now() { return OffsetDateTime.now(ZoneOffset.UTC); }
@@ -55,6 +57,7 @@ public class BatchImportService {
         String hash = HexFormat.of().formatHex(ReceptionValidator.sha().digest(fingerprint.toString().getBytes(StandardCharsets.UTF_8)));
         UUID id = tx.execute(status -> {
             imports.lockActor(actor,request.poolId());
+            retention.replayAllowed("BATCH",actor,request.poolId(),key);
             var existing = db.sql("SELECT id,request_hash FROM import_batch WHERE actor_id=:actor AND pool_id=:pool AND idempotency_key=:key")
                 .param("actor",actor).param("pool",request.poolId()).param("key",key).query((rs,n) -> {
                     if (!hash.equals(rs.getString("request_hash"))) throw error(HttpStatus.CONFLICT,"IDEMPOTENCY_CONFLICT");
@@ -98,18 +101,20 @@ public class BatchImportService {
     }
     private Header header(UUID actor,UUID id) {
         return db.sql("""
-            SELECT b.* FROM import_batch b WHERE b.id=:id AND EXISTS
+            SELECT b.* FROM import_batch b WHERE b.id=:id AND NOT EXISTS(SELECT 1 FROM erasure_tombstone e WHERE e.source_id=b.id) AND EXISTS
             (SELECT 1 FROM membership m WHERE m.pool_id=b.pool_id AND m.user_id=:actor)
             """).param("id",id).param("actor",actor).query(Header.class).optional()
             .orElseThrow(() -> error(HttpStatus.NOT_FOUND,"IMPORT_BATCH_NOT_FOUND"));
     }
     private List<Item> items(Header h) {
         return db.sql("""
-            SELECT i.*, d.id AS receipt_id, d.state AS receipt_state
+            SELECT i.*, d.id AS receipt_id, d.state AS receipt_state, e.source_id AS erased_source
             FROM import_batch_item i LEFT JOIN document_import d ON d.actor_id=:actor AND d.pool_id=:pool
                 AND d.idempotency_key=CONCAT('batch-',CAST(i.id AS VARCHAR))
+            LEFT JOIN erasure_tombstone e ON e.source_id=d.id
             WHERE i.batch_id=:batch ORDER BY i.ordinal
             """).param("actor",h.actorId()).param("pool",h.poolId()).param("batch",h.id()).query((rs,n) -> {
+                if(rs.getObject("erased_source")!=null)return new Item(rs.getObject("id",UUID.class),"",0,"","FAILED","SOURCE_ERASED",rs.getInt("attempts"),null,null);
                 // A durable receipt wins if the process died before updating the batch projection.
                 boolean accepted="QUARANTINED".equals(rs.getString("receipt_state"));
                 String state=accepted ? "QUARANTINED" : rs.getString("state");
@@ -125,7 +130,7 @@ public class BatchImportService {
     }
     private static boolean terminal(Item item) { return List.of("QUARANTINED","REJECTED_FORMAT","FAILED").contains(item.state()); }
     public Batch get(UUID actor,UUID id) {
-        var h=header(actor,id); var items=items(h);
+        var h=header(actor,id); var items=h.expiresAt().isAfter(now())?items(h):List.<Item>of();
         return new Batch(id,h.poolId(),h.createdAt(),h.expiresAt(),h.actorId().equals(actor) && h.expiresAt().isAfter(now()),
             (int)items.stream().filter(BatchImportService::terminal).count(),items.size(),items);
     }
@@ -136,7 +141,7 @@ public class BatchImportService {
             try { var parts=cursor.split("\\|",-1); if(parts.length!=2) throw new IllegalArgumentException(); date=OffsetDateTime.parse(parts[0]);id=UUID.fromString(parts[1]); }
             catch(RuntimeException invalid) { throw error(HttpStatus.BAD_REQUEST,"INVALID_CURSOR"); }
         }
-        var ids=db.sql("SELECT id FROM import_batch WHERE pool_id=:pool AND (created_at<:date OR (created_at=:date AND id<:id)) ORDER BY created_at DESC,id DESC LIMIT 21")
+        var ids=db.sql("SELECT id FROM import_batch WHERE NOT EXISTS(SELECT 1 FROM erasure_tombstone e WHERE e.source_id=import_batch.id) AND pool_id=:pool AND (created_at<:date OR (created_at=:date AND id<:id)) ORDER BY created_at DESC,id DESC LIMIT 21")
             .param("pool",pool).param("date",date).param("id",id).query(UUID.class).list();
         var result=ids.stream().limit(20).map(batch -> get(actor,batch)).map(b -> new Summary(b.id(),b.createdAt(),b.completedFiles(),b.totalFiles())).toList();
         var last=result.isEmpty() ? null : result.getLast();

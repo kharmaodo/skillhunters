@@ -74,7 +74,7 @@ public class CandidateTracking {
     private static void bounds(int cursor){if(cursor<0||cursor>100000)invalid();}
     private static void invalid(){throw new Rejected(HttpStatus.BAD_REQUEST,"INVALID_TRACKING");}
     @Scheduled(initialDelayString="${app.scoring.cleanup-ms:3600000}",fixedDelayString="${app.scoring.cleanup-ms:3600000}")
-    public void cleanup(){tx.executeWithoutResult(t->db.sql("DELETE FROM candidate_tracking WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now)").param("now",OffsetDateTime.now(ZoneOffset.UTC)).update());}
+    public void cleanup(){tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();db.sql("DELETE FROM candidate_tracking WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now AND NOT EXISTS(SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP))").param("now",OffsetDateTime.now(ZoneOffset.UTC)).update();});}
     private String write(Object v){try{return json.writeValueAsString(v);}catch(Exception e){throw new IllegalStateException("TRACKING_SERIALIZATION");}}
     private <T>T read(String s,Class<T> type){try{return json.readValue(s,type);}catch(Exception e){throw new IllegalStateException("TRACKING_STORAGE");}}
 }

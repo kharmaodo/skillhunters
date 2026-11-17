@@ -117,8 +117,8 @@ public class ContactDrafts {
         return new History(values.stream().limit(25).map(this::read).toList(),values.size()>25?cursor+25:null,latest);
     });}
     @Scheduled(initialDelayString="${app.contact.cleanup-ms:3600000}",fixedDelayString="${app.contact.cleanup-ms:3600000}")
-    public void cleanup(){tx.executeWithoutResult(t->db.sql("DELETE FROM contact_draft_revision WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now)")
-        .param("now",OffsetDateTime.now(ZoneOffset.UTC)).update());}
+    public void cleanup(){tx.executeWithoutResult(t->{db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();db.sql("DELETE FROM contact_draft_revision WHERE candidate_id IN (SELECT c.id FROM candidate_profile c JOIN document_import d ON d.id=c.import_id WHERE d.expires_at<=:now AND NOT EXISTS(SELECT 1 FROM retention_hold h WHERE h.import_id=d.id AND h.until_at>CURRENT_TIMESTAMP))")
+        .param("now",OffsetDateTime.now(ZoneOffset.UTC)).update();});}
     private static String bounded(String value,int max,boolean multiline) {
         if(value==null)return "";
         if(value.length()>max||value.codePoints().anyMatch(c->Character.isISOControl(c)&&!(multiline&&(c=='\n'||c=='\t')))||value.indexOf('\u2028')>=0||value.indexOf('\u2029')>=0)invalid();
