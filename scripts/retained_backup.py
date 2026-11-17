@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Envelope for an operator-produced backup; never includes or restores the erasure ledger.
 
-This does not produce a consistent PostgreSQL/S3 snapshot (SH-29). The input must be
-that snapshot. Restore only stages bytes; API startup separately replays erasures.
+This envelope does not itself produce a consistent PostgreSQL/S3 snapshot.
+operations_backup.py (SH-29) produces and authenticates that snapshot. Restore only stages bytes; API startup separately replays erasures.
 """
 import argparse
 from datetime import datetime, timedelta, timezone

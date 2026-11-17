@@ -71,3 +71,5 @@ SH-32 ajoute conservation par finalité, gels motivés bornés et purge complèt
 SH-33 ajoute le traitement des demandes candidat reçues par e-mail : vérification humaine, accès par source, rectification publiée, recours et clôture tracée. Voir [validation SH-33](docs/validation/sh-33.md).
 
 SH-28 ajoute les limites et quotas d’import administrables, leur historique immuable et la référence conservée par les réceptions et lots réservés. Le modèle Word nettoyé est téléchargeable avec sa version et son empreinte. Voir [validation SH-28](docs/validation/sh-28.md).
+
+SH-29 fournit les [procédures d’exploitation et restauration](docs/operations.md), une sauvegarde PostgreSQL/S3 authentifiée et la recette sur volumes neufs avec rejeu des effacements. [Périmètre et preuves](docs/validation/sh-29.md).

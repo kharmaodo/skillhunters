@@ -81,6 +81,9 @@ app:
     max-files-per-user: ${IMPORT_MAX_FILES_PER_USER:1000}
     max-bytes-per-user: ${IMPORT_MAX_BYTES_PER_USER:3145728000}
   retention:
+    ledger-endpoint: ${ERASURE_LEDGER_ENDPOINT:}
+    ledger-access-key: ${ERASURE_LEDGER_ACCESS_KEY:}
+    ledger-secret-key: ${ERASURE_LEDGER_SECRET_KEY:}
     ledger-key: ${ERASURE_LEDGER_KEY:unconfigured}
     ledger-bucket: ${ERASURE_LEDGER_BUCKET:skillhunters-erasure-ledger}
   storage:

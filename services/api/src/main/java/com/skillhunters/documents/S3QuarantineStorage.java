@@ -19,17 +19,22 @@ import org.springframework.http.HttpStatus;
 @Profile("!test")
 public class S3QuarantineStorage implements QuarantineStorage, com.skillhunters.retention.ErasureLedger, AutoCloseable {
     private final S3Client s3;
+    private final S3Client ledgerClient;
     private final String bucket;
     private final String ledgerBucket;
     private final com.fasterxml.jackson.databind.ObjectMapper json;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public S3QuarantineStorage(@Value("${app.storage.endpoint}") URI endpoint,
             @Value("${app.storage.access-key}") String accessKey,
             @Value("${app.storage.secret-key}") String secretKey,
             @Value("${app.storage.bucket}") String bucket,
             @Value("${app.storage.region}") String region,
             @Value("${app.storage.create-bucket:false}") boolean createBucket,
-            @Value("${app.retention.ledger-bucket:skillhunters-erasure-ledger}") String ledgerBucket, com.fasterxml.jackson.databind.ObjectMapper json) {
+            @Value("${app.retention.ledger-bucket:skillhunters-erasure-ledger}") String ledgerBucket, com.fasterxml.jackson.databind.ObjectMapper json,
+            @Value("${app.retention.ledger-endpoint:}") String ledgerEndpoint,
+            @Value("${app.retention.ledger-access-key:}") String ledgerAccess,
+            @Value("${app.retention.ledger-secret-key:}") String ledgerSecret) {
         if(bucket.equals(ledgerBucket))throw new IllegalArgumentException("SEPARATE_LEDGER_BUCKET_REQUIRED");this.ledgerBucket=ledgerBucket;this.json=json;
         this.bucket = bucket;
         s3 = S3Client.builder().endpointOverride(endpoint).region(Region.of(region))
@@ -38,14 +43,26 @@ public class S3QuarantineStorage implements QuarantineStorage, com.skillhunters.
             .httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(5)).socketTimeout(Duration.ofSeconds(20)))
             .overrideConfiguration(c -> c.apiCallTimeout(Duration.ofSeconds(45)).apiCallAttemptTimeout(Duration.ofSeconds(25)))
             .build();
+        if(ledgerEndpoint.isBlank())ledgerClient=s3;
+        else {
+            if(ledgerAccess.isBlank()||ledgerSecret.isBlank())throw new IllegalArgumentException("LEDGER_CREDENTIALS_REQUIRED");
+            ledgerClient=S3Client.builder().endpointOverride(URI.create(ledgerEndpoint)).region(Region.of(region))
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(ledgerAccess,ledgerSecret)))
+                .forcePathStyle(true).httpClientBuilder(UrlConnectionHttpClient.builder().connectionTimeout(Duration.ofSeconds(5)).socketTimeout(Duration.ofSeconds(20)))
+                .overrideConfiguration(c->c.apiCallTimeout(Duration.ofSeconds(45)).apiCallAttemptTimeout(Duration.ofSeconds(25))).build();
+        }
         if (createBucket) {
-            try{s3.headBucket(b->b.bucket(ledgerBucket));}catch(software.amazon.awssdk.services.s3.model.S3Exception e){if(e.statusCode()!=404)throw e;s3.createBucket(b->b.bucket(ledgerBucket));}
+            try{ledgerClient.headBucket(b->b.bucket(ledgerBucket));}catch(software.amazon.awssdk.services.s3.model.S3Exception e){if(e.statusCode()!=404)throw e;ledgerClient.createBucket(b->b.bucket(ledgerBucket));}
             try { s3.headBucket(b -> b.bucket(bucket)); }
             catch (software.amazon.awssdk.services.s3.model.S3Exception missing) {
                 if (missing.statusCode() != 404) throw missing;
                 s3.createBucket(b -> b.bucket(bucket));
             }
         }
+    }
+
+    public S3QuarantineStorage(URI endpoint,String accessKey,String secretKey,String bucket,String region,boolean createBucket,String ledgerBucket,com.fasterxml.jackson.databind.ObjectMapper json) {
+        this(endpoint,accessKey,secretKey,bucket,region,createBucket,ledgerBucket,json,"","","");
     }
 
     @Override public void put(String key, Path file) {
@@ -87,22 +104,22 @@ public class S3QuarantineStorage implements QuarantineStorage, com.skillhunters.
     @Override public void append(com.skillhunters.retention.ErasureRecord record){
         String name="v1/"+record.sourceId()+".json";
         try{
-            try{var existing=json.readValue(s3.getObjectAsBytes(b->b.bucket(ledgerBucket).key(name)).asByteArray(),com.skillhunters.retention.ErasureRecord.class);if(!existing.equals(record))throw new IllegalStateException("ERASURE_LEDGER_CONFLICT");return;}
+            try{var existing=json.readValue(ledgerClient.getObjectAsBytes(b->b.bucket(ledgerBucket).key(name)).asByteArray(),com.skillhunters.retention.ErasureRecord.class);if(!existing.equals(record))throw new IllegalStateException("ERASURE_LEDGER_CONFLICT");return;}
             catch(software.amazon.awssdk.services.s3.model.S3Exception absent){if(absent.statusCode()!=404)throw absent;}
-            s3.putObject(b->b.bucket(ledgerBucket).key(name).contentType("application/json").ifNoneMatch("*"),RequestBody.fromBytes(json.writeValueAsBytes(record)));
+            ledgerClient.putObject(b->b.bucket(ledgerBucket).key(name).contentType("application/json").ifNoneMatch("*"),RequestBody.fromBytes(json.writeValueAsBytes(record)));
         }catch(Exception failure){throw new IllegalStateException("ERASURE_LEDGER_UNAVAILABLE");}
     }
     @Override public void scan(java.util.function.Consumer<com.skillhunters.retention.ErasureRecord> consumer){
         try{
-            for(var page:s3.listObjectsV2Paginator(b->b.bucket(ledgerBucket).prefix("v1/").maxKeys(1000))){
+            for(var page:ledgerClient.listObjectsV2Paginator(b->b.bucket(ledgerBucket).prefix("v1/").maxKeys(1000))){
                 for(var object:page.contents()){
                     if(object.size()>4096)throw new IllegalStateException("INVALID_ERASURE_LEDGER");
-                    var r=json.readValue(s3.getObjectAsBytes(b->b.bucket(ledgerBucket).key(object.key())).asByteArray(),com.skillhunters.retention.ErasureRecord.class);
+                    var r=json.readValue(ledgerClient.getObjectAsBytes(b->b.bucket(ledgerBucket).key(object.key())).asByteArray(),com.skillhunters.retention.ErasureRecord.class);
                     if(!object.key().equals("v1/"+r.sourceId()+".json"))throw new IllegalStateException("INVALID_ERASURE_LEDGER");
                     consumer.accept(r);
                 }
             }
         }catch(Exception failure){throw new IllegalStateException("ERASURE_REPLAY_UNAVAILABLE",failure);}
     }
-    @Override public void close() { s3.close(); }
+    @Override public void close() { if(ledgerClient!=s3)ledgerClient.close();s3.close(); }
 }

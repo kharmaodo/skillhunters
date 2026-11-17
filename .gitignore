@@ -19,3 +19,6 @@ artifacts/
 
 apps/web/test-results/
 apps/web/playwright-report/
+
+.venv-operations/
+*.shbackup

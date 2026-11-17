@@ -1,4 +1,4 @@
-FROM python:3.12.12-slim-bookworm
+FROM python:3.12.12-slim-bookworm@sha256:593bd06efe90efa80dc4eee3948be7c0fde4134606dd40d8dd8dbcade98e669c
 RUN apt-get update && apt-get install -y --no-install-recommends libseccomp2 antiword=0.37-16 tesseract-ocr=5.3.0-2 tesseract-ocr-fra=1:4.1.0-2 tesseract-ocr-eng=1:4.1.0-2 poppler-utils \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
