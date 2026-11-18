@@ -52,4 +52,27 @@ class ErasureS3Test {
             s3.deleteBucket(b->b.bucket(bucket));s3.deleteBucket(b->b.bucket(ledger));
         }
     }
+    @Test @EnabledIfEnvironmentVariable(named="ERASURE_LEDGER_ENDPOINT",matches=".+")
+    void dedicatedLedgerEndpointSurvivesQuarantineRemoval() {
+        var endpoint=URI.create(System.getenv("SH32_S3_ENDPOINT"));
+        var access=System.getenv("S3_ACCESS_KEY");var secret=System.getenv("S3_SECRET_KEY");
+        var ledgerEndpoint=System.getenv("ERASURE_LEDGER_ENDPOINT");
+        var ledgerAccess=System.getenv("ERASURE_LEDGER_ACCESS_KEY");var ledgerSecret=System.getenv("ERASURE_LEDGER_SECRET_KEY");
+        var bucket="sh29-originals-"+UUID.randomUUID();var ledger="sh29-ledger-"+UUID.randomUUID();
+        var json=new ObjectMapper().registerModule(new JavaTimeModule());
+        try(var objects=S3Client.builder().endpointOverride(endpoint).region(Region.US_EAST_1).forcePathStyle(true)
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(access,secret))).build();
+            var journal=S3Client.builder().endpointOverride(URI.create(ledgerEndpoint)).region(Region.US_EAST_1).forcePathStyle(true)
+                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(ledgerAccess,ledgerSecret))).build();
+            var storage=new S3QuarantineStorage(endpoint,access,secret,bucket,"us-east-1",true,ledger,json,ledgerEndpoint,ledgerAccess,ledgerSecret)) {
+            var guard=new RetentionGuard(mock(org.springframework.jdbc.core.simple.JdbcClient.class),"synthetic-only-erasure-test-signing-key");
+            var record=guard.sign(UUID.randomUUID(),"IMPORT",UUID.randomUUID(),"b".repeat(64),OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(ChronoUnit.MICROS));
+            storage.append(record);
+            assertThatThrownBy(()->objects.headBucket(b->b.bucket(ledger))).isInstanceOf(software.amazon.awssdk.services.s3.model.S3Exception.class);
+            objects.deleteBucket(b->b.bucket(bucket));
+            var read=new ArrayList<ErasureRecord>();storage.scan(read::add);assertThat(read).containsExactly(record);guard.verify(read.getFirst());
+            journal.deleteObject(b->b.bucket(ledger).key("v1/"+record.sourceId()+".json"));journal.deleteBucket(b->b.bucket(ledger));
+        }
+    }
+
 }

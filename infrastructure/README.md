@@ -1,5 +1,5 @@
-# Infrastructure locale identité
+# Infrastructure locale Skillhunters
 
-Compose de recette PostgreSQL, Keycloak et API avec frontend compilé. Le jeu synthétique est explicitement provisionné par `seed`, jamais par les migrations métier. Secrets locaux générés, non versionnés.
+Compose de recette avec PostgreSQL/pgvector, Keycloak, quarantaine S3, journal d’effacement séparé, workers, ClamAV, Mailpit et API/frontend. Les services exposés sont liés à loopback et les images externes épinglées par digest.
 
-Procédures : [docs/development.md](../docs/development.md). Le worker, l'antivirus, le stockage S3 et SMTP seront ajoutés dans leurs incréments ; ce Compose ne prétend pas livrer l'ensemble du MVP.
+[Démarrage, sauvegarde, restauration et mise à niveau](../docs/operations.md). Le seed synthétique est explicite, jamais chargé par les migrations. Ne pas supprimer les volumes pour un arrêt normal, et ne jamais restaurer un ancien journal d’effacement avec les données métier.

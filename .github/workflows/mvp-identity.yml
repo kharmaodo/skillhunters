@@ -75,7 +75,7 @@ jobs:
           retention-days: 14
   compose-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with: {persist-credentials: false}
@@ -136,6 +136,18 @@ jobs:
           . ./.env
           set +a
           SH32_S3_ENDPOINT=http://localhost:9000 mvn -B -ntp -f services/api/pom.xml -Dtest=ErasureS3Test test
+      - name: Verify backup, empty-volume restore and host Java mode
+        run: |
+          python3 -m venv /tmp/operations-venv
+          /tmp/operations-venv/bin/pip install -r scripts/operations-requirements.txt
+          mvn -B -ntp -f services/api/pom.xml package -DskipTests
+          /tmp/operations-venv/bin/python scripts/smoke_operations.py --destroy-synthetic-volumes
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sh29-operations-report
+          path: artifacts/sh29-*.json
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:

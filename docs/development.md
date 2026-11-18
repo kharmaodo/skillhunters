@@ -1,4 +1,6 @@
-# Développement et recette — identité et import individuel
+# Développement et recette
+
+Le guide courant de démarrage, sauvegarde, restauration et mise à niveau est [operations.md](operations.md). Les sections ci-dessous retracent les incréments et leurs commandes spécifiques.
 
 Cet incrément implémente les sessions OIDC et les habilitations par vivier. Il ajoute la réception individuelle en quarantaine, sans antivirus, candidats, OCR, recherche ni contacts. La maquette reste la référence de ces écrans ultérieurs.
 
@@ -18,7 +20,7 @@ Ouvrir http://localhost:8080. Trois comptes synthétiques sont provisionnés : `
 
 Le compte d'administration Keycloak est `admin` avec `KEYCLOAK_ADMIN_PASSWORD` depuis `.env`. L'application utilise le sujet OIDC et l'issuer exact ; elle ne transforme pas un attribut de nom, un email ou une claim de rôle en autorisation.
 
-La recette est accessible uniquement sur loopback. Ne pas exposer ce Compose, `start-dev`, les comptes de démonstration ou les cookies HTTP à Internet. Le mode applicatif par défaut utilise un cookie Secure ; seul ce Compose local le désactive. Une production HTTPS nécessite une configuration et une validation distinctes. Les tags de dépendances sont fixés dans les manifests ; les images JRE restent sur une ligne de maintenance 21 à résoudre en digest lors de la qualification de production.
+La recette est accessible uniquement sur loopback. Ne pas exposer ce Compose, `start-dev`, les comptes de démonstration ou les cookies HTTP à Internet. Le mode applicatif par défaut utilise un cookie Secure ; seul ce Compose local le désactive. Une production HTTPS nécessite une configuration et une validation distinctes. Les images sont épinglées par digest dans les manifests (SH-29) ; la qualification de production reste distincte.
 
 ### Vérifier le parcours réel
 
@@ -215,7 +217,7 @@ python3 scripts/retained_backup.py stage /secure/backups/UUID.shbackup /secure/r
 python3 -m unittest discover -s scripts/tests -v
 ```
 
-Planifier `expire` quotidiennement dans l’exploitation. `pack` impose 1 à 30 jours et une empreinte SHA-256 ; `stage` refuse les enveloppes expirées/altérées et n’écrase aucun fichier. Il ne décompresse ni n’applique le snapshot. Retirer le snapshot brut et les fichiers de staging selon la même échéance ; les copies hors de ce répertoire ne sont pas gérées. Le journal d’effacement courant et sa clé ne doivent **jamais** être inclus dans la restauration d’un ancien snapshot. Arrêter l’API, restaurer seulement les données métier/objets, réattacher le journal courant, puis démarrer : l’API reste indisponible tant que le rejeu signé échoue. Attendre la fin des purges avant de déclarer la restauration achevée. La réalisation et recette d’un snapshot PostgreSQL + S3 cohérent restent SH-29.
+Planifier `expire` quotidiennement dans l’exploitation. `pack` impose 1 à 30 jours et une empreinte SHA-256 ; `stage` refuse les enveloppes expirées/altérées et n’écrase aucun fichier. Il ne décompresse ni n’applique le snapshot. Retirer le snapshot brut et les fichiers de staging selon la même échéance ; les copies hors de ce répertoire ne sont pas gérées. Le journal d’effacement courant et sa clé ne doivent **jamais** être inclus dans la restauration d’un ancien snapshot. Arrêter l’API, restaurer seulement les données métier/objets, réattacher le journal courant, puis démarrer : l’API reste indisponible tant que le rejeu signé échoue. Attendre la fin des purges avant de déclarer la restauration achevée. SH-29 fournit désormais le snapshot cohérent et la recette complète : voir [operations.md](operations.md).
 
 
 ## SH-33 — traiter une demande candidat
