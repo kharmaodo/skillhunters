@@ -196,8 +196,9 @@ class Operations:
                 files['objects/' + sha] = {'sha256': sha, 'bytes': item['bytes']}
             containers = self.compose('ps', '-aq').decode().split()
             images = [self.run(['docker', 'inspect', '--format', '{{.Name}} {{.Image}}', c]).decode().strip() for c in containers]
-            manifest = {'format': 'sh-snapshot-v1', 'createdAt': datetime.now(timezone.utc).isoformat(),
-                'expiresAt': (datetime.now(timezone.utc)+timedelta(days=days)).isoformat(),
+            created = datetime.now(timezone.utc)
+            manifest = {'format': 'sh-snapshot-v1', 'createdAt': created.isoformat(),
+                'expiresAt': (created+timedelta(days=days)).isoformat(),
                 'sourceRevision': self.run(['git', 'rev-parse', 'HEAD']).decode().strip(), 'imageIds': images,
                 'databases': list(DATABASES), 'files': files, 'objects': objects, 'documents': documents,
                 'migrationFiles': self.migration_files(),

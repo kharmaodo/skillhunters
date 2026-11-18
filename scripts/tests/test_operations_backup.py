@@ -41,6 +41,12 @@ class SnapshotTest(unittest.TestCase):
         self.manifest['createdAt']=(datetime.now(timezone.utc)-timedelta(days=2)).isoformat()
         self.manifest['expiresAt']=(datetime.now(timezone.utc)-timedelta(days=1)).isoformat();self.write()
         with self.assertRaisesRegex(ValueError,'EXPIRED'):b.validate_snapshot(self.path,KEY)
+    def test_retention_accepts_exactly_thirty_days_but_not_more(self):
+        created=datetime.fromisoformat(self.manifest['createdAt'])
+        self.manifest['expiresAt']=(created+timedelta(days=30)).isoformat();self.write()
+        self.assertEqual(b.validate_snapshot(self.path,KEY),self.manifest)
+        self.manifest['expiresAt']=(created+timedelta(days=30,seconds=1)).isoformat();self.write()
+        with self.assertRaisesRegex(ValueError,'EXPIRED_OR_INVALID'):b.validate_snapshot(self.path,KEY)
     def test_traversal_and_unexpected_members(self):
         self.payload['../escape']=b'bad';self.write()
         with self.assertRaisesRegex(ValueError,'UNEXPECTED'):b.validate_snapshot(self.path,KEY)

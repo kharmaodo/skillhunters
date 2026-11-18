@@ -17,6 +17,7 @@ class OperationsConfigTest(unittest.TestCase):
             secrets=[values[k] for k in ('DB_PASSWORD','DEMO_PASSWORD','KEYCLOAK_ADMIN_PASSWORD','OIDC_CLIENT_SECRET','BACKUP_SIGNING_KEY','ERASURE_LEDGER_KEY','ERASURE_LEDGER_SECRET_KEY')]
             self.assertEqual(len(set(secrets)),len(secrets));self.assertTrue(all(len(v)>=32 for v in secrets))
             self.assertTrue(all(v not in result.stdout+result.stderr for v in secrets));self.assertEqual((root/'.env').stat().st_mode&0o777,0o600)
+            self.assertEqual((root/'infrastructure/generated').stat().st_mode&0o777,0o700)
             self.assertEqual(values['ERASURE_LEDGER_ENDPOINT'],'http://localhost:9002')
             self.assertNotEqual(values['ERASURE_LEDGER_SECRET_KEY'],values['S3_SECRET_KEY'])
             self.assertNotEqual(subprocess.run(['python3',str(script)],capture_output=True).returncode,0)
