@@ -17,6 +17,8 @@ parser.add_argument('--upgrade-analysis', action='store_true', help='Append miss
 args = parser.parse_args()
 if args.upgrade_operations or args.upgrade_retention:
     if not env.exists(): raise SystemExit('Initialisez la configuration avec init_local.py sans option.')
+    os.chmod(env, 0o600)
+    if generated.exists(): os.chmod(generated, 0o700)
     current = {line.split('=',1)[0] for line in env.read_text().splitlines() if '=' in line}
     additions = {('BACKUP_SIGNING_KEY' if args.upgrade_operations else 'ERASURE_LEDGER_KEY'): secrets.token_hex(32)}
     with env.open('a') as out:
@@ -26,6 +28,8 @@ if args.upgrade_operations or args.upgrade_retention:
     raise SystemExit(0)
 if args.upgrade_analysis:
     if not env.exists(): raise SystemExit('Initialisez la configuration avec init_local.py sans option.')
+    os.chmod(env, 0o600)
+    if generated.exists(): os.chmod(generated, 0o700)
     current = {line.split('=',1)[0] for line in env.read_text().splitlines() if '=' in line}
     additions = {'WORKER_TOKEN': secrets.token_hex(32), 'WORKER_ENDPOINT': 'http://localhost:8090/analyze', 'ANALYSIS_ENABLED': 'true'}
     with env.open('a') as out:
@@ -35,6 +39,8 @@ if args.upgrade_analysis:
     raise SystemExit(0)
 if args.upgrade_storage:
     if not env.exists(): raise SystemExit('Initialisez la configuration avec init_local.py sans option.')
+    os.chmod(env, 0o600)
+    if generated.exists(): os.chmod(generated, 0o700)
     current = {line.split('=',1)[0] for line in env.read_text().splitlines() if '=' in line}
     additions = {'S3_ACCESS_KEY': 'skillhunters-local', 'S3_SECRET_KEY': secrets.token_hex(24),
                  'S3_ENDPOINT': 'http://localhost:9000', 'S3_CREATE_BUCKET': 'true'}
@@ -62,7 +68,8 @@ for suffix, username, first in [('1','alice','Alice'),('2','admin-demo','Admin')
                           'enabled':True,'firstName':first,'lastName':'Exemple',
                           'email':username+'@example.com','emailVerified':True,
                           'credentials':[{'type':'password','value':values['DEMO_PASSWORD'],'temporary':False}]})
-generated.mkdir(exist_ok=True)
+generated.mkdir(exist_ok=True, mode=0o700)
+os.chmod(generated, 0o700)
 # Folder contains only generated development data. Set readable mode for the non-root Keycloak container.
 with env.open('x') as out:
     os.chmod(env, 0o600)
