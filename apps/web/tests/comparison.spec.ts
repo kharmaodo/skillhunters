@@ -22,6 +22,13 @@ for (const width of [1280,320]) {
    const published=await page.request.post(`/api/v1/candidates/${candidate.id}/validate`,{headers:{...headers,'If-Match':updated.headers()['etag']},data:{items,justification:'Publication synthétique relue'}});expect(published.ok()).toBeTruthy();
   }
   const search=page.getByRole('region',{name:'Recherche structurée',exact:true});await search.getByLabel('Compétence 1',{exact:true}).fill('Java');await search.getByRole('button',{name:'Rechercher dans ce vivier',exact:true}).click();
+  // Repeated searches must replace both keyed panels, without retaining stale DOM or selections.
+  for(let repeat=0;repeat<2;repeat++){
+   const response=page.waitForResponse(r=>r.url().endsWith('/search/structured')&&r.request().method()==='POST');
+   await search.getByRole('button',{name:'Rechercher dans ce vivier',exact:true}).click();await response;
+   await expect(search.getByRole('region',{name:'Classement documenté',exact:true})).toHaveCount(1);
+   await expect(search.getByRole('region',{name:'Export CSV des résultats',exact:true})).toHaveCount(1);
+  }
   const scoring=search.getByRole('region',{name:'Classement documenté',exact:true});await scoring.getByRole('button',{name:'Calculer et figer le classement',exact:true}).click();
   const comparison=scoring.getByRole('region',{name:'Comparaison de profils',exact:true});const compare=comparison.getByRole('button',{name:'Comparer les profils choisis',exact:true});await expect(compare).toBeDisabled();
   await comparison.getByRole('checkbox',{name:`Nom inconnu · ${titles[0]}`,exact:true}).check();await expect(compare).toBeDisabled();
