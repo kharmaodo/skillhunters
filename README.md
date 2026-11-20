@@ -73,3 +73,7 @@ SH-33 ajoute le traitement des demandes candidat reçues par e-mail : vérificat
 SH-28 ajoute les limites et quotas d’import administrables, leur historique immuable et la référence conservée par les réceptions et lots réservés. Le modèle Word nettoyé est téléchargeable avec sa version et son empreinte. Voir [validation SH-28](docs/validation/sh-28.md).
 
 SH-29 fournit les [procédures d’exploitation et restauration](docs/operations.md), une sauvegarde PostgreSQL/S3 authentifiée et la recette sur volumes neufs avec rejeu des effacements. [Périmètre et preuves](docs/validation/sh-29.md).
+
+### SH-34 — Export CSV autorisé
+
+Les résultats structurés et classés proposent une sélection CSV (50 profils maximum), avec champs choisis et permission explicite par vivier. Les contacts exigent aussi le rôle responsable recrutement ; les scores incluent contexte, critères, dates et poids historiques. Quotas glissants par acteur, lien de cinq minutes maximum à usage unique, recontrôle des droits et versions, neutralisation des formules et audit minimisé. Voir [la validation SH-34](docs/validation/sh-34.md).

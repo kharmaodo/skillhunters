@@ -319,6 +319,8 @@ Ref: profile_comparison_member.(comparison_id,search_id) > profile_comparison.(i
 Ref: profile_comparison_member.(search_id,candidate_id) > scored_search_item.(search_id,candidate_id)
 
 Table governance_audit {
+  csv_fields varchar(500)
+  csv_rows integer
   sequence bigint [pk, increment]
   id uuid [not null, unique]
   actor_id uuid
@@ -438,4 +440,25 @@ Table import_settings_version {
  created_at timestamptz [not null]
  reason varchar [not null]
  Note: 'V29. Référencée aussi par document_import.settings_version dans le schéma exécutable ; versions immuables, valeurs non secrètes.'
+}
+
+// V30: ephemeral references only; CSV rendered in memory at download.
+Table csv_export_ticket {
+ id uuid [pk]
+ actor_id uuid [not null, ref: > app_user.id]
+ pool_id uuid [not null, ref: > talent_pool.id]
+ search_id uuid [ref: > scored_search.id]
+ fields varchar(500) [not null]
+ purpose varchar(80) [not null]
+ row_count integer [not null]
+ created_at timestamptz [not null]
+ expires_at timestamptz [not null]
+ consumed_at timestamptz
+}
+Table csv_export_member {
+ export_id uuid [not null, ref: > csv_export_ticket.id]
+ candidate_id uuid [not null, ref: > candidate.id]
+ candidate_version bigint [not null]
+ ordinal integer [not null]
+ indexes { (export_id, candidate_id) [pk] }
 }

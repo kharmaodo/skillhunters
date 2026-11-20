@@ -1193,4 +1193,100 @@ class HumanReviewTest extends IdentityTestSupport {
         assertThatThrownBy(()->rights.correct(alice,c.id(),r.id(),"\"2\"",new com.skillhunters.rights.CandidateRights.Correction(2,request(reasonsOnly),true))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("RIGHTS_CORRECTION_REQUIRED"));
         assertThat(reviews.publication(alice,c.id()).revisionId()).isEqualTo(published.id());assertThat(rights.list(alice,c.id(),null).items().getFirst().version()).isEqualTo(2);assertThat(rights.history(alice,c.id(),r.id(),null).items()).hasSize(2);
     }
+
+    @Autowired com.skillhunters.exports.CsvExports csv;
+    UUID csvActor() {
+        UUID actor=UUID.randomUUID();
+        db.update("INSERT INTO app_user(id,issuer,subject,display_name) VALUES (?,?,?,?)",actor,issuer,actor.toString(),"Export synthétique");
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",actor,poolA);
+        db.update("INSERT INTO export_permission(user_id,pool_id) VALUES (?,?)",actor,poolA);
+        return actor;
+    }
+    com.skillhunters.exports.CsvExports.Request csvRequest(UUID candidate,String... fields) {
+        return new com.skillhunters.exports.CsvExports.Request(poolA,List.of(candidate),List.of(fields),com.skillhunters.exports.CsvExports.Purpose.RECRUITMENT_REVIEW,null);
+    }
+    @Test void csvRequiresPermissionAndCsrfAndReturnsOnlySelectedFieldsOnce() throws Exception {
+        var c=create();var actor=csvActor();var input=csvRequest(c.id(),"candidateId","professionalTitle");var body=json.writeValueAsString(input);
+        mvc.perform(post("/api/v1/csv-exports").with(as(actor.toString())).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(post("/api/v1/csv-exports").with(as("alice")).with(csrf()).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        var response=mvc.perform(post("/api/v1/csv-exports").with(as(actor.toString())).with(csrf()).contentType("application/json").content(body)).andExpect(status().isCreated()).andReturn();
+        var receipt=json.readValue(response.getResponse().getContentAsString(),com.skillhunters.exports.CsvExports.Receipt.class);
+        assertThat(receipt.expiresAt()).isBefore(java.time.OffsetDateTime.now().plusMinutes(6));
+        mvc.perform(get(receipt.downloadUrl()).with(as("admin"))).andExpect(status().isNotFound());
+        var file=mvc.perform(get(receipt.downloadUrl()).with(as(actor.toString()))).andExpect(status().isOk())
+            .andExpect(header().string("Cache-Control","no-store")).andExpect(header().string("X-Content-Type-Options","nosniff"))
+            .andExpect(header().string("Content-Disposition",org.hamcrest.Matchers.startsWith("attachment;"))).andReturn();
+        String content=new String(file.getResponse().getContentAsByteArray(),java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(content).startsWith("\ufeff\"candidateId\",\"professionalTitle\"\r\n").contains(c.id().toString()).doesNotContain("email","phone","displayName");
+        mvc.perform(get(receipt.downloadUrl()).with(as(actor.toString()))).andExpect(status().isGone());
+        var audit=db.queryForMap("SELECT purpose,csv_fields,csv_rows FROM governance_audit WHERE actor_id=? AND action='CSV_EXPORT_DOWNLOADED'",actor);
+        assertThat(audit.get("purpose")).isEqualTo("RECRUITMENT_REVIEW");assertThat(audit.get("csv_fields")).isEqualTo("candidateId,professionalTitle");assertThat(audit.get("csv_rows")).isEqualTo(1);
+    }
+    @Test void csvRejectsForbiddenContactsAndRechecksRoleAtDownload() {
+        var c=create();var actor=csvActor();
+        assertThat(csv.options(actor,poolA).fields()).doesNotContain("email","phone");
+        assertThatThrownBy(()->csv.create(actor,csvRequest(c.id(),"email"))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_FIELD_FORBIDDEN"));
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",actor,poolA);
+        var receipt=csv.create(actor,csvRequest(c.id(),"email","phone"));
+        db.update("DELETE FROM membership WHERE user_id=? AND role='RECRUITMENT_LEAD'",actor);
+        assertThatThrownBy(()->csv.download(actor,receipt.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_FIELD_FORBIDDEN"));
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITMENT_LEAD')",actor,poolA);
+        assertThat(new String(csv.download(actor,receipt.id()).content(),java.nio.charset.StandardCharsets.UTF_8)).startsWith("\ufeff\"email\",\"phone\"");
+    }
+    @Test void csvRevocationDisabledAccountsAndCrossPoolSelectionFailClosed() {
+        var c=create();var actor=csvActor();var receipt=csv.create(actor,csvRequest(c.id(),"displayName"));
+        db.update("DELETE FROM export_permission WHERE user_id=?",actor);
+        assertThatThrownBy(()->csv.download(actor,receipt.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("EXPORT_PERMISSION_REQUIRED"));
+        db.update("INSERT INTO export_permission(user_id,pool_id) VALUES (?,?)",actor,poolA);
+        db.update("UPDATE app_user SET enabled=false WHERE id=?",actor);
+        assertThatThrownBy(()->csv.download(actor,receipt.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("ACCOUNT_DISABLED"));
+        db.update("UPDATE app_user SET enabled=true WHERE id=?",actor);
+        db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",actor,poolB);
+        db.update("INSERT INTO export_permission(user_id,pool_id) VALUES (?,?)",actor,poolB);
+        var invalid=new com.skillhunters.exports.CsvExports.Request(poolB,List.of(c.id()),List.of("displayName"),com.skillhunters.exports.CsvExports.Purpose.RECRUITMENT_REVIEW,null);
+        assertThatThrownBy(()->csv.create(actor,invalid)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CANDIDATE_NOT_FOUND"));
+    }
+    @Test void csvRejectsChangedExpiredAndErasedSelections() throws Exception {
+        var c=create();var actor=csvActor();var receipt=csv.create(actor,csvRequest(c.id(),"displayName"));
+        candidates.update(alice,c.id(),"\"1\"",json.readTree("{\"professionalTitle\":\"Nouveau titre\",\"reason\":\"Correction synthétique\"}"));
+        assertThatThrownBy(()->csv.download(actor,receipt.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_SELECTION_CHANGED"));
+        var expired=csv.create(actor,csvRequest(c.id(),"displayName"));
+        db.update("UPDATE csv_export_ticket SET expires_at=? WHERE id=?",java.time.OffsetDateTime.now().minusSeconds(1),expired.id());
+        assertThatThrownBy(()->csv.download(actor,expired.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_EXPORT_EXPIRED"));
+        var removed=csv.create(actor,csvRequest(c.id(),"displayName"));
+        db.update("DELETE FROM document_audit WHERE import_id=?",id);db.update("DELETE FROM document_import WHERE id=?",id);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM csv_export_member",Integer.class)).isZero();
+        assertThatThrownBy(()->csv.download(actor,removed.id())).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_SELECTION_REMOVED"));
+    }
+    @Test void csvQuotasSurviveConsumptionAndCleanupAndRejectOversizedSelections() {
+        var c=create();var actor=csvActor();
+        for(int n=0;n<20;n++){var ticket=csv.create(actor,csvRequest(c.id(),"candidateId"));csv.download(actor,ticket.id());}
+        csv.cleanup();assertThat(db.queryForObject("SELECT COUNT(*) FROM csv_export_ticket WHERE actor_id=?",Integer.class,actor)).isZero();
+        assertThatThrownBy(()->csv.create(actor,csvRequest(c.id(),"candidateId"))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_EXPORT_QUOTA"));
+        var other=csvActor();
+        db.update("INSERT INTO governance_audit(id,actor_id,action,purpose,csv_fields,csv_rows) VALUES (?,?,'CSV_EXPORT_CREATED','RECRUITMENT_REVIEW','candidateId',500)",UUID.randomUUID(),other);
+        assertThatThrownBy(()->csv.create(other,csvRequest(c.id(),"candidateId"))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("CSV_EXPORT_QUOTA"));
+        for(var ids:List.of(List.of(c.id(),c.id()),java.util.stream.IntStream.range(0,51).mapToObj(n->UUID.randomUUID()).toList())) {
+            var request=new com.skillhunters.exports.CsvExports.Request(poolA,ids,List.of("candidateId"),com.skillhunters.exports.CsvExports.Purpose.RECRUITMENT_REVIEW,null);
+            assertThatThrownBy(()->csv.create(other,request)).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_CSV_EXPORT"));
+        }
+    }
+    @Test void csvScoreIncludesFrozenCriteriaDatesAndPolicyAndRequiresSnapshotOwner() {
+        var c=create();var published=reviews.save(alice,c.id(),"\"1\"",request(accepted(c.id())),true);var actor=csvActor();
+        var snapshot=scored.create(actor,scoredRequest(false,"Java"));
+        var input=new com.skillhunters.exports.CsvExports.Request(poolA,List.of(c.id()),List.of("score"),com.skillhunters.exports.CsvExports.Purpose.INTERNAL_COMPARISON,snapshot.metadata().searchId());
+        var other=csvActor();assertThatThrownBy(()->csv.create(other,input)).isInstanceOf(Rejected.class);
+        var ticket=csv.create(actor,input);String content=new String(csv.download(actor,ticket.id()).content(),java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(content).contains("date_calcul","date_reference","criteres_et_contexte","regle_score","poids",snapshot.metadata().createdAt().toString(),snapshot.metadata().trace().referenceDate().toString(),"Java",published.id().toString(),"100.0");
+        assertThatThrownBy(()->csv.create(actor,csvRequest(c.id(),"score"))).isInstanceOfSatisfying(Rejected.class,e->assertThat(e.code).isEqualTo("INVALID_CSV_EXPORT"));
+    }
+    @Test void csvConcurrentDownloadsHaveExactlyOneWinner() throws Exception {
+        var c=create();var actor=csvActor();var ticket=csv.create(actor,csvRequest(c.id(),"candidateId"));
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            var start=new java.util.concurrent.CountDownLatch(1);
+            java.util.concurrent.Callable<Boolean> attempt=()->{start.await();try{csv.download(actor,ticket.id());return true;}catch(Rejected e){assertThat(e.code).isEqualTo("CSV_EXPORT_EXPIRED");return false;}};
+            var a=executor.submit(attempt);var b=executor.submit(attempt);start.countDown();
+            assertThat(List.of(a.get(10,java.util.concurrent.TimeUnit.SECONDS),b.get(10,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+        }
+    }
 }

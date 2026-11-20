@@ -1,3 +1,4 @@
+import { CsvSelection } from './CsvSelection';
 import { ScoredResults } from './ScoredResults';
 import { useState } from 'react';
 import { api, message, type Session } from './api';
@@ -57,6 +58,7 @@ export function StructuredSearch({poolId,session,failed}:{poolId:string;session:
  {error&&<p role="alert">{error}</p>}
  {origin&&<p className="fine">Interprétation {origin.id} confirmée après relecture · règle {origin.interpretation.rule}. Le détail proposé et la confirmation expirent après 30 minutes ; aucun texte original conservé.</p>}
  {result&&query&&<ScoredResults key={result.searchId} query={{...query,cursor:null,referenceDate:result.trace.referenceDate,dictionaryVersion:result.trace.dictionaryVersion}} hybrid={!!result.retrieval} minimumSimilarity={result.retrieval?.minimumSimilarity??0.65} session={session} failed={failed} open={id=>void open(id)}/>}
+ {result&&<CsvSelection key={`csv-${result.searchId}`} poolId={poolId} items={result.items} session={session}/>}
  {result&&<><p role="status">{result.items.length} résultat(s) sur cette page · {result.scanned} publications examinées · {result.trace.strict?'mode strict':'mode exploratoire'}</p>
  <p>Critères normalisés : {result.trace.criteria.map(c=>`${c.original} → ${c.label} (${c.importance==='REQUIRED'?'obligatoire':'souhaitée'})`).join(' ; ')}</p>
  <p className="fine">Référence {result.trace.referenceDate} · dictionnaire v{result.trace.dictionaryVersion} · règle {result.trace.rule}. Ordre stable par identifiant, sans score. Les résultats sont relus à chaque page.</p>

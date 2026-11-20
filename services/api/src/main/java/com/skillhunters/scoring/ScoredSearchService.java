@@ -122,6 +122,7 @@ public class ScoredSearchService {
             return create(actor,new Request(new Query(trace.poolId(),criteria,trace.strict(),trace.experienceKinds(),trace.referenceDate(),trace.dictionaryVersion(),null,25),m.hybrid(),m.minimumSimilarity(),version));
         });
     }
+    public Metadata metadata(UUID actor,UUID id) {return tx.execute(t->access(actor,id));}
     Metadata access(UUID actor,UUID id) {
         if(!db.sql("SELECT enabled FROM app_user WHERE id=:actor FOR UPDATE").param("actor",actor).query(Boolean.class).optional().orElse(false))
             throw new Rejected(HttpStatus.FORBIDDEN,"ACCOUNT_DISABLED");

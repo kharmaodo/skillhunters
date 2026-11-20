@@ -1,6 +1,6 @@
-# Recensement MVP — 18 novembre 2026
+# Recensement MVP — 20 novembre 2026
 
-Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #33 (SH-29). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
+Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion des PR #33 et #34 (SH-29). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
 
 ## Tickets livrés dans develop
 
@@ -40,17 +40,17 @@ Référence : backlog du dossier de conception, documentation de validation et �
 
 | SH-28 — Paramètres et template versionné | Fusionné — PR #32 ; quotas versionnés et références réservées, CI verte |
 
-| SH-29 — Exploitation locale et Docker | Fusionné — PR #33 ; restauration sur volumes neufs, rejeu et deux modes validés en CI |
+| SH-29 — Exploitation locale et Docker | Fusionné — PR #33 et correctif #34 ; restauration sur volumes neufs, rejeu et deux modes validés en CI |
 
 ## Tickets MVP sans livraison complète identifiée
 
 | Ticket | État au début de cette livraison | Travail restant |
 |---|---|---|
-| SH-34 — Export autorisé | À livrer | CSV de sélection avec champs autorisés, quotas, neutralisation des formules et lien bref ; l'export Word SH-11 ne clôt pas ce ticket |
+| SH-34 — Export autorisé | Implémenté sur `feature/sh-34-authorized-export`, fusion en attente | CSV limité, champs autorisés, quotas, formules neutralisées, lien bref à usage unique et audit ; validation dans `validation/sh-34.md` |
 | SH-35 — Évaluation des biais et modèles | À livrer | Tests contrefactuels et par format, rapport de qualification et décision de mise en service |
 | SH-36 — Suivi opérationnel des imports | Mécanismes de traitement présents, ticket non livré | Métriques agrégées, file morte, relance contrôlée et recette de reprise après expiration de bail |
 
-Soit **3 tickets** encore à livrer/finaliser : SH-34, SH-35 et SH-36, plus les qualifications détaillées ci-dessous.
+Soit **3 tickets** non encore livrés dans `develop` : SH-34 en cours de livraison, puis SH-35 et SH-36. Après fusion de SH-34, il restera **2 tickets** et les qualifications détaillées ci-dessous.
 
 ## Compléments de tickets déjà fusionnés
 

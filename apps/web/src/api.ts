@@ -20,6 +20,11 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'CSV_EXPORT_EXPIRED' || error.code === 'CSV_EXPORT_NOT_FOUND' || error.code === 'CSV_SELECTION_REMOVED') return 'Ce lien est expiré, déjà utilisé ou sa sélection a été supprimée. Préparez un nouveau CSV.';
+    if (error.code === 'CSV_SELECTION_CHANGED') return 'Une fiche ou sa version active a changé. Vérifiez votre sélection puis préparez un nouveau CSV.';
+    if (error.code === 'CSV_FIELD_FORBIDDEN') return 'Une colonne demandée n’est plus autorisée. Rechargez les options d’export.';
+    if (error.code === 'CSV_EXPORT_QUOTA') return 'Quota atteint : 20 préparations ou 500 lignes sur 24 heures, tous viviers confondus.';
+    if (error.code === 'INVALID_CSV_EXPORT') return 'Choisissez 1 à 50 profils distincts, les colonnes autorisées et une finalité. Un score exige son classement de référence.';
     if (error.code === 'SETTINGS_CHANGED') return 'Les paramètres ont changé. Rechargez la version courante avant de publier.';
     if (error.code === 'INVALID_SETTINGS') return 'Vérifiez les bornes, le motif et la cohérence des tailles de fichier et de lot.';
     if (error.code === 'IDENTITY_NOT_VERIFIED') return 'Vérifiez la personne et le canal de réponse avant de traiter la demande.';

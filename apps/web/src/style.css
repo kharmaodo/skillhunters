@@ -72,3 +72,7 @@
 .comparison-row h5 { font-size: 1rem; margin-block: 1rem .5rem; }
 .comparison-cell h6 { font-size: .875rem; margin-block: 0 .75rem; }
 @media(max-width:800px) { .comparison-grid { grid-template-columns: minmax(0,1fr); } }
+
+.csv-export fieldset { min-width: 0; }
+.csv-export input[type=checkbox] { width: auto; }
+.csv-export legend { max-width: 100%; white-space: normal; }
