@@ -25,7 +25,8 @@ for (const width of [1280,320]) {
   // Repeated searches must replace both keyed panels, without retaining stale DOM or selections.
   for(let repeat=0;repeat<2;repeat++){
    const response=page.waitForResponse(r=>r.url().endsWith('/search/structured')&&r.request().method()==='POST');
-   await search.getByRole('button',{name:'Rechercher dans ce vivier',exact:true}).click();await response;
+   await search.getByRole('button',{name:'Rechercher dans ce vivier',exact:true}).click();expect((await response).ok()).toBeTruthy();
+   await expect(search.getByRole('button',{name:'Rechercher dans ce vivier',exact:true})).toBeEnabled();
    await expect(search.getByRole('region',{name:'Classement documenté',exact:true})).toHaveCount(1);
    await expect(search.getByRole('region',{name:'Export CSV des résultats',exact:true})).toHaveCount(1);
   }
