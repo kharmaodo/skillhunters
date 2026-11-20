@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 for (const width of [1280,320]) {
- test(`compare three profiles with shared criteria at ${width}px`,async({page})=>{
+ test(`compare and export profiles with shared criteria at ${width}px`,async({page})=>{
   test.setTimeout(180000);await page.setViewportSize({width,height:900});await page.goto('/');
   await page.getByRole('link',{name:'Se connecter avec le compte professionnel'}).click();
   await page.locator('#username').fill('alice');await page.locator('#password').fill(process.env.DEMO_PASSWORD!);await page.locator('#kc-login').click();
@@ -33,5 +34,29 @@ for (const width of [1280,320]) {
   await comparison.getByRole('button',{name:`Retirer Nom inconnu · ${titles[2]}`,exact:true}).click();await expect(result).toHaveCount(0);await compare.click();await expect(result.getByRole('status')).toContainText('2 profils comparés');
   for(const id of ids){const state=await(await page.request.get(`/api/v1/candidates/${id}/tracking`)).json();expect(state.version).toBe(0);}
   await comparison.getByRole('button',{name:'Vider la comparaison',exact:true}).click();await expect(result).toHaveCount(0);await expect(compare).toBeDisabled();
+  const adminContext=await page.context().browser()!.newContext();const adminPage=await adminContext.newPage();
+  await adminPage.goto('http://localhost:8080/');await adminPage.getByRole('link',{name:'Se connecter avec le compte professionnel'}).click();
+  await adminPage.locator('#username').fill('admin-demo');await adminPage.locator('#password').fill(process.env.DEMO_PASSWORD!);await adminPage.locator('#kc-login').click();
+  await adminPage.getByRole('button',{name:/Habilitations/}).waitFor();
+  const adminSession=await(await adminPage.request.get('/api/v1/session')).json();const adminHeaders={'X-CSRF-TOKEN':adminSession.csrfToken};
+  const permissionUrl=`/api/v1/admin/export-permissions?userId=${session.userId}&poolId=${session.poolIds[0]}`;
+  const previous=await(await adminPage.request.get(permissionUrl)).json();
+  try {
+   const grant=await adminPage.request.put('/api/v1/admin/export-permissions',{headers:adminHeaders,data:{userId:session.userId,poolId:session.poolIds[0],allowed:true}});expect(grant.ok()).toBeTruthy();
+   const csv=scoring.getByRole('region',{name:'Export CSV du classement',exact:true});
+   await csv.getByRole('button',{name:'Configurer l’export CSV',exact:true}).click();
+   await csv.getByRole('checkbox',{name:`Sélection CSV : Nom inconnu · ${titles[0]}`,exact:true}).check();
+   await csv.getByRole('checkbox',{name:'Score documenté avec date et critères',exact:true}).check();
+   await csv.getByRole('button',{name:'Préparer le CSV',exact:true}).click();await expect(csv.getByRole('status')).toContainText('CSV préparé : 1 ligne(s)');
+   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth+1)).toBe(true);
+   await csv.screenshot({path:`test-results/csv-export-${width}.png`});
+   const received=page.waitForEvent('download');await csv.getByRole('button',{name:'Télécharger le CSV',exact:true}).click();const file=await received;
+   expect(await file.failure()).toBeNull();const path=await file.path();expect(path).toBeTruthy();const content=await readFile(path!,'utf8');
+   expect(content).toContain(titles[0]);expect(content).not.toContain(titles[1]);expect(content).toContain('date_calcul');expect(content).toContain('criteres_et_contexte');expect(content).toContain('Java');expect(content).not.toContain('"email"');
+   await expect(csv.getByRole('status')).toContainText('Le lien est maintenant utilisé');await expect(csv.getByRole('button',{name:'Télécharger le CSV',exact:true})).toHaveCount(0);
+  } finally {
+   const restored=await adminPage.request.put('/api/v1/admin/export-permissions',{headers:adminHeaders,data:{userId:session.userId,poolId:session.poolIds[0],allowed:previous.allowed}});expect(restored.ok()).toBeTruthy();await adminContext.close();
+  }
+
  });
 }

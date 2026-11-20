@@ -148,3 +148,7 @@ La première lecture initialise la version 1 depuis les quotas de déploiement n
 ## Exploitation SH-29
 
 La maintenance arrête API et Keycloak avant les dumps des deux bases et la lecture des versions S3. Un manifeste authentifié lie octets, documents, migrations et expiration. La restauration refuse les cibles occupées et valide le snapshot avant écriture. Le staging reste distinct de la recette finale après replay/purge. Pour les nouvelles installations, le journal a son propre endpoint, volume et identifiants ; l’API conserve la compatibilité avec le fournisseur historique si les nouveaux paramètres sont absents. Le journal courant est toujours hors du snapshot métier. Voir `operations.md` pour secrets, arrêt et reprise après échec partiel.
+
+### SH-34 — Export CSV autorisé
+
+Les résultats structurés et classés proposent une sélection CSV (50 profils maximum), avec champs choisis et permission explicite par vivier. Les contacts exigent aussi le rôle responsable recrutement ; les scores incluent contexte, critères, dates et poids historiques. Quotas glissants par acteur, lien de cinq minutes maximum à usage unique, recontrôle des droits et versions, neutralisation des formules et audit minimisé. Voir [la validation SH-34](validation/sh-34.md).

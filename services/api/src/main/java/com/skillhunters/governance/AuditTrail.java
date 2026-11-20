@@ -11,13 +11,17 @@ import org.springframework.transaction.support.TransactionTemplate;
 /** Minimal metadata only: never CV text, contacts, notes, messages or tokens. */
 @Service
 public class AuditTrail {
-    public record Event(long sequence,UUID id,UUID actorId,String action,UUID objectId,UUID poolId,String purpose,OffsetDateTime occurredAt) {}
+    public record Event(long sequence,UUID id,UUID actorId,String action,UUID objectId,UUID poolId,String purpose,OffsetDateTime occurredAt,String csvFields,Integer csvRows) {}
     public record Page(List<Event> items,Long nextCursor) {}
     private final JdbcClient db;private final TransactionTemplate tx;
     public AuditTrail(JdbcClient db,TransactionTemplate tx){this.db=db;this.tx=tx;}
     public void record(UUID actor,String action,UUID object,UUID pool,String purpose) {
         db.sql("INSERT INTO governance_audit(id,actor_id,action,object_id,pool_id,purpose) VALUES (:id,:actor,:action,:object,:pool,:purpose)")
             .param("id",UUID.randomUUID()).param("actor",actor).param("action",action).param("object",object).param("pool",pool).param("purpose",purpose).update();
+    }
+    public void csv(UUID actor,String action,UUID object,UUID pool,String purpose,String fields,int rows) {
+        db.sql("INSERT INTO governance_audit(id,actor_id,action,object_id,pool_id,purpose,csv_fields,csv_rows) VALUES (:id,:actor,:action,:object,:pool,:purpose,:fields,:rows)")
+            .param("id",UUID.randomUUID()).param("actor",actor).param("action",action).param("object",object).param("pool",pool).param("purpose",purpose).param("fields",fields).param("rows",rows).update();
     }
     private record Context(UUID pool,String purpose) {}
     public void candidate(UUID actor,UUID candidate,String action) {
@@ -35,10 +39,10 @@ public class AuditTrail {
         return tx.execute(t->{
             if(!db.sql("SELECT enabled FROM app_user WHERE id=:id FOR UPDATE").param("id",actor).query(Boolean.class).optional().orElse(false))throw new Rejected(HttpStatus.FORBIDDEN,"ACCOUNT_DISABLED");
             if(db.sql("SELECT COUNT(*) FROM global_role WHERE user_id=:id AND role='COMPLIANCE'").param("id",actor).query(Integer.class).single()==0)throw new Rejected(HttpStatus.FORBIDDEN,"AUDIT_PERMISSION_REQUIRED");
-            var sql=db.sql("SELECT sequence,id,actor_id,action,object_id,pool_id,purpose,occurred_at FROM governance_audit WHERE 1=1"
+            var sql=db.sql("SELECT sequence,id,actor_id,action,object_id,pool_id,purpose,occurred_at,csv_fields,csv_rows FROM governance_audit WHERE 1=1"
                 +(pool==null?"":" AND pool_id=:pool")+(before==null?"":" AND sequence<:before")+(action==null?"":" AND action=:action")+" ORDER BY sequence DESC LIMIT 51");
             if(pool!=null)sql=sql.param("pool",pool);if(before!=null)sql=sql.param("before",before);if(action!=null)sql=sql.param("action",action);
-            var values=sql.query((rs,n)->new Event(rs.getLong(1),rs.getObject(2,UUID.class),rs.getObject(3,UUID.class),rs.getString(4),rs.getObject(5,UUID.class),rs.getObject(6,UUID.class),rs.getString(7),rs.getObject(8,OffsetDateTime.class))).list();
+            var values=sql.query((rs,n)->new Event(rs.getLong(1),rs.getObject(2,UUID.class),rs.getObject(3,UUID.class),rs.getString(4),rs.getObject(5,UUID.class),rs.getObject(6,UUID.class),rs.getString(7),rs.getObject(8,OffsetDateTime.class),rs.getString(9),rs.getObject(10,Integer.class))).list();
             var page=values.stream().limit(50).toList();
             record(actor,"AUDIT_READ",null,pool,null);
             return new Page(page,values.size()>50?page.getLast().sequence():null);
