@@ -152,3 +152,7 @@ La maintenance arrête API et Keycloak avant les dumps des deux bases et la lect
 ### SH-34 — Export CSV autorisé
 
 Les résultats structurés et classés proposent une sélection CSV (50 profils maximum), avec champs choisis et permission explicite par vivier. Les contacts exigent aussi le rôle responsable recrutement ; les scores incluent contexte, critères, dates et poids historiques. Quotas glissants par acteur, lien de cinq minutes maximum à usage unique, recontrôle des droits et versions, neutralisation des formules et audit minimisé. Voir [la validation SH-34](validation/sh-34.md).
+
+## Qualification SH-35
+
+Une chaîne de recette hors production génère 16 documents synthétiques appariés, exécute les parseurs/OCR réels puis réutilise leurs blocs dans les services d'extraction, publication, recherche et scoring. Les vecteurs du modèle épinglé proviennent de la génération SH-16 en CI. Les assertions vérifient récupération et composantes identiques malgré les noms, âges et formats ; le rapport lié au commit conserve versions, empreintes et limites. Aucun endpoint, table métier ou attribut sensible de production n'est ajouté. Voir `validation/sh-35.md` pour la séparation entre décision technique et mise en service.

@@ -1,0 +1,15 @@
+{
+  "version": "sh35-synthetic-v1",
+  "synthetic": true,
+  "purpose": "Counterfactual non-interference; no real candidate data",
+  "variants": [
+    {"id": "baseline", "name": "Alpha Example", "age": 24},
+    {"id": "name-only", "name": "Beta Example", "age": 24},
+    {"id": "age-only", "name": "Alpha Example", "age": 58},
+    {"id": "name-and-age", "name": "Beta Example", "age": 58}
+  ],
+  "professionalLines": ["Title: Developer", "Skill: Java 2.5", "Experience: Java delivery"],
+  "formats": ["markdown", "docx-table", "pdf-text", "pdf-scan"],
+  "expectedSkill": "Java",
+  "expectedDeclaredLevel": "2.5"
+}
