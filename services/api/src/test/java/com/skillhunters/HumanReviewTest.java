@@ -1289,4 +1289,7 @@ class HumanReviewTest extends IdentityTestSupport {
             assertThat(List.of(a.get(10,java.util.concurrent.TimeUnit.SECONDS),b.get(10,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
         }
     }
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="SH35_FORMATS",matches=".+")
+    void syntheticCounterfactualsAndFormatsKeepRetrievalAndScoresIdentical() throws Exception {ModelEvaluationBenchmark.run(this);}
 }

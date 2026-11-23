@@ -47,6 +47,15 @@ jobs:
           docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
             --mount type=bind,source="$PWD",target=/workspace,readonly --workdir /workspace \
             skillhunters-worker-tests python -m unittest discover -s services/document-worker/tests -v
+      - name: Measure SH35 synthetic formats with real parsers
+        run: |
+          mkdir -p /tmp/sh35-output
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --user "$(id -u):$(id -g)" \
+            --mount type=bind,source="$PWD",target=/workspace,readonly \
+            --mount type=bind,source=/tmp/sh35-output,target=/output \
+            --workdir /workspace skillhunters-worker-tests \
+            python scripts/prepare_model_evaluation.py /output/formats.json
       - name: Qualify local CPU embeddings
         run: |
           python -m venv /tmp/embedding-venv
@@ -66,7 +75,16 @@ jobs:
           TEST_DB_USER: test
           TEST_DB_PASSWORD: local-test-only
           SH16_BENCHMARK_VECTORS: /tmp/sh16-vectors.json
+          SH35_FORMATS: /tmp/sh35-output/formats.json
         run: mvn -B -ntp verify
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sh35-model-evaluation
+          path: |
+            services/api/target/sh-35-evaluation.json
+            /tmp/sh35-output/formats.json
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
         with:

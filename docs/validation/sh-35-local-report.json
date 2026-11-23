@@ -1,0 +1,316 @@
+{
+  "schema" : "sh35-evaluation-v1",
+  "synthetic" : true,
+  "corpusSha256" : "a4a83ff6b6cc42008bbd92cfd3e09da883b52da38c6e9b2cc4847db44868536a",
+  "model" : "minilm-multilingual-e8f8c211-quint8-avx2-mean-l2-v2",
+  "modelManifestSha256" : "2892f6fb55b4d387d7158021678bac208275c775fceaed6c9c9cd4bf32ad32e0",
+  "commit" : "LOCAL_UNPUBLISHED",
+  "scoringRule" : "documented-skills-v1",
+  "extractorRules" : "sh09-rules-1",
+  "prompt" : "NONE_DETERMINISTIC_RULES",
+  "projection" : "professional-dictionary-mentions-v1",
+  "database" : "H2",
+  "parserRuntime" : {
+    "platform" : "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python" : "3.12.14",
+    "logicalCpus" : 9,
+    "pypdf" : "6.19.0",
+    "ocrVersions" : [ "tesseract 5.5.0", "pdftoppm version 26.05.0", "fra=ced037562e8c80c13122dece28dd477d399af80911a28791a66a63ac1e3445ca;eng=7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2" ]
+  },
+  "embeddingRuntime" : {
+    "platform" : "Linux-6.18.57-x86_64-with-glibc2.41",
+    "python" : "3.12.14",
+    "logicalCpus" : 9,
+    "inferenceThreads" : 1,
+    "loadSeconds" : 1.8765531469999814,
+    "encodeSeconds" : 0.14734365599997545,
+    "maxRssKiB" : 492448
+  },
+  "java" : "21.0.13",
+  "cases" : [ {
+    "case" : "markdown/baseline",
+    "format" : "markdown",
+    "documentSha256" : "5aa738f836e8a6df8ac40c124c245061ea8075f5ae769e515d5f04ec24f36d2f",
+    "parserMillis" : 0.379,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "docx-table/baseline",
+    "format" : "docx-table",
+    "documentSha256" : "16844221481f82a4b0060c8785d8646595a8ccca1baa32daf9331b632e2612b0",
+    "parserMillis" : 0.542,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-text/baseline",
+    "format" : "pdf-text",
+    "documentSha256" : "9eb9b505fec09ae6df5bf777cfc57175c12f5c8e72d7215a791f3885ad5a50e1",
+    "parserMillis" : 1.084,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-scan/baseline",
+    "format" : "pdf-scan",
+    "documentSha256" : "3bb71a9884fcd29918045f7e00601b67a5df458e6a0aad460b9b555800a65f19",
+    "parserMillis" : 884.595,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "markdown/name-only",
+    "format" : "markdown",
+    "documentSha256" : "27c2f08976069316cd595f9553ae9bdd8e725a1ed3f4a7285c174f7db56749a7",
+    "parserMillis" : 0.062,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "docx-table/name-only",
+    "format" : "docx-table",
+    "documentSha256" : "5dae8bf8492dbe2e0f194096bb5599b4473d4feed119f6e5716a7a39ac66227d",
+    "parserMillis" : 0.31,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-text/name-only",
+    "format" : "pdf-text",
+    "documentSha256" : "1a5b26bd2d4e431363d30ab6a0efbbae7f698d3a3dd63741b975caa0cd3099a0",
+    "parserMillis" : 1.066,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-scan/name-only",
+    "format" : "pdf-scan",
+    "documentSha256" : "98974220eacea723762637d075869db8ce2f3a3760e583172145c13bbcc2372e",
+    "parserMillis" : 701.202,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "markdown/age-only",
+    "format" : "markdown",
+    "documentSha256" : "4e1292f6616138326c76a085aa02af54685630262610db26fe8a872295c00899",
+    "parserMillis" : 0.248,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "docx-table/age-only",
+    "format" : "docx-table",
+    "documentSha256" : "5a92cccc471693f87012cf8d09c98dc79c0fa0cf09dfb1db77f0e341eda70299",
+    "parserMillis" : 0.263,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-text/age-only",
+    "format" : "pdf-text",
+    "documentSha256" : "1d698c008a0cc3b3cf7682d6329f8586d478524fc00bf5289c9d4c3f249a380e",
+    "parserMillis" : 1.072,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-scan/age-only",
+    "format" : "pdf-scan",
+    "documentSha256" : "a6f57d921543126ab4857d3a96b838dd5512fe923e40d847857d7f952900fc9e",
+    "parserMillis" : 874.283,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "markdown/name-and-age",
+    "format" : "markdown",
+    "documentSha256" : "38b42a48216479a1ffd85634ba1959560ce4d653a3138e9c83b181919422641d",
+    "parserMillis" : 0.093,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "docx-table/name-and-age",
+    "format" : "docx-table",
+    "documentSha256" : "d13e603b035f3457a4ca342e4ed2caaac50b206ab54331a6c1098da7eefc5a01",
+    "parserMillis" : 0.364,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-text/name-and-age",
+    "format" : "pdf-text",
+    "documentSha256" : "977fe54b8c5afbe347be366a63c33d6f53e9368c313d5faf7c7613ef8a363085",
+    "parserMillis" : 0.917,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  }, {
+    "case" : "pdf-scan/name-and-age",
+    "format" : "pdf-scan",
+    "documentSha256" : "a4f79ca676324045322b69df010c96bfd6a986605384f5977f3aa7a4b5bb2479",
+    "parserMillis" : 721.627,
+    "skillExact" : true,
+    "declaredLevelExact" : true
+  } ],
+  "referenceSearches" : [ {
+    "returned" : 16,
+    "scenario" : "positive",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "negative",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "unknown-duration",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "positive",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 0,
+    "scenario" : "negative",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "unknown-duration",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 0,
+    "weights" : {
+      "version" : "skills-35-15-20-10-v1",
+      "required" : 35,
+      "desired" : 15,
+      "experience" : 20,
+      "recency" : 10
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "positive",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "negative",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "unknown-duration",
+    "hybrid" : false,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "positive",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 0,
+    "scenario" : "negative",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  }, {
+    "returned" : 16,
+    "scenario" : "unknown-duration",
+    "hybrid" : true,
+    "pairedRetrievalDifferences" : 0,
+    "configuration" : 1,
+    "weights" : {
+      "version" : "pool-20000000-0000-0000-0000-000000000001/scoring-1",
+      "required" : 2,
+      "desired" : 1,
+      "experience" : 3,
+      "recency" : 4
+    },
+    "maxScoreDelta" : 0
+  } ],
+  "encodedLabels" : [ "Java", "Python" ],
+  "technicalDecision" : "PASS_BOUNDED_SYNTHETIC_SUITE",
+  "productionDecision" : "NOT_APPROVED_BY_THIS_REPORT",
+  "limits" : [ "16 synthetic simple-layout documents; no population-level fairness claim", "Legacy DOC and complex/noisy layouts not paired here", "Parser and application are joined through a fixture transport; AV/OIDC covered separately", "UUID tie order is not an identity feature; equal score does not imply equal rank", "Independent authorized corpus, operational jurisdiction and 10000-profile capacity remain unqualified" ]
+}
