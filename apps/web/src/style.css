@@ -76,3 +76,6 @@
 .csv-export fieldset { min-width: 0; }
 .csv-export input[type=checkbox] { width: auto; }
 .csv-export legend { max-width: 100%; white-space: normal; }
+
+[aria-label="Suivi opérationnel des imports"] fieldset { min-width:0; }
+[aria-label="Suivi opérationnel des imports"] input[type="checkbox"] { width:auto; }

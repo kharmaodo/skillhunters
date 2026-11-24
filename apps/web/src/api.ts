@@ -20,6 +20,9 @@ export async function api<T>(path: string, options: RequestInit = {}, csrfToken?
 }
 export function message(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'ANALYSIS_CHANGED') return 'Cette tâche a changé. Actualisez le suivi avant de relancer.';
+    if (error.code === 'ANALYSIS_RETRY_LIMIT') return 'La limite de trois relances humaines est atteinte. Une investigation est nécessaire.';
+    if (error.code === 'INVALID_OPERATION_RETRY') return 'Choisissez la cause résolue avant la relance.';
     if (error.code === 'CSV_EXPORT_EXPIRED' || error.code === 'CSV_EXPORT_NOT_FOUND' || error.code === 'CSV_SELECTION_REMOVED') return 'Ce lien est expiré, déjà utilisé ou sa sélection a été supprimée. Préparez un nouveau CSV.';
     if (error.code === 'CSV_SELECTION_CHANGED') return 'Une fiche ou sa version active a changé. Vérifiez votre sélection puis préparez un nouveau CSV.';
     if (error.code === 'CSV_FIELD_FORBIDDEN') return 'Une colonne demandée n’est plus autorisée. Rechargez les options d’export.';

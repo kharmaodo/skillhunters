@@ -190,3 +190,9 @@ La version initiale est créée transactionnellement au premier accès ; son aut
 `csv_export_ticket` conserve seulement propriétaire, vivier, référence facultative au classement, noms de champs, finalité bornée, nombre de lignes et échéances. `csv_export_member` garde les identifiants, versions et ordre choisis. Aucun CSV ni valeur personnelle supplémentaire n'est persisté. Les FK physiques vers utilisateur, vivier, classement et candidat sont en cascade ; perdre un membre invalide toute la sélection. Nettoyage des tickets consommés/expirés chaque minute. Le téléchargement recontrôle les droits et les versions, puis consomme le ticket dans la même transaction que l'audit.
 
 `governance_audit.csv_fields/csv_rows` complètent la finalité existante pour `CSV_EXPORT_CREATED` et `CSV_EXPORT_DOWNLOADED`. L'audit append-only porte les quotas glissants par acteur (20 préparations / 500 lignes / 24 h) : le nettoyage des liens ne réinitialise pas les quotas. Les références de l'audit survivent aux suppressions conformément à SH-30 ; aucun contenu exporté n'y figure.
+
+## SH-36 — suivi des imports (V31)
+
+`document_analysis` ajoute `version` pour les relances conditionnelles, `manual_retries` (trois cycles manuels au maximum, y compris via l'ancien endpoint) et `lease_recoveries`. Les anciennes relances HUMAN_RETRY sont reprises dans le compteur, plafonné à trois. Chaque prise de bail, transition terminale ou relance incrémente la version.
+
+`document_analysis_event.duration_ms` mesure la durée des tentatives terminées avec un bail valide ; les événements antérieurs gardent une durée inconnue. L'index date/import sert la fenêtre de 24 h. Les événements suivent l'effacement de leur source : les agrégats ne constituent pas un historique exhaustif. Aucun texte documentaire supplémentaire n'est conservé. Voir [SH-36](../validation/sh-36.md).

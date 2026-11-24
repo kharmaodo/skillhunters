@@ -79,3 +79,5 @@ SH-29 fournit les [procédures d’exploitation et restauration](docs/operations
 Les résultats structurés et classés proposent une sélection CSV (50 profils maximum), avec champs choisis et permission explicite par vivier. Les contacts exigent aussi le rôle responsable recrutement ; les scores incluent contexte, critères, dates et poids historiques. Quotas glissants par acteur, lien de cinq minutes maximum à usage unique, recontrôle des droits et versions, neutralisation des formules et audit minimisé. Voir [la validation SH-34](docs/validation/sh-34.md).
 
 SH-35 ajoute une [évaluation contrefactuelle multi-format](docs/validation/sh-35.md), exécutée en CI avec parseurs/OCR et vecteurs ONNX réels. Les rapports distinguent invariants techniques mesurés et décision de production restant à qualifier.
+
+SH-36 ajoute le [suivi opérationnel des imports](docs/validation/sh-36.md) : métriques par vivier, file des échecs et relance contrôlée, réservés aux administrateurs explicitement membres du vivier.
