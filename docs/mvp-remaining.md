@@ -1,10 +1,10 @@
 # Recensement MVP — 24 novembre 2026
 
-Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #36 (SH-35). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
+Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #37 (SH-36). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
 
 ## Tickets livrés dans develop
 
-32 tickets avec livraison identifiée, sous réserve des qualifications et limites ci-dessous.
+33 tickets avec livraison identifiée, sous réserve des qualifications et limites ci-dessous.
 
 | Ticket | État |
 |---|---|
@@ -46,13 +46,13 @@ Référence : backlog du dossier de conception, documentation de validation et �
 
 | SH-35 — Évaluation des biais et modèles | Fusionné — PR #36 ; suite technique multi-format, qualification de production encore ouverte |
 
-## Tickets MVP sans livraison complète identifiée
+| SH-36 — Suivi opérationnel des imports | Fusionné — PR #37 ; métriques par vivier, file paginée, relances contrôlées et reprise de bail |
 
-| Ticket | État au début de cette livraison | Travail restant |
-|---|---|---|
-| SH-36 — Suivi opérationnel des imports | En cours sur `feature/sh-36-import-operations` | Métriques agrégées, file morte, relance contrôlée et recette de reprise après expiration de bail |
+## Recette globale restant ouverte
 
-Soit **1 ticket** non encore livré dans `develop` : SH-36. La suite technique SH-35 ne clôt pas à elle seule les qualifications sur corpus représentatif et la décision de mise en production.
+**0 ticket MVP sans livraison identifiée ; 33 tickets livrés avec leurs limites documentées.** Cela ne signifie pas que tous les critères globaux sont acceptés. La [matrice de recette globale](validation/mvp-acceptance.md) suit les 14 critères du dossier de conception, les preuves techniques et les qualifications manquantes.
+
+La suite technique SH-35 ne clôt pas les qualifications sur corpus représentatif ni la décision de mise en production.
 
 ## Compléments de tickets déjà fusionnés
 
@@ -63,6 +63,6 @@ Soit **1 ticket** non encore livré dans `develop` : SH-36. La suite technique S
 
 ## Ordre proposé
 
-SH-36 puis recette globale et qualification de production. Les tests de qualité et d'exploitation peuvent être préparés en continu ; la clôture dépend de leurs preuves, pas de l'ordre numérique.
+Recette globale, puis qualification de production selon la matrice dédiée. Les tests de qualité et d'exploitation peuvent être préparés en continu ; la clôture dépend de leurs preuves, pas de l'ordre numérique.
 
 Hors MVP : SH-17, SH-23, SH-27, SH-37 et SH-38 (R1) ; SH-39, SH-40 et SH-41 (R2).

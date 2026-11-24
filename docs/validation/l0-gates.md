@@ -1,5 +1,7 @@
 # Gates du lot L0
 
+> État historique du lot L0, conservé pour traçabilité. Pour l’état courant après les 33 livraisons MVP, consulter la [recette globale](mvp-acceptance.md).
+
 | Gate | État dans cette livraison | Preuve ou travail restant |
 |---|---|---|
 | Stack et maquette | Validées | Décisions du 8 octobre 2026 |
