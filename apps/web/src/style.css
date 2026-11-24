@@ -82,3 +82,5 @@
 
 .import-operations { min-inline-size: 0; overflow-wrap: anywhere; }
 .import-operations button, .import-operations legend { max-inline-size: 100%; overflow-wrap: anywhere; }
+.sidebar { overflow-y: auto; }
+.sidebar > * { flex-shrink: 0; }

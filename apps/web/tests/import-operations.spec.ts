@@ -1,5 +1,6 @@
 import {test,expect} from '@playwright/test';
 for(const width of [1280,320])test(`scoped operations metrics and controlled retry UI at ${width}px`,async({page})=>{
+ let uiCsrf='';page.on('response',async response=>{if(new URL(response.url()).pathname==='/api/v1/session'&&response.status()===200)uiCsrf=(await response.json()).csrfToken;});
  await page.setViewportSize({width,height:900});await page.goto('/');await page.getByRole('link',{name:'Se connecter avec le compte professionnel'}).click();await page.locator('#username').fill('admin-demo');await page.locator('#password').fill(process.env.DEMO_PASSWORD!);await page.locator('#kc-login').click();await expect(page.getByRole('heading',{name:'Mes viviers',exact:true})).toBeVisible();
  const session=await(await page.request.get('/api/v1/session')).json();const headers={'X-CSRF-TOKEN':session.csrfToken};
  const pools=await(await page.request.get('/api/v1/admin/pools')).json();const pool=pools[0].id;
@@ -16,7 +17,7 @@ for(const width of [1280,320])test(`scoped operations metrics and controlled ret
   const base=`/api/v1/admin/pools/${pool}/import-operations`;
   await page.route(`**${base}/jobs?*`,route=>route.fulfill({json:{items:accepted?[]:[{id,version,state:'FAILED',attempts:3,manualRetries:0,leaseRecoveries:1,code:'WORKER_UNAVAILABLE',updatedAt:'2026-11-24T08:00:00Z',leaseUntil:null,retryable:true}],nextCursor:null}}));
   await page.route(`**${base}/jobs/${id}/retry`,async route=>{
-   expect(route.request().headers()['x-csrf-token']).toBe(session.csrfToken);expect(route.request().headers()['if-match']).toBe(`"${version}"`);expect(route.request().postDataJSON()).toEqual({reason:'CONFIGURATION_FIXED'});attempts++;
+   expect(uiCsrf).not.toBe('');expect(route.request().headers()['x-csrf-token']).toBe(uiCsrf);expect(route.request().headers()['if-match']).toBe(`"${version}"`);expect(route.request().postDataJSON()).toEqual({reason:'CONFIGURATION_FIXED'});attempts++;
    if(attempts===1){version++;await route.fulfill({status:412,json:{code:'ANALYSIS_CHANGED'}});}else{accepted=true;await route.fulfill({status:202,json:{id,version:version+1,state:'PENDING'}});}
   });
   await region.getByRole('button',{name:'Actualiser le suivi',exact:true}).click();
