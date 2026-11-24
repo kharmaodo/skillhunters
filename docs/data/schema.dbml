@@ -60,6 +60,9 @@ Table import_batch {
  indexes { (actor_id, idempotency_key) [unique] }
 }
 Table processing_job {
+ version bigint [not null, default: 0]
+ manual_retries int [not null, default: 0]
+ lease_recoveries int [not null, default: 0]
  id uuid [pk]
  batch_id uuid [not null, ref: > import_batch.id]
  document_id uuid [not null, ref: > document_version.id]

@@ -13,6 +13,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class AnalysisService {
     private final com.skillhunters.retention.RetentionGuard retention;
+    private final com.skillhunters.governance.AuditTrail audit;
     public record Status(String state, int attempts, String code, String parserVersion, String avVersion,
                          OffsetDateTime updatedAt, DocumentAnalyzer.Result result) {}
     public record Job(UUID id, UUID actor, UUID pool, UUID token, String key, String type, String sha, long size) {}
@@ -23,8 +24,8 @@ public class AnalysisService {
     private final DocumentAnalyzer analyzer;
     private final ObjectMapper json;
     public AnalysisService(JdbcClient db, TransactionTemplate tx, ImportService imports, QuarantineStorage storage,
-            DocumentAnalyzer analyzer, ObjectMapper json,com.skillhunters.retention.RetentionGuard retention) {
-        this.retention=retention;
+            DocumentAnalyzer analyzer, ObjectMapper json,com.skillhunters.retention.RetentionGuard retention,com.skillhunters.governance.AuditTrail audit) {
+        this.retention=retention;this.audit=audit;
         this.db=db; this.tx=tx; this.imports=imports; this.storage=storage; this.analyzer=analyzer; this.json=json;
     }
     private OffsetDateTime now() { return OffsetDateTime.now(ZoneOffset.UTC); }
@@ -47,13 +48,17 @@ public class AnalysisService {
         return tx.execute(status -> {
             var receipt=imports.get(actor,id); imports.lockActor(actor,receipt.poolId());
             if(!receipt.expiresAt().isAfter(now())) throw new Rejected(HttpStatus.CONFLICT,"IMPORT_EXPIRED");
+            if(!retention.ready())throw new Rejected(HttpStatus.SERVICE_UNAVAILABLE,"RETENTION_REPLAY_PENDING");
+            db.sql("SELECT id FROM retention_mutex WHERE id=1 FOR UPDATE").query(Integer.class).single();retention.live(id);
+            if(db.sql("SELECT manual_retries FROM document_analysis WHERE import_id=:id FOR UPDATE").param("id",id).query(Integer.class).optional().orElse(0)>=3)
+                throw new Rejected(HttpStatus.TOO_MANY_REQUESTS,"ANALYSIS_RETRY_LIMIT");
             int changed=db.sql("""
-                UPDATE document_analysis SET state='PENDING',attempts=0,requested_by=:actor,code=NULL,
+                UPDATE document_analysis SET state='PENDING',attempts=0,manual_retries=manual_retries+1,version=version+1,requested_by=:actor,code=NULL,
                 result_json=NULL,lease_token=NULL,lease_until=NULL,available_at=:now,updated_at=:now
                 WHERE import_id=:id AND state IN ('FAILED','RETRY','CANCELLED')
                 """).param("actor",actor).param("id",id).param("now",now()).update();
             if(changed==0) throw new Rejected(HttpStatus.CONFLICT,"ANALYSIS_NOT_RETRYABLE");
-            event(id,"PENDING","HUMAN_RETRY");
+            event(id,"PENDING","HUMAN_RETRY");audit.record(actor,"ANALYSIS_RETRY",id,receipt.poolId(),"HUMAN_RETRY");
             db.sql("INSERT INTO document_audit(id,import_id,actor_id,action) VALUES (:event,:id,:actor,'ANALYSIS_RETRY')")
                 .param("event",UUID.randomUUID()).param("id",id).param("actor",actor).update();
             return get(actor,id);
@@ -94,21 +99,24 @@ public class AnalysisService {
             }
             if((int)r[1]>=3) { terminal(id,"FAILED","ATTEMPTS_EXHAUSTED"); return null; }
             UUID token=UUID.randomUUID();
-            db.sql("UPDATE document_analysis SET state='RUNNING',attempts=attempts+1,lease_token=:token,lease_until=:lease,updated_at=:now,code=NULL WHERE import_id=:id")
-                .param("token",token).param("lease",now().plusMinutes(6)).param("now",now()).param("id",id).update();
-            event(id,"RUNNING",null);
+            db.sql("UPDATE document_analysis SET state='RUNNING',attempts=attempts+1,version=version+1,lease_recoveries=lease_recoveries+:recovered,lease_token=:token,lease_until=:lease,updated_at=:now,code=NULL WHERE import_id=:id")
+                .param("recovered",state.equals("RUNNING")?1:0).param("token",token).param("lease",now().plusMinutes(6)).param("now",now()).param("id",id).update();
+            event(id,"RUNNING",state.equals("RUNNING")?"LEASE_EXPIRED":null);
+            if(state.equals("RUNNING"))audit.record(context.get()[0],"ANALYSIS_LEASE_RECOVERED",id,context.get()[1],"LEASE_EXPIRED");
             return new Job(id,context.get()[0],context.get()[1],token,(String)document[0],(String)document[1],(String)document[2],(long)document[3]);
         });
     }
     private void terminal(UUID id,String state,String code) {
-        db.sql("UPDATE document_analysis SET state=:state,code=:code,result_json=NULL,lease_token=NULL,lease_until=NULL,updated_at=:now WHERE import_id=:id")
+        db.sql("UPDATE document_analysis SET state=:state,version=version+1,code=:code,result_json=NULL,lease_token=NULL,lease_until=NULL,updated_at=:now WHERE import_id=:id")
             .param("state",state).param("code",code).param("now",now()).param("id",id).update();
         event(id,state,code);
     }
-    private void event(UUID id,String state,String code) {
-        db.sql("INSERT INTO document_analysis_event(id,import_id,state,code) VALUES (:event,:id,:state,:code)")
-            .param("event",UUID.randomUUID()).param("id",id).param("state",state).param("code",code).update();
+    private void event(UUID id,String state,String code) {event(id,state,code,null);}
+    private void event(UUID id,String state,String code,Long duration) {
+        db.sql("INSERT INTO document_analysis_event(id,import_id,state,code,duration_ms) VALUES (:event,:id,:state,:code,:duration)")
+            .param("event",UUID.randomUUID()).param("id",id).param("state",state).param("code",code).param("duration",duration).update();
     }
+    private record Attempt(int attempts,OffsetDateTime startedAt) {}
     public void runOnce() {
         Job job=claim(); if(job==null) return;
         DocumentAnalyzer.Result result;
@@ -127,22 +135,22 @@ public class AnalysisService {
         final DocumentAnalyzer.Result result=valid(proposed) ? proposed : new DocumentAnalyzer.Result("RETRY","INVALID_WORKER_RESULT",List.of(),List.of(),null,null);
         tx.executeWithoutResult(status -> {
             boolean permitted=allowed(job.actor(),job.pool());
-            var row=db.sql("SELECT attempts FROM document_analysis WHERE import_id=:id AND lease_token=:token AND state='RUNNING' AND lease_until>:now FOR UPDATE")
-                .param("id",job.id()).param("token",job.token()).param("now",now()).query(Integer.class).optional();
+            var row=db.sql("SELECT attempts,updated_at FROM document_analysis WHERE import_id=:id AND lease_token=:token AND state='RUNNING' AND lease_until>:now FOR UPDATE")
+                .param("id",job.id()).param("token",job.token()).param("now",now()).query((rs,n)->new Attempt(rs.getInt(1),rs.getObject(2,OffsetDateTime.class))).optional();
             if(row.isEmpty()) return; // Expired/replaced lease or deleted source: never resurrect it.
             boolean live=db.sql("SELECT COUNT(*) FROM document_import WHERE id=:id AND pool_id=:pool AND state='QUARANTINED' AND expires_at>:now")
                 .param("id",job.id()).param("pool",job.pool()).param("now",now()).query(Integer.class).single()==1;
             if(!permitted || !live || retention.erased(job.id())) { terminal(job.id(),"CANCELLED","SOURCE_UNAVAILABLE"); return; }
-            String state=result.state().equals("RETRY") && row.get()>=3 ? "FAILED" : result.state();
+            String state=result.state().equals("RETRY") && row.get().attempts()>=3 ? "FAILED" : result.state();
             String serialized=null;
             try { if(Set.of("EXTRACTED","OCR_REQUIRED").contains(state)) serialized=json.writeValueAsString(result); }
             catch(Exception invalid) { throw new IllegalStateException("RESULT_SERIALIZATION"); }
             db.sql("""
-                UPDATE document_analysis SET state=:state,code=:code,result_json=:result,parser_version=:parser,av_version=:av,
+                UPDATE document_analysis SET state=:state,version=version+1,code=:code,result_json=:result,parser_version=:parser,av_version=:av,
                 lease_token=NULL,lease_until=NULL,available_at=:next,updated_at=:now WHERE import_id=:id
                 """).param("state",state).param("code",result.code()).param("result",serialized).param("parser",result.parserVersion())
-                .param("av",result.avVersion()).param("next",now().plusSeconds(60L*row.get())).param("now",now()).param("id",job.id()).update();
-            event(job.id(),state,result.code());
+                .param("av",result.avVersion()).param("next",now().plusSeconds(60L*row.get().attempts())).param("now",now()).param("id",job.id()).update();
+            event(job.id(),state,result.code(),Math.max(0,java.time.Duration.between(row.get().startedAt(),now()).toMillis()));
         });
     }
     private boolean validOcr(DocumentAnalyzer.Result r) {

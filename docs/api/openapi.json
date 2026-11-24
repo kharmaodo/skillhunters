@@ -7787,6 +7787,194 @@
           }
         }
       }
+    },
+    "/admin/pools/{poolId}/import-operations": {
+      "get": {
+        "operationId": "getImportOperationsMetrics",
+        "summary": "Scoped operational snapshot and retained-source transitions over rolling 24 hours",
+        "description": "Requires ADMIN and explicit pool membership. Counts cover non-expired retained sources only; deletion/expiry removes their history. Technical failure rate = FAILED / (EXTRACTED + OCR_REQUIRED + FAILED) transitions, null without denominator. Mean duration covers measured completed attempts; no inferred duration for abandoned leases. Alerts are local metadata, no external notification. No filenames or candidate text.",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operational metadata only; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportOperationsMetrics"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Enabled ADMIN role required"
+          },
+          "404": {
+            "description": "Explicit pool membership or live source unavailable"
+          }
+        }
+      }
+    },
+    "/admin/pools/{poolId}/import-operations/jobs": {
+      "get": {
+        "operationId": "listImportOperationsQueue",
+        "summary": "Paginated dead-letter and expired-lease metadata",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "FAILED",
+              "enum": [
+                "FAILED",
+                "CANCELLED",
+                "REJECTED",
+                "RETRY",
+                "EXPIRED_LEASE"
+              ]
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operational metadata only; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportOperationsPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Enabled ADMIN role required"
+          },
+          "404": {
+            "description": "Explicit pool membership or live source unavailable"
+          },
+          "400": {
+            "description": "Invalid queue or cursor"
+          }
+        }
+      }
+    },
+    "/admin/pools/{poolId}/import-operations/jobs/{importId}/retry": {
+      "post": {
+        "operationId": "retryImportOperation",
+        "summary": "Explicit version-checked retry of a failed or cancelled analysis",
+        "description": "ADMIN and pool membership required. Existing source only; retention replay must be ready. If-Match is the job version; any transition invalidates it. Three manual retries maximum per source shared with the legacy retry route. Resets the cycle of three automatic attempts; does not create a candidate. Rejected or running jobs cannot be retried. Actor, reason and source reference audited.",
+        "parameters": [
+          {
+            "name": "poolId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/CsrfToken"
+          },
+          {
+            "$ref": "#/components/parameters/IfMatch"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportOperationsRetry"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Operational metadata only; Cache-Control: no-store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportOperationsJob"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session required"
+          },
+          "403": {
+            "description": "Enabled ADMIN role required"
+          },
+          "404": {
+            "description": "Explicit pool membership or live source unavailable"
+          },
+          "400": {
+            "description": "Missing or invalid reason"
+          },
+          "409": {
+            "description": "Job is not retryable"
+          },
+          "410": {
+            "description": "Source erased"
+          },
+          "412": {
+            "description": "Job version changed"
+          },
+          "428": {
+            "description": "If-Match required"
+          },
+          "429": {
+            "description": "Manual retry limit reached"
+          },
+          "503": {
+            "description": "Erasure replay not ready"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -15246,6 +15434,216 @@
             "maximum": 50
           }
         }
+      },
+      "ImportOperationsMetrics": {
+        "type": "object",
+        "properties": {
+          "observedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "states": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "expiredLeases": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "oldestWaitingSeconds": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "window": {
+            "type": "object",
+            "properties": {
+              "successful": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rejected": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "cancelled": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "automaticRetries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "manualRetries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "leaseRecoveries": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "meanAttemptMillis": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            },
+            "required": [
+              "successful",
+              "failed",
+              "rejected",
+              "cancelled",
+              "automaticRetries",
+              "manualRetries",
+              "leaseRecoveries",
+              "meanAttemptMillis"
+            ]
+          },
+          "technicalFailureRate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 1
+          },
+          "alerts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "EXPIRED_LEASES",
+                "DEAD_LETTER",
+                "WAIT_OVER_TEN_MINUTES",
+                "RETENTION_REPLAY_PENDING"
+              ]
+            }
+          }
+        },
+        "required": [
+          "observedAt",
+          "since",
+          "states",
+          "expiredLeases",
+          "oldestWaitingSeconds",
+          "window",
+          "technicalFailureRate",
+          "alerts"
+        ]
+      },
+      "ImportOperationsJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "state": {
+            "type": "string"
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "manualRetries": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 3
+          },
+          "leaseRecoveries": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Allowlisted operational code or OTHER, never raw worker messages."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "leaseUntil": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "retryable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "state",
+          "attempts",
+          "manualRetries",
+          "leaseRecoveries",
+          "code",
+          "updatedAt",
+          "leaseUntil",
+          "retryable"
+        ]
+      },
+      "ImportOperationsPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 25,
+            "items": {
+              "$ref": "#/components/schemas/ImportOperationsJob"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
+      "ImportOperationsRetry": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "enum": [
+              "WORKER_RECOVERED",
+              "CONFIGURATION_FIXED",
+              "SOURCE_ACCESS_RESTORED"
+            ]
+          }
+        },
+        "required": [
+          "reason"
+        ]
       }
     }
   }

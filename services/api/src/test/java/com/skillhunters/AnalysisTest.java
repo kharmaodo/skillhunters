@@ -121,4 +121,72 @@ class AnalysisTest extends IdentityTestSupport {
         migration.execute(db.getDataSource());
         assertThat(db.queryForObject("SELECT state FROM document_analysis",String.class)).isEqualTo("OCR_REQUIRED");
     }
+
+    @Autowired ImportOperations operations;
+    @Autowired com.skillhunters.documents.ExtractionService extraction;
+    @Autowired com.skillhunters.talent.CandidateService candidates;
+    void operator(){db.update("INSERT INTO membership(user_id,pool_id,role) VALUES (?,?,'RECRUITER')",admin,poolA);}
+    String operationsUrl(){return "/api/v1/admin/pools/"+poolA+"/import-operations";}
+    void failedJob(){db.update("UPDATE document_analysis SET state='FAILED',attempts=3,code='WORKER_UNAVAILABLE' WHERE import_id=?",id);}
+    @Test void operationsRequireAdminAndExplicitPoolAndNeverReturnCandidateContent() throws Exception {
+        mvc.perform(get(operationsUrl()).with(as("alice"))).andExpect(status().isForbidden());
+        mvc.perform(get(operationsUrl()).with(as("admin"))).andExpect(status().isNotFound());operator();failedJob();
+        db.update("UPDATE document_analysis SET code='PRIVATE_MARKER',result_json='secret extracted text'");
+        String response=mvc.perform(get(operationsUrl()+"/jobs").with(as("admin"))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
+            .andExpect(jsonPath("$.items[0].code").value("OTHER")).andReturn().getResponse().getContentAsString();
+        assertThat(response).doesNotContain("PRIVATE_MARKER","secret extracted text","synthetic.md","result_json","object_key");
+        mvc.perform(get("/api/v1/admin/pools/"+poolB+"/import-operations/jobs").with(as("admin"))).andExpect(status().isNotFound());
+        db.update("DELETE FROM membership WHERE user_id=?",admin);
+        mvc.perform(get(operationsUrl()).with(as("admin"))).andExpect(status().isNotFound());
+    }
+    @Test void operationMetricsMeasureOutcomesDurationAndExpiredLeaseWithoutInferringAnEmptyRate() {
+        operator();var empty=operations.metrics(admin,poolA);assertThat(empty.technicalFailureRate()).isNull();assertThat(empty.window().meanAttemptMillis()).isNull();
+        var job=analysis.claim();db.update("UPDATE document_analysis SET updated_at=? WHERE import_id=?",java.time.OffsetDateTime.now().minusSeconds(2),id);analysis.complete(job,success());
+        var done=operations.metrics(admin,poolA);assertThat(done.window().successful()).isEqualTo(1);assertThat(done.window().meanAttemptMillis()).isGreaterThanOrEqualTo(1900);assertThat(done.technicalFailureRate()).isZero();
+        db.update("UPDATE document_import SET expires_at=created_at WHERE id=?",id);
+        assertThat(operations.metrics(admin,poolA).states().values()).allMatch(n->n==0);assertThat(operations.queue(admin,poolA,ImportOperations.Queue.FAILED,null).items()).isEmpty();
+    }
+    @Test void operatorRetryIsCsrfVersionAndReasonProtectedAndBoundedAcrossBothRoutes() throws Exception {
+        operator();failedJob();String route=operationsUrl()+"/jobs/"+id+"/retry",body="{\"reason\":\"WORKER_RECOVERED\"}";
+        mvc.perform(post(route).with(as("admin")).header("If-Match","\"0\"").contentType("application/json").content(body)).andExpect(status().isForbidden());
+        mvc.perform(post(route).with(as("admin")).with(csrf()).contentType("application/json").content(body)).andExpect(status().isPreconditionRequired());
+        mvc.perform(post(route).with(as("admin")).with(csrf()).header("If-Match","\"0\"").contentType("application/json").content("{}")).andExpect(status().isBadRequest());
+        mvc.perform(post(route).with(as("admin")).with(csrf()).header("If-Match","\"0\"").contentType("application/json").content(body)).andExpect(status().isAccepted()).andExpect(jsonPath("$.version").value(1));
+        mvc.perform(post(route).with(as("admin")).with(csrf()).header("If-Match","\"0\"").contentType("application/json").content(body)).andExpect(status().isPreconditionFailed());
+        for(int n=0;n<2;n++){failedJob();analysis.retry(alice,id);}failedJob();
+        assertThatThrownBy(()->analysis.retry(alice,id)).isInstanceOfSatisfying(com.skillhunters.shared.ApiProblem.Rejected.class,e->assertThat(e.code).isEqualTo("ANALYSIS_RETRY_LIMIT"));
+        assertThat(operations.queue(admin,poolA,ImportOperations.Queue.FAILED,null).items().getFirst().retryable()).isFalse();
+        assertThat(operations.metrics(admin,poolA).window().manualRetries()).isEqualTo(3);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=? AND action='IMPORT_OPERATIONS_RETRY' AND purpose='WORKER_RECOVERED'",Integer.class,id)).isEqualTo(1);
+    }
+    @Test void operatorCannotRetrySecurityRejectedOrExpiredSourcesOrDuringErasureReplay() {
+        operator();db.update("UPDATE document_analysis SET state='REJECTED',code='ANTIVIRUS_BLOCKED'");
+        var request=new ImportOperations.RetryRequest(ImportOperations.Reason.WORKER_RECOVERED);
+        assertThatThrownBy(()->operations.retry(admin,poolA,id,"\"0\"",request)).isInstanceOfSatisfying(com.skillhunters.shared.ApiProblem.Rejected.class,e->assertThat(e.code).isEqualTo("ANALYSIS_NOT_RETRYABLE"));
+        failedJob();retentionGuard.ready(false);
+        assertThatThrownBy(()->operations.retry(admin,poolA,id,"\"0\"",request)).isInstanceOfSatisfying(com.skillhunters.shared.ApiProblem.Rejected.class,e->assertThat(e.code).isEqualTo("RETENTION_REPLAY_PENDING"));retentionGuard.ready(true);
+        db.update("UPDATE document_import SET expires_at=created_at WHERE id=?",id);
+        assertThatThrownBy(()->operations.retry(admin,poolA,id,"\"0\"",request)).isInstanceOfSatisfying(com.skillhunters.shared.ApiProblem.Rejected.class,e->assertThat(e.code).isEqualTo("IMPORT_NOT_FOUND"));
+    }
+    @Test void stoppedWorkerLeaseRecoversWithoutCreatingAnotherActiveCandidate() {
+        operator();var first=analysis.claim();db.update("UPDATE document_analysis SET lease_until=?",java.time.OffsetDateTime.now().minusSeconds(1));
+        assertThat(operations.metrics(admin,poolA).expiredLeases()).isEqualTo(1);
+        assertThat(operations.queue(admin,poolA,ImportOperations.Queue.EXPIRED_LEASE,null).items()).hasSize(1);
+        var second=analysis.claim();analysis.complete(first,success());assertThat(analysis.get(alice,id).state()).isEqualTo("RUNNING");
+        analysis.complete(second,success());var revision=extraction.prepare(alice,id);var candidate=candidates.create(alice,id,revision.id());
+        analysis.complete(first,success());assertThat(analysis.claim()).isNull();
+        assertThat(candidates.create(alice,id,revision.id()).id()).isEqualTo(candidate.id());
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM candidate_profile WHERE active_version=TRUE",Integer.class)).isEqualTo(1);
+        assertThat(db.queryForObject("SELECT lease_recoveries FROM document_analysis WHERE import_id=?",Integer.class,id)).isEqualTo(1);
+        assertThat(operations.metrics(admin,poolA).window().leaseRecoveries()).isEqualTo(1);
+        assertThat(db.queryForObject("SELECT COUNT(*) FROM governance_audit WHERE object_id=? AND action='ANALYSIS_LEASE_RECOVERED'",Integer.class,id)).isEqualTo(1);
+    }
+    @Test void concurrentOperatorRetriesHaveOnlyOneAcceptedVersion() throws Exception {
+        operator();failedJob();var start=new java.util.concurrent.CountDownLatch(1);
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+            java.util.concurrent.Callable<Boolean> attempt=()->{start.await();try{operations.retry(admin,poolA,id,"\"0\"",new ImportOperations.RetryRequest(ImportOperations.Reason.WORKER_RECOVERED));return true;}catch(com.skillhunters.shared.ApiProblem.Rejected e){assertThat(e.code).isEqualTo("ANALYSIS_CHANGED");return false;}};
+            var first=executor.submit(attempt);var second=executor.submit(attempt);start.countDown();assertThat(List.of(first.get(10,java.util.concurrent.TimeUnit.SECONDS),second.get(10,java.util.concurrent.TimeUnit.SECONDS))).containsExactlyInAnyOrder(true,false);
+        }
+        assertThat(db.queryForObject("SELECT manual_retries FROM document_analysis WHERE import_id=?",Integer.class,id)).isEqualTo(1);
+    }
 }
