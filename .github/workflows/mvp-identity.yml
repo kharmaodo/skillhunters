@@ -63,6 +63,7 @@ jobs:
           /tmp/embedding-venv/bin/python services/embedding-worker/download_model.py /tmp/embedding-model
           MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python -m unittest discover -s services/embedding-worker/tests -v
           MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python scripts/prepare_hybrid_benchmark.py /tmp/sh16-vectors.json
+          MODEL_DIRECTORY=/tmp/embedding-model /tmp/embedding-venv/bin/python scripts/prepare_ranking_vectors.py /tmp/ranking-vectors.json
       - name: Build frontend
         working-directory: apps/web
         run: npm ci --no-audit --no-fund && npm run build
@@ -77,9 +78,12 @@ jobs:
           SH16_BENCHMARK_VECTORS: /tmp/sh16-vectors.json
           SH35_FORMATS: /tmp/sh35-output/formats.json
           RANKING_CORPUS: "true"
+          RANKING_VECTORS: /tmp/ranking-vectors.json
         run: mvn -B -ntp verify
       - name: Measure normalized production rankings
         run: python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json services/api/target/ranking-results.json services/api/target/ranking-report.json
+      - name: Measure hybrid production rankings
+        run: python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json services/api/target/ranking-hybrid-results.json services/api/target/ranking-hybrid-report.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -87,6 +91,7 @@ jobs:
           path: |
             services/api/target/ranking-*.json
             tests/fixtures/ranking/*.json
+            /tmp/ranking-vectors.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()

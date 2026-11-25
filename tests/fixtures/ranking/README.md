@@ -11,3 +11,7 @@ Le test ne lit pas les grades pour choisir ou trier les résultats. Il collecte 
 Ce corpus vérifie le mécanisme de classement structuré, pas la compréhension de CV libres, le parsing multi-format, le mode hybride, l'équité en population ni la capacité à 10 000 profils. Ces qualifications restent ouvertes même avec 100 % sur ce jeu construit. Aucun parseur ou score applicatif n'a été ajusté en fonction de ces jugements dans cet incrément.
 
 La première répétition locale, avec les deux requêtes négatives non strictes, a produit Recall@20 = 1, nDCG@10 = 1 et 200 résultats sans pertinence pour ces deux requêtes : le mode non strict conserve normalement les profils sans preuve. Le protocole a été corrigé pour demander explicitement le mode strict sur ces deux cas, sans modifier les grades ni le code applicatif. Il ne s’agit donc pas d’un jeu tenu à l’écart après une mesure exploratoire.
+
+## Extension hybride
+
+Les mêmes entrées sont désormais collectées dans un second benchmark avec les vecteurs ONNX réels préparés hors Java. Le dictionnaire commun comprend aussi COBOL et Fortran pour rendre les deux requêtes négatives valides en mode hybride. Aucun texte ni jugement du corpus n'est modifié. Les limites « pas de mode hybride » ci-dessus décrivent la première livraison structurée ; l'extension couvre maintenant l'union des canaux sur ces requêtes exactes, sans qualifier la sémantique libre. Voir le protocole dans `docs/validation/ranking-qualification.md`.
