@@ -177,6 +177,9 @@ class HumanReviewTest extends IdentityTestSupport {
     @Test
     @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="RANKING_CORPUS",matches="true")
     void normalizedCorpusCollectsProductionRankings() throws Exception {RankingCorpusBenchmark.run(this);}
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="RANKING_VECTORS",matches=".+")
+    void normalizedCorpusCollectsRealHybridRankings() throws Exception {RankingCorpusBenchmark.run(this,true);}
     @Test void hybridCursorRejectsAChangedThreshold() {
         var q=searchQuery(false,"Java",null);
         String cursor=Base64.getUrlEncoder().withoutPadding().encodeToString((com.skillhunters.search.EmbeddingPort.MODEL+"|0.65|opaque").getBytes(java.nio.charset.StandardCharsets.UTF_8));

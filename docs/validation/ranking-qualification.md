@@ -47,3 +47,23 @@ python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json \
 ```
 
 La CI active ce test sur PostgreSQL, calcule les métriques et conserve l'artefact `ranking-qualification` pendant 14 jours (configuration, entrées, résultats, rapport). Elle échoue si les objectifs proposés ne passent pas sur ce corpus technique. Sans `RANKING_CORPUS=true`, le benchmark est explicitement ignoré. Les mesures locales utilisent H2 par défaut et doivent être distinguées du rapport PostgreSQL CI. Ne pas substituer un commit propre aux mesures d'un arbre modifié ; relancer après commit.
+
+## Extension hybride avec modèle local réel
+
+Le même corpus et les mêmes jugements sont également mesurés en mode hybride. Le dictionnaire des deux modes inclut les vingt compétences documentaires et les deux compétences des requêtes négatives : le mode hybride exige un terme reconnu même lorsqu'aucun profil ne le documente. Les jugements ne sont ni recalculés ni ajustés selon les résultats.
+
+`scripts/prepare_ranking_vectors.py` utilise l'Engine ONNX de production avec son manifeste épinglé pour encoder ces 22 libellés. Le benchmark refuse un corpus/modèle incohérent, des dimensions ou normes invalides et tout libellé hors catalogue. Les textes des profils et les identités n'entrent pas dans le port d'encodage. L'inférence est réelle ; seul son transport vers le test Java est un adaptateur de fixture. Les requêtes, publications, indexation et scoring utilisent les services applicatifs. H2 est une mesure locale distincte ; la CI exécute PostgreSQL/pgvector.
+
+Après installation du worker d'embeddings et de son modèle selon SH-16 :
+
+```sh
+MODEL_DIRECTORY=/chemin/modele /chemin/venv/bin/python scripts/prepare_ranking_vectors.py /tmp/ranking-vectors.json
+RANKING_VECTORS=/tmp/ranking-vectors.json RANKING_COMMIT=$(git rev-parse HEAD) \
+  mvn -f services/api/pom.xml -Dtest=HumanReviewTest#normalizedCorpusCollectsRealHybridRankings test
+python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json \
+  services/api/target/ranking-hybrid-results.json services/api/target/ranking-hybrid-report-nouveau.json
+```
+
+`ranking-hybrid-configuration.json` conserve modèle/manifeste, empreinte des vecteurs, runtime d'inférence, projection, stratégie, seuil 0,65, libellés effectivement encodés et nombres de signaux par canal. Les deux rapports et les vecteurs figurent dans l'artefact CI `ranking-qualification`. Sans `RANKING_VECTORS`, ce second benchmark est explicitement ignoré ; la CI le fournit obligatoirement.
+
+Les requêtes restent des compétences exactes et leurs combinaisons : cette extension vérifie que l'union des canaux préserve le classement documenté. Elle ne prouve pas un gain sémantique sur des paraphrases libres. Les annotations indépendantes, formats complexes, latences et qualification de production restent ouverts. L'ordre UUID entre profils de même pertinence peut différer entre exécutions ; comparer les métriques et le périmètre, pas une égalité arbitraire des listes.
