@@ -1,0 +1,951 @@
+{
+  "version": "ranking-normalized-v1",
+  "synthetic": true,
+  "annotation": "Authored from explicit skill membership before application execution; no independent human validation. Grades: required+desired 3, required only 2, desired only 1, neither 0; single criterion present 3.",
+  "skills": [
+    "Java",
+    "Python",
+    "Go",
+    "Rust",
+    "Kotlin",
+    "Scala",
+    "TypeScript",
+    "JavaScript",
+    "Csharp",
+    "Ruby",
+    "PHP",
+    "Swift",
+    "Dart",
+    "SQL",
+    "Kafka",
+    "Docker",
+    "Kubernetes",
+    "React",
+    "Angular",
+    "Vue"
+  ],
+  "profiles": [
+    {
+      "id": "d000",
+      "skills": [
+        "Java",
+        "Python"
+      ],
+      "text": "Titre : Profil synthétique d000\nCompétence : Java\nCompétence : Python\n"
+    },
+    {
+      "id": "d001",
+      "skills": [
+        "Java",
+        "Python"
+      ],
+      "text": "Titre : Profil synthétique d001\nCompétence : Java\nCompétence : Python\n"
+    },
+    {
+      "id": "d002",
+      "skills": [
+        "Java"
+      ],
+      "text": "Titre : Profil synthétique d002\nCompétence : Java\n"
+    },
+    {
+      "id": "d003",
+      "skills": [
+        "Java"
+      ],
+      "text": "Titre : Profil synthétique d003\nCompétence : Java\n"
+    },
+    {
+      "id": "d004",
+      "skills": [
+        "Java"
+      ],
+      "text": "Titre : Profil synthétique d004\nCompétence : Java\n"
+    },
+    {
+      "id": "d010",
+      "skills": [
+        "Python",
+        "Go"
+      ],
+      "text": "Titre : Profil synthétique d010\nCompétence : Python\nCompétence : Go\n"
+    },
+    {
+      "id": "d011",
+      "skills": [
+        "Python",
+        "Go"
+      ],
+      "text": "Titre : Profil synthétique d011\nCompétence : Python\nCompétence : Go\n"
+    },
+    {
+      "id": "d012",
+      "skills": [
+        "Python"
+      ],
+      "text": "Titre : Profil synthétique d012\nCompétence : Python\n"
+    },
+    {
+      "id": "d013",
+      "skills": [
+        "Python"
+      ],
+      "text": "Titre : Profil synthétique d013\nCompétence : Python\n"
+    },
+    {
+      "id": "d014",
+      "skills": [
+        "Python"
+      ],
+      "text": "Titre : Profil synthétique d014\nCompétence : Python\n"
+    },
+    {
+      "id": "d020",
+      "skills": [
+        "Go",
+        "Rust"
+      ],
+      "text": "Titre : Profil synthétique d020\nCompétence : Go\nCompétence : Rust\n"
+    },
+    {
+      "id": "d021",
+      "skills": [
+        "Go",
+        "Rust"
+      ],
+      "text": "Titre : Profil synthétique d021\nCompétence : Go\nCompétence : Rust\n"
+    },
+    {
+      "id": "d022",
+      "skills": [
+        "Go"
+      ],
+      "text": "Titre : Profil synthétique d022\nCompétence : Go\n"
+    },
+    {
+      "id": "d023",
+      "skills": [
+        "Go"
+      ],
+      "text": "Titre : Profil synthétique d023\nCompétence : Go\n"
+    },
+    {
+      "id": "d024",
+      "skills": [
+        "Go"
+      ],
+      "text": "Titre : Profil synthétique d024\nCompétence : Go\n"
+    },
+    {
+      "id": "d030",
+      "skills": [
+        "Rust",
+        "Kotlin"
+      ],
+      "text": "Titre : Profil synthétique d030\nCompétence : Rust\nCompétence : Kotlin\n"
+    },
+    {
+      "id": "d031",
+      "skills": [
+        "Rust",
+        "Kotlin"
+      ],
+      "text": "Titre : Profil synthétique d031\nCompétence : Rust\nCompétence : Kotlin\n"
+    },
+    {
+      "id": "d032",
+      "skills": [
+        "Rust"
+      ],
+      "text": "Titre : Profil synthétique d032\nCompétence : Rust\n"
+    },
+    {
+      "id": "d033",
+      "skills": [
+        "Rust"
+      ],
+      "text": "Titre : Profil synthétique d033\nCompétence : Rust\n"
+    },
+    {
+      "id": "d034",
+      "skills": [
+        "Rust"
+      ],
+      "text": "Titre : Profil synthétique d034\nCompétence : Rust\n"
+    },
+    {
+      "id": "d040",
+      "skills": [
+        "Kotlin",
+        "Scala"
+      ],
+      "text": "Titre : Profil synthétique d040\nCompétence : Kotlin\nCompétence : Scala\n"
+    },
+    {
+      "id": "d041",
+      "skills": [
+        "Kotlin",
+        "Scala"
+      ],
+      "text": "Titre : Profil synthétique d041\nCompétence : Kotlin\nCompétence : Scala\n"
+    },
+    {
+      "id": "d042",
+      "skills": [
+        "Kotlin"
+      ],
+      "text": "Titre : Profil synthétique d042\nCompétence : Kotlin\n"
+    },
+    {
+      "id": "d043",
+      "skills": [
+        "Kotlin"
+      ],
+      "text": "Titre : Profil synthétique d043\nCompétence : Kotlin\n"
+    },
+    {
+      "id": "d044",
+      "skills": [
+        "Kotlin"
+      ],
+      "text": "Titre : Profil synthétique d044\nCompétence : Kotlin\n"
+    },
+    {
+      "id": "d050",
+      "skills": [
+        "Scala",
+        "TypeScript"
+      ],
+      "text": "Titre : Profil synthétique d050\nCompétence : Scala\nCompétence : TypeScript\n"
+    },
+    {
+      "id": "d051",
+      "skills": [
+        "Scala",
+        "TypeScript"
+      ],
+      "text": "Titre : Profil synthétique d051\nCompétence : Scala\nCompétence : TypeScript\n"
+    },
+    {
+      "id": "d052",
+      "skills": [
+        "Scala"
+      ],
+      "text": "Titre : Profil synthétique d052\nCompétence : Scala\n"
+    },
+    {
+      "id": "d053",
+      "skills": [
+        "Scala"
+      ],
+      "text": "Titre : Profil synthétique d053\nCompétence : Scala\n"
+    },
+    {
+      "id": "d054",
+      "skills": [
+        "Scala"
+      ],
+      "text": "Titre : Profil synthétique d054\nCompétence : Scala\n"
+    },
+    {
+      "id": "d060",
+      "skills": [
+        "TypeScript",
+        "JavaScript"
+      ],
+      "text": "Titre : Profil synthétique d060\nCompétence : TypeScript\nCompétence : JavaScript\n"
+    },
+    {
+      "id": "d061",
+      "skills": [
+        "TypeScript",
+        "JavaScript"
+      ],
+      "text": "Titre : Profil synthétique d061\nCompétence : TypeScript\nCompétence : JavaScript\n"
+    },
+    {
+      "id": "d062",
+      "skills": [
+        "TypeScript"
+      ],
+      "text": "Titre : Profil synthétique d062\nCompétence : TypeScript\n"
+    },
+    {
+      "id": "d063",
+      "skills": [
+        "TypeScript"
+      ],
+      "text": "Titre : Profil synthétique d063\nCompétence : TypeScript\n"
+    },
+    {
+      "id": "d064",
+      "skills": [
+        "TypeScript"
+      ],
+      "text": "Titre : Profil synthétique d064\nCompétence : TypeScript\n"
+    },
+    {
+      "id": "d070",
+      "skills": [
+        "JavaScript",
+        "Csharp"
+      ],
+      "text": "Titre : Profil synthétique d070\nCompétence : JavaScript\nCompétence : Csharp\n"
+    },
+    {
+      "id": "d071",
+      "skills": [
+        "JavaScript",
+        "Csharp"
+      ],
+      "text": "Titre : Profil synthétique d071\nCompétence : JavaScript\nCompétence : Csharp\n"
+    },
+    {
+      "id": "d072",
+      "skills": [
+        "JavaScript"
+      ],
+      "text": "Titre : Profil synthétique d072\nCompétence : JavaScript\n"
+    },
+    {
+      "id": "d073",
+      "skills": [
+        "JavaScript"
+      ],
+      "text": "Titre : Profil synthétique d073\nCompétence : JavaScript\n"
+    },
+    {
+      "id": "d074",
+      "skills": [
+        "JavaScript"
+      ],
+      "text": "Titre : Profil synthétique d074\nCompétence : JavaScript\n"
+    },
+    {
+      "id": "d080",
+      "skills": [
+        "Csharp",
+        "Ruby"
+      ],
+      "text": "Titre : Profil synthétique d080\nCompétence : Csharp\nCompétence : Ruby\n"
+    },
+    {
+      "id": "d081",
+      "skills": [
+        "Csharp",
+        "Ruby"
+      ],
+      "text": "Titre : Profil synthétique d081\nCompétence : Csharp\nCompétence : Ruby\n"
+    },
+    {
+      "id": "d082",
+      "skills": [
+        "Csharp"
+      ],
+      "text": "Titre : Profil synthétique d082\nCompétence : Csharp\n"
+    },
+    {
+      "id": "d083",
+      "skills": [
+        "Csharp"
+      ],
+      "text": "Titre : Profil synthétique d083\nCompétence : Csharp\n"
+    },
+    {
+      "id": "d084",
+      "skills": [
+        "Csharp"
+      ],
+      "text": "Titre : Profil synthétique d084\nCompétence : Csharp\n"
+    },
+    {
+      "id": "d090",
+      "skills": [
+        "Ruby",
+        "PHP"
+      ],
+      "text": "Titre : Profil synthétique d090\nCompétence : Ruby\nCompétence : PHP\n"
+    },
+    {
+      "id": "d091",
+      "skills": [
+        "Ruby",
+        "PHP"
+      ],
+      "text": "Titre : Profil synthétique d091\nCompétence : Ruby\nCompétence : PHP\n"
+    },
+    {
+      "id": "d092",
+      "skills": [
+        "Ruby"
+      ],
+      "text": "Titre : Profil synthétique d092\nCompétence : Ruby\n"
+    },
+    {
+      "id": "d093",
+      "skills": [
+        "Ruby"
+      ],
+      "text": "Titre : Profil synthétique d093\nCompétence : Ruby\n"
+    },
+    {
+      "id": "d094",
+      "skills": [
+        "Ruby"
+      ],
+      "text": "Titre : Profil synthétique d094\nCompétence : Ruby\n"
+    },
+    {
+      "id": "d100",
+      "skills": [
+        "PHP",
+        "Swift"
+      ],
+      "text": "Titre : Profil synthétique d100\nCompétence : PHP\nCompétence : Swift\n"
+    },
+    {
+      "id": "d101",
+      "skills": [
+        "PHP",
+        "Swift"
+      ],
+      "text": "Titre : Profil synthétique d101\nCompétence : PHP\nCompétence : Swift\n"
+    },
+    {
+      "id": "d102",
+      "skills": [
+        "PHP"
+      ],
+      "text": "Titre : Profil synthétique d102\nCompétence : PHP\n"
+    },
+    {
+      "id": "d103",
+      "skills": [
+        "PHP"
+      ],
+      "text": "Titre : Profil synthétique d103\nCompétence : PHP\n"
+    },
+    {
+      "id": "d104",
+      "skills": [
+        "PHP"
+      ],
+      "text": "Titre : Profil synthétique d104\nCompétence : PHP\n"
+    },
+    {
+      "id": "d110",
+      "skills": [
+        "Swift",
+        "Dart"
+      ],
+      "text": "Titre : Profil synthétique d110\nCompétence : Swift\nCompétence : Dart\n"
+    },
+    {
+      "id": "d111",
+      "skills": [
+        "Swift",
+        "Dart"
+      ],
+      "text": "Titre : Profil synthétique d111\nCompétence : Swift\nCompétence : Dart\n"
+    },
+    {
+      "id": "d112",
+      "skills": [
+        "Swift"
+      ],
+      "text": "Titre : Profil synthétique d112\nCompétence : Swift\n"
+    },
+    {
+      "id": "d113",
+      "skills": [
+        "Swift"
+      ],
+      "text": "Titre : Profil synthétique d113\nCompétence : Swift\n"
+    },
+    {
+      "id": "d114",
+      "skills": [
+        "Swift"
+      ],
+      "text": "Titre : Profil synthétique d114\nCompétence : Swift\n"
+    },
+    {
+      "id": "d120",
+      "skills": [
+        "Dart",
+        "SQL"
+      ],
+      "text": "Titre : Profil synthétique d120\nCompétence : Dart\nCompétence : SQL\n"
+    },
+    {
+      "id": "d121",
+      "skills": [
+        "Dart",
+        "SQL"
+      ],
+      "text": "Titre : Profil synthétique d121\nCompétence : Dart\nCompétence : SQL\n"
+    },
+    {
+      "id": "d122",
+      "skills": [
+        "Dart"
+      ],
+      "text": "Titre : Profil synthétique d122\nCompétence : Dart\n"
+    },
+    {
+      "id": "d123",
+      "skills": [
+        "Dart"
+      ],
+      "text": "Titre : Profil synthétique d123\nCompétence : Dart\n"
+    },
+    {
+      "id": "d124",
+      "skills": [
+        "Dart"
+      ],
+      "text": "Titre : Profil synthétique d124\nCompétence : Dart\n"
+    },
+    {
+      "id": "d130",
+      "skills": [
+        "SQL",
+        "Kafka"
+      ],
+      "text": "Titre : Profil synthétique d130\nCompétence : SQL\nCompétence : Kafka\n"
+    },
+    {
+      "id": "d131",
+      "skills": [
+        "SQL",
+        "Kafka"
+      ],
+      "text": "Titre : Profil synthétique d131\nCompétence : SQL\nCompétence : Kafka\n"
+    },
+    {
+      "id": "d132",
+      "skills": [
+        "SQL"
+      ],
+      "text": "Titre : Profil synthétique d132\nCompétence : SQL\n"
+    },
+    {
+      "id": "d133",
+      "skills": [
+        "SQL"
+      ],
+      "text": "Titre : Profil synthétique d133\nCompétence : SQL\n"
+    },
+    {
+      "id": "d134",
+      "skills": [
+        "SQL"
+      ],
+      "text": "Titre : Profil synthétique d134\nCompétence : SQL\n"
+    },
+    {
+      "id": "d140",
+      "skills": [
+        "Kafka",
+        "Docker"
+      ],
+      "text": "Titre : Profil synthétique d140\nCompétence : Kafka\nCompétence : Docker\n"
+    },
+    {
+      "id": "d141",
+      "skills": [
+        "Kafka",
+        "Docker"
+      ],
+      "text": "Titre : Profil synthétique d141\nCompétence : Kafka\nCompétence : Docker\n"
+    },
+    {
+      "id": "d142",
+      "skills": [
+        "Kafka"
+      ],
+      "text": "Titre : Profil synthétique d142\nCompétence : Kafka\n"
+    },
+    {
+      "id": "d143",
+      "skills": [
+        "Kafka"
+      ],
+      "text": "Titre : Profil synthétique d143\nCompétence : Kafka\n"
+    },
+    {
+      "id": "d144",
+      "skills": [
+        "Kafka"
+      ],
+      "text": "Titre : Profil synthétique d144\nCompétence : Kafka\n"
+    },
+    {
+      "id": "d150",
+      "skills": [
+        "Docker",
+        "Kubernetes"
+      ],
+      "text": "Titre : Profil synthétique d150\nCompétence : Docker\nCompétence : Kubernetes\n"
+    },
+    {
+      "id": "d151",
+      "skills": [
+        "Docker",
+        "Kubernetes"
+      ],
+      "text": "Titre : Profil synthétique d151\nCompétence : Docker\nCompétence : Kubernetes\n"
+    },
+    {
+      "id": "d152",
+      "skills": [
+        "Docker"
+      ],
+      "text": "Titre : Profil synthétique d152\nCompétence : Docker\n"
+    },
+    {
+      "id": "d153",
+      "skills": [
+        "Docker"
+      ],
+      "text": "Titre : Profil synthétique d153\nCompétence : Docker\n"
+    },
+    {
+      "id": "d154",
+      "skills": [
+        "Docker"
+      ],
+      "text": "Titre : Profil synthétique d154\nCompétence : Docker\n"
+    },
+    {
+      "id": "d160",
+      "skills": [
+        "Kubernetes",
+        "React"
+      ],
+      "text": "Titre : Profil synthétique d160\nCompétence : Kubernetes\nCompétence : React\n"
+    },
+    {
+      "id": "d161",
+      "skills": [
+        "Kubernetes",
+        "React"
+      ],
+      "text": "Titre : Profil synthétique d161\nCompétence : Kubernetes\nCompétence : React\n"
+    },
+    {
+      "id": "d162",
+      "skills": [
+        "Kubernetes"
+      ],
+      "text": "Titre : Profil synthétique d162\nCompétence : Kubernetes\n"
+    },
+    {
+      "id": "d163",
+      "skills": [
+        "Kubernetes"
+      ],
+      "text": "Titre : Profil synthétique d163\nCompétence : Kubernetes\n"
+    },
+    {
+      "id": "d164",
+      "skills": [
+        "Kubernetes"
+      ],
+      "text": "Titre : Profil synthétique d164\nCompétence : Kubernetes\n"
+    },
+    {
+      "id": "d170",
+      "skills": [
+        "React",
+        "Angular"
+      ],
+      "text": "Titre : Profil synthétique d170\nCompétence : React\nCompétence : Angular\n"
+    },
+    {
+      "id": "d171",
+      "skills": [
+        "React",
+        "Angular"
+      ],
+      "text": "Titre : Profil synthétique d171\nCompétence : React\nCompétence : Angular\n"
+    },
+    {
+      "id": "d172",
+      "skills": [
+        "React"
+      ],
+      "text": "Titre : Profil synthétique d172\nCompétence : React\n"
+    },
+    {
+      "id": "d173",
+      "skills": [
+        "React"
+      ],
+      "text": "Titre : Profil synthétique d173\nCompétence : React\n"
+    },
+    {
+      "id": "d174",
+      "skills": [
+        "React"
+      ],
+      "text": "Titre : Profil synthétique d174\nCompétence : React\n"
+    },
+    {
+      "id": "d180",
+      "skills": [
+        "Angular",
+        "Vue"
+      ],
+      "text": "Titre : Profil synthétique d180\nCompétence : Angular\nCompétence : Vue\n"
+    },
+    {
+      "id": "d181",
+      "skills": [
+        "Angular",
+        "Vue"
+      ],
+      "text": "Titre : Profil synthétique d181\nCompétence : Angular\nCompétence : Vue\n"
+    },
+    {
+      "id": "d182",
+      "skills": [
+        "Angular"
+      ],
+      "text": "Titre : Profil synthétique d182\nCompétence : Angular\n"
+    },
+    {
+      "id": "d183",
+      "skills": [
+        "Angular"
+      ],
+      "text": "Titre : Profil synthétique d183\nCompétence : Angular\n"
+    },
+    {
+      "id": "d184",
+      "skills": [
+        "Angular"
+      ],
+      "text": "Titre : Profil synthétique d184\nCompétence : Angular\n"
+    },
+    {
+      "id": "d190",
+      "skills": [
+        "Vue",
+        "Java"
+      ],
+      "text": "Titre : Profil synthétique d190\nCompétence : Vue\nCompétence : Java\n"
+    },
+    {
+      "id": "d191",
+      "skills": [
+        "Vue",
+        "Java"
+      ],
+      "text": "Titre : Profil synthétique d191\nCompétence : Vue\nCompétence : Java\n"
+    },
+    {
+      "id": "d192",
+      "skills": [
+        "Vue"
+      ],
+      "text": "Titre : Profil synthétique d192\nCompétence : Vue\n"
+    },
+    {
+      "id": "d193",
+      "skills": [
+        "Vue"
+      ],
+      "text": "Titre : Profil synthétique d193\nCompétence : Vue\n"
+    },
+    {
+      "id": "d194",
+      "skills": [
+        "Vue"
+      ],
+      "text": "Titre : Profil synthétique d194\nCompétence : Vue\n"
+    }
+  ],
+  "queries": [
+    {
+      "id": "q00",
+      "required": "Java",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q01",
+      "required": "Python",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q02",
+      "required": "Go",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q03",
+      "required": "Rust",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q04",
+      "required": "Kotlin",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q05",
+      "required": "Scala",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q06",
+      "required": "TypeScript",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q07",
+      "required": "JavaScript",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q08",
+      "required": "Csharp",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q09",
+      "required": "Ruby",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q10",
+      "required": "PHP",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q11",
+      "required": "Swift",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q12",
+      "required": "Dart",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q13",
+      "required": "SQL",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q14",
+      "required": "Kafka",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q15",
+      "required": "Docker",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q16",
+      "required": "Kubernetes",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q17",
+      "required": "React",
+      "desired": null,
+      "strict": false
+    },
+    {
+      "id": "q18",
+      "required": "Java",
+      "desired": "Python",
+      "strict": false
+    },
+    {
+      "id": "q19",
+      "required": "Go",
+      "desired": "Rust",
+      "strict": false
+    },
+    {
+      "id": "q20",
+      "required": "Kotlin",
+      "desired": "Scala",
+      "strict": false
+    },
+    {
+      "id": "q21",
+      "required": "TypeScript",
+      "desired": "JavaScript",
+      "strict": false
+    },
+    {
+      "id": "q22",
+      "required": "Csharp",
+      "desired": "Ruby",
+      "strict": false
+    },
+    {
+      "id": "q23",
+      "required": "PHP",
+      "desired": "Swift",
+      "strict": false
+    },
+    {
+      "id": "q24",
+      "required": "Dart",
+      "desired": "SQL",
+      "strict": false
+    },
+    {
+      "id": "q25",
+      "required": "Kafka",
+      "desired": "Docker",
+      "strict": false
+    },
+    {
+      "id": "q26",
+      "required": "Kubernetes",
+      "desired": "React",
+      "strict": false
+    },
+    {
+      "id": "q27",
+      "required": "Angular",
+      "desired": "Vue",
+      "strict": false
+    },
+    {
+      "id": "q28",
+      "required": "COBOL",
+      "desired": null,
+      "strict": true
+    },
+    {
+      "id": "q29",
+      "required": "Fortran",
+      "desired": null,
+      "strict": true
+    }
+  ]
+}

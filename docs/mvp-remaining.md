@@ -61,6 +61,10 @@ La suite technique SH-35 ne clôt pas les qualifications sur corpus représentat
 - **SH-16 / SH-18 / SH-19** : recherche et scoring livrés ; benchmark global Recall@20/nDCG@10, qualification multi-format et cible 10 000 profils demeurent des gates MVP non validés.
 - Les limites documentées dans les fiches `docs/validation/sh-*.md` restent applicables ; ce recensement ne constitue pas une nouvelle recette d'acceptation globale.
 
+## Qualification après livraison
+
+PR #38 (matrice de recette) et #39 (outil de calcul Recall@20/nDCG@10) fusionnées. Le [corpus normalisé et la collecte applicative](validation/ranking-qualification.md) prolongent cette qualification ; ils ne clôturent ni le corpus multi-format indépendant ni les performances à 10 000 profils.
+
 ## Ordre proposé
 
 Recette globale, puis qualification de production selon la matrice dédiée. Les tests de qualité et d'exploitation peuvent être préparés en continu ; la clôture dépend de leurs preuves, pas de l'ordre numérique.

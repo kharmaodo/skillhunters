@@ -32,3 +32,18 @@ Le rapport doit être un nouveau fichier et ne peut écraser une entrée. Code d
 - Objectifs proposés du dossier : ≥100 documents, ≥30 requêtes, Recall@20 ≥0,90 et nDCG@10 ≥0,80. L'outil ajoute l'absence de résultats inattendus pour les requêtes sans pertinent. Ces seuils restent à contractualiser ; il ne vérifie ni représentativité, ni indépendance du jeu, ni diversité suffisante des formats.
 
 Même si ces objectifs passent, `productionDecision` reste `NOT_APPROVED_BY_THIS_REPORT`. Les tests unitaires sont des oracles mathématiques synthétiques, pas une mesure de la pertinence de l'application. Aucun résultat global MVP n'est déclaré atteint par cette livraison. Prochaine étape : corpus de validation annoté indépendamment, collecte des classements réels et revue métier des résultats et des écarts.
+
+## Première collecte applicative : corpus normalisé
+
+Le [corpus normalisé v1](../../tests/fixtures/ranking/README.md) contient 100 profils et 30 requêtes, avec jugements exhaustifs figés. `RankingCorpusBenchmark`, exécuté via `HumanReviewTest`, collecte l'ordre réellement produit par SH-18/19 sur la recherche structurée après import et publication. Le transport du parseur est simulé ; aucun modèle vectoriel n'est invoqué. Cette mesure bornée ne couvre pas le corpus multi-format indépendant demandé pour la recette globale.
+
+Pour reproduire sur une révision propre (Java 21/Maven) :
+
+```sh
+RANKING_CORPUS=true RANKING_COMMIT=$(git rev-parse HEAD) \
+  mvn -f services/api/pom.xml -Dtest=HumanReviewTest#normalizedCorpusCollectsProductionRankings test
+python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json \
+  services/api/target/ranking-results.json services/api/target/ranking-report-nouveau.json
+```
+
+La CI active ce test sur PostgreSQL, calcule les métriques et conserve l'artefact `ranking-qualification` pendant 14 jours (configuration, entrées, résultats, rapport). Elle échoue si les objectifs proposés ne passent pas sur ce corpus technique. Sans `RANKING_CORPUS=true`, le benchmark est explicitement ignoré. Les mesures locales utilisent H2 par défaut et doivent être distinguées du rapport PostgreSQL CI. Ne pas substituer un commit propre aux mesures d'un arbre modifié ; relancer après commit.
