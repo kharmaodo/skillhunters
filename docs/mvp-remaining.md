@@ -1,6 +1,6 @@
-# Recensement MVP — 25 novembre 2026
+# Recensement MVP — 26 novembre 2026
 
-Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #40 (qualification structurée après SH-36). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
+Référence : backlog du dossier de conception, documentation de validation et état de `develop` après fusion de la PR #41 (qualification hybride après SH-36). Les 41 tickets comprennent 33 Must/MVP, 5 Should/R1 et 3 Could/R2. Une PR fusionnée portant un incrément ne vaut pas clôture de tous les critères du ticket.
 
 ## Tickets livrés dans develop
 
@@ -63,7 +63,7 @@ La suite technique SH-35 ne clôt pas les qualifications sur corpus représentat
 
 ## Qualification après livraison
 
-PR #38 (matrice de recette), #39 (outil de calcul Recall@20/nDCG@10) et #40 (corpus normalisé et collecte structurée) fusionnées. L’extension hybride avec embeddings réels est en cours. Le [corpus normalisé et la collecte applicative](validation/ranking-qualification.md) prolongent cette qualification ; ils ne clôturent ni le corpus multi-format indépendant ni les performances à 10 000 profils.
+PR #38 (matrice de recette), #39 (outil de calcul Recall@20/nDCG@10) et #40 (corpus normalisé et collecte structurée) fusionnées. PR #41 (extension hybride avec embeddings réels) fusionnée. La qualification sur quatre formats appariés avec parseurs/OCR réels est en cours. Le [corpus normalisé et la collecte applicative](validation/ranking-qualification.md) prolongent cette qualification ; ils ne clôturent ni le corpus multi-format indépendant ni les performances à 10 000 profils.
 
 ## Ordre proposé
 

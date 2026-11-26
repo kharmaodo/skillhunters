@@ -67,3 +67,27 @@ python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json \
 `ranking-hybrid-configuration.json` conserve modèle/manifeste, empreinte des vecteurs, runtime d'inférence, projection, stratégie, seuil 0,65, libellés effectivement encodés et nombres de signaux par canal. Les deux rapports et les vecteurs figurent dans l'artefact CI `ranking-qualification`. Sans `RANKING_VECTORS`, ce second benchmark est explicitement ignoré ; la CI le fournit obligatoirement.
 
 Les requêtes restent des compétences exactes et leurs combinaisons : cette extension vérifie que l'union des canaux préserve le classement documenté. Elle ne prouve pas un gain sémantique sur des paraphrases libres. Les annotations indépendantes, formats complexes, latences et qualification de production restent ouverts. L'ordre UUID entre profils de même pertinence peut différer entre exécutions ; comparer les métriques et le périmètre, pas une égalité arbitraire des listes.
+
+## Documents appariés et parseurs réels
+
+Après la PR #41, `prepare_ranking_formats.py` rend les 100 profils sous quatre formats simples : Markdown, DOCX en tableau (catégorie DOCX_FREE, pas le template métier), PDF texte et PDF scanné sans couche texte. Cela représente **400 fichiers appariés, pas 400 profils indépendants**. Les libellés anglais `Title`/`Skill` conservent les mêmes compétences annotées. Les générateurs PDF/DOCX sont ceux de SH-35 ; ils ne constituent pas une collection de CV libres réalistes. Le DOC historique et les PDF mixtes restent hors de cette extension.
+
+Chaque fichier traverse les vrais parseurs et, pour le scan, le vrai OCR FR/EN. Le rapport `ranking-formats.json` conserve les empreintes documentaires, blocs/citations, pages OCR, durée du parsing et versions des moteurs. Un scan sans provenance OCR est refusé. La CI exécute cette préparation dans l'image worker épinglée, sans réseau. L'antivirus et l'isolation sont contrôlés séparément par les recettes existantes ; le transport des blocs vers Java est un adaptateur de test.
+
+Quatre exécutions isolées réimportent les 100 profils, transmettent les blocs mesurés **sans correction**, puis exécutent extraction structurée, publication synthétique et classement hybride avec les vecteurs ONNX réels. Les grades restent ceux du corpus initial ; seul le champ format des documents est adapté dans une copie de jugements par format, avec sa propre empreinte. Les résultats ne sont ni mélangés ni moyennés entre formats.
+
+`ranking-FORMAT-extraction.json` mesure les compétences distinctes exactes avant publication : correctes/produites pour la précision et correctes/attendues pour le rappel, avec effectifs par cas. Les doublons identiques sont dédupliqués ; les autres champs ne sont pas qualifiés par ces deux mesures. Seuils techniques proposés : texte/DOCX/MD précision ≥0,95 et rappel ≥0,90 ; scan ≥0,85 pour les deux. Une absence totale d'extraction ne peut pas réussir. Chaque format produit aussi configuration, jugements, résultats et rapport Recall@20/nDCG@10 ; le CI exige les mêmes seuils du dossier séparément pour chacun.
+
+Reproduction : dans l'image worker selon la commande SH-35, lancer `python scripts/prepare_ranking_formats.py /output/ranking-formats.json`, puis, avec les vecteurs préparés selon la section précédente :
+
+```sh
+RANKING_FORMATS=/tmp/sh35-output/ranking-formats.json \
+RANKING_VECTORS=/tmp/ranking-vectors.json RANKING_COMMIT=$(git rev-parse HEAD) \
+  mvn -f services/api/pom.xml -Dtest=HumanReviewTest#pairedFormatsCollectRealHybridRankings test
+for format in MD DOCX_FREE PDF_TEXT PDF_SCAN; do
+  python3 scripts/evaluate_ranking.py "services/api/target/ranking-$format-judgments.json" \
+    "services/api/target/ranking-$format-results.json" "services/api/target/ranking-$format-report-nouveau.json"
+done
+```
+
+La CI conserve toutes ces preuves dans `ranking-qualification` pendant 14 jours, même les fichiers déjà produits avant un échec. Les métriques restent une qualification technique sur mises en page simples et annotations du même auteur. Elles ne clôturent pas la diversité FR/EN, les scans dégradés, le corpus indépendant, les intervalles statistiques représentatifs ni la capacité à 10 000 profils. La décision de production reste non approuvée par ces rapports.

@@ -56,6 +56,12 @@ jobs:
             --mount type=bind,source=/tmp/sh35-output,target=/output \
             --workdir /workspace skillhunters-worker-tests \
             python scripts/prepare_model_evaluation.py /output/formats.json
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            --user "$(id -u):$(id -g)" \
+            --mount type=bind,source="$PWD",target=/workspace,readonly \
+            --mount type=bind,source=/tmp/sh35-output,target=/output \
+            --workdir /workspace skillhunters-worker-tests \
+            python scripts/prepare_ranking_formats.py /output/ranking-formats.json
       - name: Qualify local CPU embeddings
         run: |
           python -m venv /tmp/embedding-venv
@@ -79,11 +85,17 @@ jobs:
           SH35_FORMATS: /tmp/sh35-output/formats.json
           RANKING_CORPUS: "true"
           RANKING_VECTORS: /tmp/ranking-vectors.json
+          RANKING_FORMATS: /tmp/sh35-output/ranking-formats.json
         run: mvn -B -ntp verify
       - name: Measure normalized production rankings
         run: python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json services/api/target/ranking-results.json services/api/target/ranking-report.json
       - name: Measure hybrid production rankings
         run: python3 scripts/evaluate_ranking.py tests/fixtures/ranking/judgments.json services/api/target/ranking-hybrid-results.json services/api/target/ranking-hybrid-report.json
+      - name: Measure paired-format production rankings
+        run: |
+          for format in MD DOCX_FREE PDF_TEXT PDF_SCAN; do
+            python3 scripts/evaluate_ranking.py "services/api/target/ranking-$format-judgments.json" "services/api/target/ranking-$format-results.json" "services/api/target/ranking-$format-report.json"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -92,6 +104,7 @@ jobs:
             services/api/target/ranking-*.json
             tests/fixtures/ranking/*.json
             /tmp/ranking-vectors.json
+            /tmp/sh35-output/ranking-formats.json
           retention-days: 14
       - uses: actions/upload-artifact@v4
         if: always()
