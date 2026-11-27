@@ -20,13 +20,34 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /** Normalized synthetic input; production extraction, publication, retrieval and ranking. */
 final class RankingCorpusBenchmark {
     static void run(HumanReviewTest h) throws Exception {run(h,false);}
-    static void run(HumanReviewTest h,boolean hybrid) throws Exception {
+    static void run(HumanReviewTest h,boolean hybrid) throws Exception {run(h,hybrid,null);}
+    static void run(HumanReviewTest h,boolean hybrid,String format) throws Exception {
         Path root=Path.of("../../tests/fixtures/ranking");
         var corpus=h.json.readTree(root.resolve("corpus.json").toFile());
         var judgments=h.json.readTree(root.resolve("judgments.json").toFile());
         assertThat(corpus.path("profiles").size()).isEqualTo(100);
         assertThat(corpus.path("queries").size()).isEqualTo(30);
         var judgedIds=new HashSet<String>();judgments.path("documents").forEach(d->judgedIds.add(d.path("id").asText()));
+        com.fasterxml.jackson.databind.JsonNode parsed=null;
+        var parsedCases=new HashMap<String,com.fasterxml.jackson.databind.JsonNode>();
+        if(format!=null) {
+            assertThat(format).isIn("MD","DOCX_FREE","PDF_TEXT","PDF_SCAN");
+            parsed=h.json.readTree(Path.of(System.getenv("RANKING_FORMATS")).toFile());
+            assertThat(parsed.path("schema").asText()).isEqualTo("ranking-formats-v1");
+            assertThat(parsed.path("synthetic").asBoolean()).isTrue();
+            assertThat(parsed.path("corpusSha256").asText()).isEqualTo(hash(Files.readAllBytes(root.resolve("corpus.json"))));
+            assertThat(parsed.path("cases").size()).isEqualTo(400);
+            var uniqueCases=new HashSet<String>();
+            for(var row:parsed.path("cases")) {
+                assertThat(row.path("format").asText()).isIn("MD","DOCX_FREE","PDF_TEXT","PDF_SCAN");
+                assertThat(judgedIds).contains(row.path("id").asText());
+                assertThat(uniqueCases.add(row.path("format").asText()+"/"+row.path("id").asText())).isTrue();
+                if(row.path("format").asText().equals(format))parsedCases.put(row.path("id").asText(),row);
+            }
+            assertThat(parsedCases.keySet()).isEqualTo(judgedIds);
+        }
+        int expectedSkills=0,extractedSkills=0,correctSkills=0;
+        var extractionRows=new ArrayList<Object>();
         var catalog=new TreeSet<String>();corpus.path("skills").forEach(skill->catalog.add(skill.asText()));
         corpus.path("queries").forEach(q->{catalog.add(q.path("required").asText());if(!q.path("desired").isNull())catalog.add(q.path("desired").asText());});
         var encodedLabels=new TreeSet<String>();
@@ -52,9 +73,19 @@ final class RankingCorpusBenchmark {
                 .file(new MockMultipartFile("basis","","application/json",("{\"source\":\"Synthetic ranking\",\"purpose\":\"Test\",\"basisCode\":\"TEST_ONLY\",\"retentionPolicyId\":\""+policy+"\"}").getBytes(StandardCharsets.UTF_8)))
                 .param("poolId",h.poolA.toString()).header("Idempotency-Key","ranking-"+key).with(h.as("alice")).with(csrf())).andExpect(status().isAccepted());
             h.id=h.db.queryForObject("SELECT id FROM document_import WHERE idempotency_key=?",UUID.class,"ranking-"+key);
-            doReturn(new DocumentAnalyzer.Result("EXTRACTED",null,List.of(new DocumentAnalyzer.Block("document",text)),List.of(),"normalized-fixture","ClamAV synthetic fixture transport"))
+            List<DocumentAnalyzer.Block> blocks=format==null?List.of(new DocumentAnalyzer.Block("document",text)):
+                h.json.convertValue(parsedCases.get(key).path("blocks"),new com.fasterxml.jackson.core.type.TypeReference<>(){});
+            List<DocumentAnalyzer.OcrPage> ocr=format==null?List.of():h.json.convertValue(parsedCases.get(key).path("ocr"),new com.fasterxml.jackson.core.type.TypeReference<>(){});
+            if("PDF_SCAN".equals(format)){assertThat(ocr).isNotEmpty();assertThat(blocks).allMatch(b->b.source().startsWith("ocr:"));}
+            doReturn(new DocumentAnalyzer.Result("EXTRACTED",null,blocks,List.of(),"measured-parser-fixture","ClamAV synthetic fixture transport",ocr))
                 .when(h.analyzer).analyze(any(),any(),any());
-            var candidate=h.create();h.reviews.save(h.alice,candidate.id(),"\"1\"",h.request(h.accepted(candidate.id())),true);
+            var candidate=h.create();
+            var actual=new TreeSet<String>();h.reviews.get(h.alice,candidate.id()).source().proposal().claims().stream()
+                .filter(c->c.field()==StructuredExtractor.Field.SKILL&&c.status()!=StructuredExtractor.State.UNKNOWN).forEach(c->actual.add(c.normalized()));
+            var expected=new TreeSet<String>();profile.path("skills").forEach(skill->expected.add(skill.asText()));
+            expectedSkills+=expected.size();extractedSkills+=actual.size();var correct=new TreeSet<>(actual);correct.retainAll(expected);correctSkills+=correct.size();
+            extractionRows.add(Map.of("id",key,"expected",expected.size(),"extracted",actual.size(),"correct",correct.size()));
+            h.reviews.save(h.alice,candidate.id(),"\"1\"",h.request(h.accepted(candidate.id())),true);
             assertThat(ids.put(candidate.id(),key)).isNull();
         }
         assertThat(new HashSet<>(ids.values())).isEqualTo(judgedIds);
@@ -95,12 +126,22 @@ final class RankingCorpusBenchmark {
         config.put("java",System.getProperty("java.version"));
         config.put("limitations",List.of("Normalized Markdown; parser transport mocked", "Synthetic authored annotations, not independent business judgment", "No multi-format quality or capacity qualification; exact-skill synthetic queries only"));
         Path target=Path.of("target");Files.createDirectories(target);
-        String prefix=hybrid?"ranking-hybrid":"ranking";
+        String prefix=format!=null?"ranking-"+format:hybrid?"ranking-hybrid":"ranking";
+        if(format!=null){config.put("format",format);config.put("parserRuntime",parsed.path("runtime"));config.put("parsedFormatsSha256",hash(Files.readAllBytes(Path.of(System.getenv("RANKING_FORMATS")))));config.put("limitations",List.of("Real parsers/OCR and ONNX; fixture transport only", "Simple paired synthetic layouts; no independent representative annotation or capacity qualification"));}
         var writer=h.json.writerWithDefaultPrettyPrinter();Path configuration=target.resolve(prefix+"-configuration.json");writer.writeValue(configuration.toFile(),config);
         String commit=Objects.toString(System.getenv("GITHUB_SHA"),System.getenv("RANKING_COMMIT"));
         assertThat(commit).as("GITHUB_SHA or RANKING_COMMIT must identify measured revision").matches("[0-9a-f]{40}");
         writer.writeValue(target.resolve(prefix+"-results.json").toFile(),Map.of("schemaVersion",1,"commit",commit,
             "configurationSha256",hash(Files.readAllBytes(configuration)),"judgmentsSha256",hash(Files.readAllBytes(root.resolve("judgments.json"))),"rankings",rankings));
+        if(format!=null) {
+            var measuredJudgments=judgments.deepCopy();measuredJudgments.path("documents").forEach(d->((com.fasterxml.jackson.databind.node.ObjectNode)d).put("format",format));
+            Path jp=target.resolve(prefix+"-judgments.json");writer.writeValue(jp.toFile(),measuredJudgments);
+            var result=h.json.readTree(target.resolve(prefix+"-results.json").toFile());((com.fasterxml.jackson.databind.node.ObjectNode)result).put("judgmentsSha256",hash(Files.readAllBytes(jp)));writer.writeValue(target.resolve(prefix+"-results.json").toFile(),result);
+            double precision=extractedSkills==0?0:(double)correctSkills/extractedSkills,recall=(double)correctSkills/expectedSkills;
+            writer.writeValue(target.resolve(prefix+"-extraction.json").toFile(),Map.of("format",format,"documents",100,"expectedSkills",expectedSkills,"extractedSkills",extractedSkills,"correctSkills",correctSkills,"precision",precision,"recall",recall,"cases",extractionRows,"productionDecision","NOT_APPROVED_BY_THIS_REPORT"));
+            assertThat(precision).isGreaterThanOrEqualTo(format.equals("PDF_SCAN")?.85:.95);
+            assertThat(recall).isGreaterThanOrEqualTo(format.equals("PDF_SCAN")?.85:.90);
+        }
     }
     private static String hash(byte[] bytes)throws Exception{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));}
 }

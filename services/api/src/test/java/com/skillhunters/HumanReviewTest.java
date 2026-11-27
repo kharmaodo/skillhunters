@@ -180,6 +180,10 @@ class HumanReviewTest extends IdentityTestSupport {
     @Test
     @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="RANKING_VECTORS",matches=".+")
     void normalizedCorpusCollectsRealHybridRankings() throws Exception {RankingCorpusBenchmark.run(this,true);}
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(strings={"MD","DOCX_FREE","PDF_TEXT","PDF_SCAN"})
+    @org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable(named="RANKING_FORMATS",matches=".+")
+    void pairedFormatsCollectRealHybridRankings(String format) throws Exception {RankingCorpusBenchmark.run(this,true,format);}
     @Test void hybridCursorRejectsAChangedThreshold() {
         var q=searchQuery(false,"Java",null);
         String cursor=Base64.getUrlEncoder().withoutPadding().encodeToString((com.skillhunters.search.EmbeddingPort.MODEL+"|0.65|opaque").getBytes(java.nio.charset.StandardCharsets.UTF_8));

@@ -15,3 +15,7 @@ La première répétition locale, avec les deux requêtes négatives non stricte
 ## Extension hybride
 
 Les mêmes entrées sont désormais collectées dans un second benchmark avec les vecteurs ONNX réels préparés hors Java. Le dictionnaire commun comprend aussi COBOL et Fortran pour rendre les deux requêtes négatives valides en mode hybride. Aucun texte ni jugement du corpus n'est modifié. Les limites « pas de mode hybride » ci-dessus décrivent la première livraison structurée ; l'extension couvre maintenant l'union des canaux sur ces requêtes exactes, sans qualifier la sémantique libre. Voir le protocole dans `docs/validation/ranking-qualification.md`.
+
+## Extension aux formats appariés
+
+Le générateur `scripts/prepare_ranking_formats.py` rend chaque profil en MD, DOCX/tableau, PDF texte et PDF scanné. Il mesure les vrais parseurs/OCR et conserve les blocs sans retouche. Les quatre benchmarks hybrides utilisent toujours les mêmes jugements, dans des jeux isolés de 100 profils ; seuls les labels de format des copies de jugements changent. Voir `docs/validation/ranking-qualification.md` pour mesures, seuils et limites. Les hypothèses de transport entièrement normalisé des premières livraisons ne décrivent pas ces nouveaux tests ; le transport Java reste simulé mais ses blocs proviennent maintenant des moteurs réels.
